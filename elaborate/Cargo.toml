@@ -1,0 +1,55 @@
+[package]
+name = "elaborate"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0"
+
+[dev-dependencies]
+assert_cmd = "2.0"
+ctor = "0.2"
+walkdir = "2.5"
+once_cell = "1.20"
+regex = "1.10"
+tempfile = "3.12"
+toml = "0.8"
+
+[features]
+anonymous_pipe = []
+buf_read_has_data_left = []
+bufread_skip_until = []
+can_vector = []
+exit_status_error = []
+junction_point = []
+linux_pidfd = []
+os_str_display = []
+os_str_slice = []
+os_string_pathbuf_leak = []
+panic_always_abort = []
+panic_update_hook = []
+panic_backtrace_config = []
+path_add_extension = []
+path_file_prefix = []
+peer_credentials_unix_socket = []
+raw_os_error_ty = []
+read_buf = []
+seek_stream_len = []
+tcp_deferaccept = []
+tcp_linger = []
+tcp_quickack = []
+tcplistener_into_incoming = []
+thread_sleep_until = []
+thread_spawn_unchecked = []
+unix_file_vectored_at = []
+unix_set_mark = []
+unix_socket_ancillary_data = []
+unix_socket_peek = []
+wasi_ext = []
+write_all_vectored = []
+
+default = ["__use_elaborate"]
+__use_elaborate = []
+
+[lints]
+workspace = true

@@ -1,0 +1,22 @@
+[workspace]
+members = ["elaborate", "generate"]
+resolver = "2"
+
+[patch.crates-io]
+public-api = { path = "../cargo-public-api/public-api" }
+
+[workspace.lints.rust.unexpected_cfgs]
+level = "warn"
+check-cfg = ["cfg(dylint_lib, values(any()))"]
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+missing_errors_doc = "allow"
+
+[[workspace.metadata.dylint.libraries]]
+git = "https://github.com/trailofbits/dylint"
+pattern = [
+    "examples/general",
+    "examples/supplementary",
+    "examples/restriction/inconsistent_qualification",
+]
