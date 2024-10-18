@@ -30,7 +30,7 @@ impl FunctionExt for Function {
     }
 
     fn input_is_trait_bound(&self, i: usize, trait_name: &str) -> bool {
-        let input_type = &self.decl.inputs[i].1;
+        let input_type = &self.sig.inputs[i].1;
         if_chain! {
             if let Type::ImplTrait(bounds) = input_type;
             if bounds.has_trait_bound_with_name(trait_name);
@@ -78,7 +78,7 @@ impl FunctionExt for Function {
     }
 
     fn input_requires_clone(&self, i: usize) -> bool {
-        let input_type = &self.decl.inputs[i].1;
+        let input_type = &self.sig.inputs[i].1;
         if_chain! {
             if let Type::ResolvedPath(path) = input_type;
             if path.name == "Permissions";

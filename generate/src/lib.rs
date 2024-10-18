@@ -206,7 +206,7 @@ impl Generator {
 
         let parents_of_instrumentable_functions = self.parents_of_instrumentable_functions();
 
-        for (id, public_items) in self.map.iter() {
+        for (&id, public_items) in self.map.iter() {
             let Some((function, has_result_output, has_option_output)) = self.is_function(id)
             else {
                 continue;
@@ -216,7 +216,7 @@ impl Generator {
             // `PublicItem`s' parents are in `parents_of_instrumentable_functions`, proceed.
             if !public_items.iter().any(|(parent_id, _)| {
                 if let Some(parent_id) = parent_id {
-                    parents_of_instrumentable_functions.contains(&parent_id)
+                    parents_of_instrumentable_functions.contains(parent_id)
                 } else {
                     false
                 }
@@ -226,7 +226,7 @@ impl Generator {
 
             let parent_id = self.map.parent_id(id).unwrap();
 
-            let parent_item = self.krate.index.get(parent_id).unwrap();
+            let parent_item = self.krate.index.get(&parent_id).unwrap();
 
             let has_sealed_trait_bound = match &parent_item.inner {
                 ItemEnum::Trait(trait_) => trait_.bounds.has_trait_bound_with_name("Sealed"),
@@ -355,11 +355,11 @@ impl Generator {
         Ok(())
     }
 
-    fn parents_of_instrumentable_functions(&self) -> HashSet<&Id> {
+    fn parents_of_instrumentable_functions(&self) -> HashSet<Id> {
         let mut parent_ids = HashSet::new();
-        for (id, public_items) in self.map.iter() {
+        for (&id, public_items) in self.map.iter() {
             for (parent_id, _) in public_items {
-                let Some(parent_id) = parent_id else {
+                let &Some(parent_id) = parent_id else {
                     continue;
                 };
                 if let Some((_, true, _) | (_, _, true)) = self.is_function(id) {
@@ -370,11 +370,11 @@ impl Generator {
         parent_ids
     }
 
-    fn is_function<'a>(&'a self, id: &Id) -> Option<(&'a Function, bool, bool)> {
+    fn is_function(&self, id: Id) -> Option<(&Function, bool, bool)> {
         let function = self.is_function_inner(id)?;
 
         let has_result_output = if_chain! {
-            if let Some(Type::ResolvedPath(path)) = &function.decl.output;
+            if let Some(Type::ResolvedPath(path)) = &function.sig.output;
             if path.name.ends_with("Result");
             // smoelius: `std::sync::BarrierWaitResult` is not a `std::result::Result`.
             if path.name != "BarrierWaitResult";
@@ -391,7 +391,7 @@ impl Generator {
         };
 
         let has_option_output = if_chain! {
-            if let Some(Type::ResolvedPath(path)) = &function.decl.output;
+            if let Some(Type::ResolvedPath(path)) = &function.sig.output;
             if path.name == "Option";
             then {
                 true
@@ -403,9 +403,9 @@ impl Generator {
         Some((function, has_result_output, has_option_output))
     }
 
-    fn is_function_inner<'a>(&'a self, id: &Id) -> Option<&'a Function> {
+    fn is_function_inner(&self, id: Id) -> Option<&Function> {
         if_chain! {
-            if let Some(item) = self.krate.index.get(id);
+            if let Some(item) = self.krate.index.get(&id);
             if let ItemEnum::Function(function) = &item.inner;
             then {
                 Some(function)
@@ -425,7 +425,7 @@ impl Generator {
         let mut disallowed = self.disallowed.borrow_mut();
 
         let disallowable_qualified_fn =
-            disallowable_qualified_fn(qualified_trait, qualified_struct, &fn_path, fn_suffix);
+            disallowable_qualified_fn(qualified_trait, qualified_struct, fn_path, fn_suffix);
 
         // smoelius: Disallowing `std::io::Write::write_fmt` causes Clippy to warn about `writeln!`.
         if disallowable_qualified_fn
@@ -469,20 +469,19 @@ impl Generator {
 fn item_attrs(
     krate: &Crate,
     map: &PublicItemMap,
-    id: &Id,
+    mut id: Id,
     walk_parents: bool,
     tokens: &[Token],
 ) -> Vec<String> {
     let mut attrs = Vec::new();
-    let mut id = id.clone();
     loop {
         let item = krate.index.get(&id).unwrap();
         attrs.extend(rewrite_attrs(&item.attrs));
         if !walk_parents {
             break;
         }
-        if let Some(parent_id) = map.parent_id_unchecked(&id) {
-            id = parent_id.clone();
+        if let Some(parent_id) = map.parent_id_unchecked(id) {
+            id = parent_id;
         } else {
             break;
         }
@@ -715,7 +714,7 @@ fn fn_def(
         if callable_qualified_fn == *needle {
             return format!(
                 "{}fn {} {{{implementation}}}",
-                if function.header.unsafe_ {
+                if function.header.is_unsafe {
                     "unsafe "
                 } else {
                     ""
@@ -733,7 +732,7 @@ fn fn_def(
     );
 
     let mut redeclarations = Vec::new();
-    for (i, (input_name, _)) in function.decl.inputs.iter().enumerate() {
+    for (i, (input_name, _)) in function.sig.inputs.iter().enumerate() {
         if let Some(method_name) = function.input_is_redeclarable(i) {
             redeclarations.push(format!(
                 "    let {input_name} = {input_name}.{method_name}();\n"
@@ -767,7 +766,7 @@ fn fn_def(
 {}
     {call}{instrumentation}{output_adjustment}
 }}",
-        if function.header.unsafe_ {
+        if function.header.is_unsafe {
             "unsafe "
         } else {
             ""
@@ -784,7 +783,7 @@ fn call_and_call_failed(
     callable_qualified_fn: &[Token],
 ) -> (String, String) {
     let simplified_self = function
-        .decl
+        .sig
         .inputs
         .first()
         .and_then(|(name, ty)| simplified_self(name, ty))
@@ -828,7 +827,7 @@ fn call_and_call_failed(
         ));
     }
 
-    for (i, (input_name, _)) in function.decl.inputs.iter().enumerate() {
+    for (i, (input_name, _)) in function.sig.inputs.iter().enumerate() {
         if let Some(self_inner) = (i == 0).then_some(()).and(self_inner.as_deref()) {
             call.push_str(self_inner);
 

@@ -80,7 +80,7 @@ macro_rules! ws {
     };
 }
 
-// smoelius: `simplified_self` was copied from:
+// smoelius: `simplified_self` was originally copied from:
 // https://github.com/cargo-public-api/cargo-public-api/blob/b6ec2e36010363206a223f5a97def697ebb558af/public-api/src/render.rs#L401-L428
 pub fn simplified_self(name: &str, ty: &Type) -> Option<Vec<Token>> {
     if name == "self" {
@@ -88,7 +88,7 @@ pub fn simplified_self(name: &str, ty: &Type) -> Option<Vec<Token>> {
             Type::Generic(name) if name == "Self" => Some(vec![Token::self_("self")]),
             Type::BorrowedRef {
                 lifetime,
-                mutable,
+                is_mutable,
                 type_,
             } => match type_.as_ref() {
                 Type::Generic(name) if name == "Self" => {
@@ -96,7 +96,7 @@ pub fn simplified_self(name: &str, ty: &Type) -> Option<Vec<Token>> {
                     if let Some(lt) = lifetime {
                         output.extend([Token::lifetime(lt), ws!()]);
                     }
-                    if *mutable {
+                    if *is_mutable {
                         output.extend([Token::keyword("mut"), ws!()]);
                     }
                     output.push(Token::self_("self"));

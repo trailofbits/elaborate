@@ -51,24 +51,20 @@ impl PublicItemMap {
         self.inner.iter()
     }
 
-    pub fn parent_id<'this>(&'this self, id: &Id) -> Option<&'this Id> {
+    pub fn parent_id(&self, id: Id) -> Option<Id> {
         self.parent_id_inner(id, true)
     }
 
     /// Like [`Self::parent_id`], but does not check for ambiguity among the parents' tokens
-    pub fn parent_id_unchecked<'this>(&'this self, id: &Id) -> Option<&'this Id> {
+    pub fn parent_id_unchecked(&self, id: Id) -> Option<Id> {
         self.parent_id_inner(id, false)
     }
 
-    fn parent_id_inner<'this>(
-        &'this self,
-        id: &Id,
-        check_for_ambiguity: bool,
-    ) -> Option<&'this Id> {
-        let public_items = self.inner.get(id).unwrap();
+    fn parent_id_inner(&self, id: Id, check_for_ambiguity: bool) -> Option<Id> {
+        let public_items = self.inner.get(&id).unwrap();
         let parent_ids = public_items
             .iter()
-            .flat_map(|(parent_id, _)| parent_id)
+            .filter_map(|&(parent_id, _)| parent_id)
             .collect::<HashSet<_>>();
         if parent_ids.is_empty() {
             return None;
@@ -111,8 +107,8 @@ parents: {:#?}",
         parent_ids.into_iter().next()
     }
 
-    pub fn tokens<'this>(&'this self, id: &Id) -> &'this [Token] {
-        let public_items = self.inner.get(id).unwrap();
+    pub fn tokens(&self, id: Id) -> &[Token] {
+        let public_items = self.inner.get(&id).unwrap();
         let tokens = public_items
             .iter()
             .map(|(_, tokens)| tokens)
@@ -139,9 +135,9 @@ parents: {:#?}",
                 continue;
             }
             self.inner
-                .entry(id.clone())
+                .entry(id)
                 .or_default()
-                .insert((public_item.parent_id().cloned(), tokens));
+                .insert((public_item.parent_id(), tokens));
         }
         write_discarded(&discarded)?;
         Ok(())
