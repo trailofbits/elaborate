@@ -216,8 +216,8 @@ impl Error {
     pub fn to_inner(&self) -> &std :: io :: Error {
         &self.inner
     }
-
-    
+}
+impl Error {
     pub fn into_inner(self) -> std :: io :: Error {
         self.inner
     }
@@ -227,13 +227,11 @@ impl<T> AsRef<T> for Error where std :: io :: Error: AsRef<T> {
         <std :: io :: Error as AsRef<T>>::as_ref(&self.inner)
     }
 }
-
 impl From<std :: io :: Error> for Error {
     fn from(value: std :: io :: Error) -> Self {
         Self { inner: value }
     }
 }
-
 impl crate::Elaborate for std :: io :: Error {
     type Output = Error;
     fn elaborate(self) -> Self::Output {
@@ -248,8 +246,8 @@ impl Stdin {
     pub fn to_inner(&self) -> &std :: io :: Stdin {
         &self.inner
     }
-
-    
+}
+impl Stdin {
     pub fn into_inner(self) -> std :: io :: Stdin {
         self.inner
     }
@@ -259,13 +257,11 @@ impl<T> AsRef<T> for Stdin where std :: io :: Stdin: AsRef<T> {
         <std :: io :: Stdin as AsRef<T>>::as_ref(&self.inner)
     }
 }
-
 impl From<std :: io :: Stdin> for Stdin {
     fn from(value: std :: io :: Stdin) -> Self {
         Self { inner: value }
     }
 }
-
 impl crate::Elaborate for std :: io :: Stdin {
     type Output = Stdin;
     fn elaborate(self) -> Self::Output {

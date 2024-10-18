@@ -24,8 +24,8 @@ impl TcpListener {
     pub fn to_inner(&self) -> &std :: net :: TcpListener {
         &self.inner
     }
-
-    
+}
+impl TcpListener {
     pub fn into_inner(self) -> std :: net :: TcpListener {
         self.inner
     }
@@ -35,13 +35,11 @@ impl<T> AsRef<T> for TcpListener where std :: net :: TcpListener: AsRef<T> {
         <std :: net :: TcpListener as AsRef<T>>::as_ref(&self.inner)
     }
 }
-
 impl From<std :: net :: TcpListener> for TcpListener {
     fn from(value: std :: net :: TcpListener) -> Self {
         Self { inner: value }
     }
 }
-
 impl crate::Elaborate for std :: net :: TcpListener {
     type Output = TcpListener;
     fn elaborate(self) -> Self::Output {
@@ -56,8 +54,8 @@ impl TcpStream {
     pub fn to_inner(&self) -> &std :: net :: TcpStream {
         &self.inner
     }
-
-    
+}
+impl TcpStream {
     pub fn into_inner(self) -> std :: net :: TcpStream {
         self.inner
     }
@@ -67,13 +65,11 @@ impl<T> AsRef<T> for TcpStream where std :: net :: TcpStream: AsRef<T> {
         <std :: net :: TcpStream as AsRef<T>>::as_ref(&self.inner)
     }
 }
-
 impl From<std :: net :: TcpStream> for TcpStream {
     fn from(value: std :: net :: TcpStream) -> Self {
         Self { inner: value }
     }
 }
-
 impl crate::Elaborate for std :: net :: TcpStream {
     type Output = TcpStream;
     fn elaborate(self) -> Self::Output {
@@ -88,8 +84,8 @@ impl UdpSocket {
     pub fn to_inner(&self) -> &std :: net :: UdpSocket {
         &self.inner
     }
-
-    
+}
+impl UdpSocket {
     pub fn into_inner(self) -> std :: net :: UdpSocket {
         self.inner
     }
@@ -99,13 +95,11 @@ impl<T> AsRef<T> for UdpSocket where std :: net :: UdpSocket: AsRef<T> {
         <std :: net :: UdpSocket as AsRef<T>>::as_ref(&self.inner)
     }
 }
-
 impl From<std :: net :: UdpSocket> for UdpSocket {
     fn from(value: std :: net :: UdpSocket) -> Self {
         Self { inner: value }
     }
 }
-
 impl crate::Elaborate for std :: net :: UdpSocket {
     type Output = UdpSocket;
     fn elaborate(self) -> Self::Output {

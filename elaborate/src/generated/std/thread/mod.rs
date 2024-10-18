@@ -14,8 +14,8 @@ impl Builder {
     pub fn to_inner(&self) -> &std :: thread :: Builder {
         &self.inner
     }
-
-    
+}
+impl Builder {
     pub fn into_inner(self) -> std :: thread :: Builder {
         self.inner
     }
@@ -25,13 +25,11 @@ impl<T> AsRef<T> for Builder where std :: thread :: Builder: AsRef<T> {
         <std :: thread :: Builder as AsRef<T>>::as_ref(&self.inner)
     }
 }
-
 impl From<std :: thread :: Builder> for Builder {
     fn from(value: std :: thread :: Builder) -> Self {
         Self { inner: value }
     }
 }
-
 impl crate::Elaborate for std :: thread :: Builder {
     type Output = Builder;
     fn elaborate(self) -> Self::Output {
@@ -46,8 +44,8 @@ impl Thread {
     pub fn to_inner(&self) -> &std :: thread :: Thread {
         &self.inner
     }
-
-    
+}
+impl Thread {
     pub fn into_inner(self) -> std :: thread :: Thread {
         self.inner
     }
@@ -57,13 +55,11 @@ impl<T> AsRef<T> for Thread where std :: thread :: Thread: AsRef<T> {
         <std :: thread :: Thread as AsRef<T>>::as_ref(&self.inner)
     }
 }
-
 impl From<std :: thread :: Thread> for Thread {
     fn from(value: std :: thread :: Thread) -> Self {
         Self { inner: value }
     }
 }
-
 impl crate::Elaborate for std :: thread :: Thread {
     type Output = Thread;
     fn elaborate(self) -> Self::Output {
@@ -172,5 +168,15 @@ pub fn name ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Opt
 pub fn unpark ( & self ) {
 
     std :: thread :: Thread :: unpark(&self.inner)
+}
+#[cfg(feature = "thread_raw")]
+pub fn into_raw ( self ) -> * const ( ) {
+
+    std :: thread :: Thread :: into_raw(self.inner)
+}
+#[cfg(feature = "thread_raw")]
+pub unsafe fn from_raw ( ptr : * const ( ) ) -> Self {
+
+    std :: thread :: Thread :: from_raw(ptr).into()
 }
 }

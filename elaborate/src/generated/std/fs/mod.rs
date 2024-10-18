@@ -14,8 +14,8 @@ impl DirBuilder {
     pub fn to_inner(&self) -> &std :: fs :: DirBuilder {
         &self.inner
     }
-
-    
+}
+impl DirBuilder {
     pub fn into_inner(self) -> std :: fs :: DirBuilder {
         self.inner
     }
@@ -25,13 +25,11 @@ impl<T> AsRef<T> for DirBuilder where std :: fs :: DirBuilder: AsRef<T> {
         <std :: fs :: DirBuilder as AsRef<T>>::as_ref(&self.inner)
     }
 }
-
 impl From<std :: fs :: DirBuilder> for DirBuilder {
     fn from(value: std :: fs :: DirBuilder) -> Self {
         Self { inner: value }
     }
 }
-
 impl crate::Elaborate for std :: fs :: DirBuilder {
     type Output = DirBuilder;
     fn elaborate(self) -> Self::Output {
@@ -46,8 +44,8 @@ impl DirEntry {
     pub fn to_inner(&self) -> &std :: fs :: DirEntry {
         &self.inner
     }
-
-    
+}
+impl DirEntry {
     pub fn into_inner(self) -> std :: fs :: DirEntry {
         self.inner
     }
@@ -57,13 +55,11 @@ impl<T> AsRef<T> for DirEntry where std :: fs :: DirEntry: AsRef<T> {
         <std :: fs :: DirEntry as AsRef<T>>::as_ref(&self.inner)
     }
 }
-
 impl From<std :: fs :: DirEntry> for DirEntry {
     fn from(value: std :: fs :: DirEntry) -> Self {
         Self { inner: value }
     }
 }
-
 impl crate::Elaborate for std :: fs :: DirEntry {
     type Output = DirEntry;
     fn elaborate(self) -> Self::Output {
@@ -78,8 +74,8 @@ impl File {
     pub fn to_inner(&self) -> &std :: fs :: File {
         &self.inner
     }
-
-    
+}
+impl File {
     pub fn into_inner(self) -> std :: fs :: File {
         self.inner
     }
@@ -89,13 +85,11 @@ impl<T> AsRef<T> for File where std :: fs :: File: AsRef<T> {
         <std :: fs :: File as AsRef<T>>::as_ref(&self.inner)
     }
 }
-
 impl From<std :: fs :: File> for File {
     fn from(value: std :: fs :: File) -> Self {
         Self { inner: value }
     }
 }
-
 impl crate::Elaborate for std :: fs :: File {
     type Output = File;
     fn elaborate(self) -> Self::Output {
@@ -110,8 +104,8 @@ impl Metadata {
     pub fn to_inner(&self) -> &std :: fs :: Metadata {
         &self.inner
     }
-
-    
+}
+impl Metadata {
     pub fn into_inner(self) -> std :: fs :: Metadata {
         self.inner
     }
@@ -121,13 +115,11 @@ impl<T> AsRef<T> for Metadata where std :: fs :: Metadata: AsRef<T> {
         <std :: fs :: Metadata as AsRef<T>>::as_ref(&self.inner)
     }
 }
-
 impl From<std :: fs :: Metadata> for Metadata {
     fn from(value: std :: fs :: Metadata) -> Self {
         Self { inner: value }
     }
 }
-
 impl crate::Elaborate for std :: fs :: Metadata {
     type Output = Metadata;
     fn elaborate(self) -> Self::Output {
@@ -142,8 +134,8 @@ impl OpenOptions {
     pub fn to_inner(&self) -> &std :: fs :: OpenOptions {
         &self.inner
     }
-
-    
+}
+impl OpenOptions {
     pub fn into_inner(self) -> std :: fs :: OpenOptions {
         self.inner
     }
@@ -153,13 +145,11 @@ impl<T> AsRef<T> for OpenOptions where std :: fs :: OpenOptions: AsRef<T> {
         <std :: fs :: OpenOptions as AsRef<T>>::as_ref(&self.inner)
     }
 }
-
 impl From<std :: fs :: OpenOptions> for OpenOptions {
     fn from(value: std :: fs :: OpenOptions) -> Self {
         Self { inner: value }
     }
 }
-
 impl crate::Elaborate for std :: fs :: OpenOptions {
     type Output = OpenOptions;
     fn elaborate(self) -> Self::Output {
@@ -421,6 +411,22 @@ pub fn try_clone ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Res
     std :: fs :: File :: try_clone(&self.inner)
         .map(Into::into)
         .with_context(|| crate::call_failed!(Some(&self.inner), "try_clone"))
+}
+#[cfg(feature = "file_buffered")]
+pub fn create_buffered < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: io :: BufWriter < Self > > ) {
+    let path = path.as_ref();
+
+    std :: fs :: File :: create_buffered(path)
+        .map(Into::into)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: File :: create_buffered", path))
+}
+#[cfg(feature = "file_buffered")]
+pub fn open_buffered < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: io :: BufReader < Self > > ) {
+    let path = path.as_ref();
+
+    std :: fs :: File :: open_buffered(path)
+        .map(Into::into)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: File :: open_buffered", path))
 }
 }
 

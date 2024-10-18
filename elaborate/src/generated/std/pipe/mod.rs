@@ -16,8 +16,9 @@ impl PipeReader {
     pub fn to_inner(&self) -> &std :: pipe :: PipeReader {
         &self.inner
     }
-
-    
+}
+#[cfg(feature = "anonymous_pipe")]
+impl PipeReader {
     pub fn into_inner(self) -> std :: pipe :: PipeReader {
         self.inner
     }
@@ -29,14 +30,12 @@ impl<T> AsRef<T> for PipeReader where std :: pipe :: PipeReader: AsRef<T> {
     }
 }
 #[cfg(feature = "anonymous_pipe")]
-
 impl From<std :: pipe :: PipeReader> for PipeReader {
     fn from(value: std :: pipe :: PipeReader) -> Self {
         Self { inner: value }
     }
 }
 #[cfg(feature = "anonymous_pipe")]
-
 impl crate::Elaborate for std :: pipe :: PipeReader {
     type Output = PipeReader;
     fn elaborate(self) -> Self::Output {
@@ -53,8 +52,9 @@ impl PipeWriter {
     pub fn to_inner(&self) -> &std :: pipe :: PipeWriter {
         &self.inner
     }
-
-    
+}
+#[cfg(feature = "anonymous_pipe")]
+impl PipeWriter {
     pub fn into_inner(self) -> std :: pipe :: PipeWriter {
         self.inner
     }
@@ -66,14 +66,12 @@ impl<T> AsRef<T> for PipeWriter where std :: pipe :: PipeWriter: AsRef<T> {
     }
 }
 #[cfg(feature = "anonymous_pipe")]
-
 impl From<std :: pipe :: PipeWriter> for PipeWriter {
     fn from(value: std :: pipe :: PipeWriter) -> Self {
         Self { inner: value }
     }
 }
 #[cfg(feature = "anonymous_pipe")]
-
 impl crate::Elaborate for std :: pipe :: PipeWriter {
     type Output = PipeWriter;
     fn elaborate(self) -> Self::Output {

@@ -5,7 +5,6 @@
 use anyhow::Context;
 
 pub mod fs;
-pub mod net;
 
 
 

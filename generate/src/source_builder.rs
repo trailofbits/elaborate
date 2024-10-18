@@ -168,6 +168,9 @@ impl<'map> Module<'map> {
             let common_attrs = self.common_attrs(qualified_struct);
             let attrs = join_attrs(attrs.iter().chain(&common_attrs));
             for def_or_impl in def_and_impls {
+                if def_or_impl.is_empty() {
+                    continue;
+                }
                 writeln!(file, "{attrs}{def_or_impl}")?;
             }
         }

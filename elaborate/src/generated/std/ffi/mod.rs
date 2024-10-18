@@ -14,61 +14,36 @@ impl OsStr {
     pub fn to_inner(&self) -> &std :: ffi :: OsStr {
         &self.inner
     }
-
-    #[cfg(any())]
-    pub fn into_inner(self) -> std :: ffi :: OsStr {
-        self.inner
-    }
 }
 impl<T> AsRef<T> for OsStr where std :: ffi :: OsStr: AsRef<T> {
     fn as_ref(&self) -> &T {
         <std :: ffi :: OsStr as AsRef<T>>::as_ref(&self.inner)
     }
 }
-#[cfg(any())]
-impl From<std :: ffi :: OsStr> for OsStr {
-    fn from(value: std :: ffi :: OsStr) -> Self {
-        Self { inner: value }
-    }
-}
-#[cfg(any())]
-impl crate::Elaborate for std :: ffi :: OsStr {
-    type Output = OsStr;
-    fn elaborate(self) -> Self::Output {
-        self.into()
-    }
-}
-#[cfg(feature = "os_str_display")]
 #[repr(transparent)]
 pub struct OsString {
     pub(crate) inner: std :: ffi :: OsString,
 }
-#[cfg(feature = "os_str_display")]
 impl OsString {
     pub fn to_inner(&self) -> &std :: ffi :: OsString {
         &self.inner
     }
-
-    
+}
+impl OsString {
     pub fn into_inner(self) -> std :: ffi :: OsString {
         self.inner
     }
 }
-#[cfg(feature = "os_str_display")]
 impl<T> AsRef<T> for OsString where std :: ffi :: OsString: AsRef<T> {
     fn as_ref(&self) -> &T {
         <std :: ffi :: OsString as AsRef<T>>::as_ref(&self.inner)
     }
 }
-#[cfg(feature = "os_str_display")]
-
 impl From<std :: ffi :: OsString> for OsString {
     fn from(value: std :: ffi :: OsString) -> Self {
         Self { inner: value }
     }
 }
-#[cfg(feature = "os_str_display")]
-
 impl crate::Elaborate for std :: ffi :: OsString {
     type Output = OsString;
     fn elaborate(self) -> Self::Output {
@@ -155,7 +130,6 @@ pub fn slice_encoded_bytes < R : core :: ops :: range :: RangeBounds < usize > >
 }
 }
 
-#[cfg(feature = "os_str_display")]
 impl OsString {
 pub fn as_os_str ( & self ) -> & std :: ffi :: OsStr {
 

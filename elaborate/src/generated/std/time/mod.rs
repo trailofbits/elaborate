@@ -14,8 +14,8 @@ impl Instant {
     pub fn to_inner(&self) -> &std :: time :: Instant {
         &self.inner
     }
-
-    
+}
+impl Instant {
     pub fn into_inner(self) -> std :: time :: Instant {
         self.inner
     }
@@ -25,13 +25,11 @@ impl<T> AsRef<T> for Instant where std :: time :: Instant: AsRef<T> {
         <std :: time :: Instant as AsRef<T>>::as_ref(&self.inner)
     }
 }
-
 impl From<std :: time :: Instant> for Instant {
     fn from(value: std :: time :: Instant) -> Self {
         Self { inner: value }
     }
 }
-
 impl crate::Elaborate for std :: time :: Instant {
     type Output = Instant;
     fn elaborate(self) -> Self::Output {
@@ -46,8 +44,8 @@ impl SystemTime {
     pub fn to_inner(&self) -> &std :: time :: SystemTime {
         &self.inner
     }
-
-    
+}
+impl SystemTime {
     pub fn into_inner(self) -> std :: time :: SystemTime {
         self.inner
     }
@@ -57,13 +55,11 @@ impl<T> AsRef<T> for SystemTime where std :: time :: SystemTime: AsRef<T> {
         <std :: time :: SystemTime as AsRef<T>>::as_ref(&self.inner)
     }
 }
-
 impl From<std :: time :: SystemTime> for SystemTime {
     fn from(value: std :: time :: SystemTime) -> Self {
         Self { inner: value }
     }
 }
-
 impl crate::Elaborate for std :: time :: SystemTime {
     type Output = SystemTime;
     fn elaborate(self) -> Self::Output {

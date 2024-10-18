@@ -12,9 +12,17 @@ static GATED_PATHS: Lazy<Vec<(Vec<Token>, &str)>> = Lazy::new(|| {
     ];
 
     std::iter::once((
+        qualified_type_function(&["std", "io"], "BufRead", "skip_until"),
+        r#"feature = "bufread_skip_until""#,
+    ))
+    .chain(std::iter::once((
         qualified_type(&["std", "io"], "RawOsError"),
         r#"feature = "raw_os_error_ty""#,
-    ))
+    )))
+    .chain(std::iter::once((
+        qualified_type_function(&["std", "thread"], "Builder", "spawn_unchecked"),
+        r#"feature = "thread_spawn_unchecked""#,
+    )))
     .chain(
         GATED_OS_PATHS
             .iter()

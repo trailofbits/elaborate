@@ -34,8 +34,8 @@ use util::{
     FunctionExt, GenericBoundsExt, TokenExt, TokensExt,
 };
 
-pub const TOOLCHAIN: &str = "nightly-2024-08-16";
-pub const COMMIT: &str = "2c93fabd98d2c183bcb3afed1f7d51b2517ac5ed";
+pub const TOOLCHAIN: &str = "nightly-2024-10-13";
+pub const COMMIT: &str = "6b9676b45431a1e531b9c5f7bd289fc36a312749";
 
 #[derive(Clone, Copy)]
 enum MapKind {
@@ -87,6 +87,7 @@ static GENERIC_STRUCTS: Lazy<Vec<Vec<Token>>> = Lazy::new(|| {
         (&["std", "collections", "hash_set"], "HashSet"),
         (&["std", "io"], "BufReader"),
         (&["std", "panic"], "PanicHookInfo"),
+        (&["std", "sync"], "LazyLock"),
         (&["std", "sync"], "MappedMutexGuard"),
         (&["std", "sync"], "MappedRwLockReadGuard"),
         (&["std", "sync"], "MappedRwLockWriteGuard"),
@@ -96,6 +97,8 @@ static GENERIC_STRUCTS: Lazy<Vec<Vec<Token>>> = Lazy::new(|| {
         (&["std", "sync"], "RwLock"),
         (&["std", "sync"], "RwLockReadGuard"),
         (&["std", "sync"], "RwLockWriteGuard"),
+        (&["std", "sync", "mpmc"], "Receiver"),
+        (&["std", "sync", "mpmc"], "Sender"),
         (&["std", "sync", "mpsc"], "Receiver"),
         (&["std", "sync", "mpsc"], "Sender"),
         (&["std", "sync", "mpsc"], "SyncSender"),
@@ -262,9 +265,12 @@ impl Generator {
             let (generic_params, qualified_struct) =
                 qualified_struct.extract_initial_generic_params();
             if !generic_params.is_empty() {
-                assert!(GENERIC_STRUCTS
-                    .iter()
-                    .any(|path| qualified_struct.starts_with(path)));
+                assert!(
+                    GENERIC_STRUCTS
+                        .iter()
+                        .any(|path| qualified_struct.starts_with(path)),
+                    "{qualified_struct:?}"
+                );
                 continue;
             }
 
@@ -562,7 +568,6 @@ fn struct_def_and_impls(
     };
     let qualified_struct = qualified_struct.to_string();
     let struct_tokens = struct_tokens.to_string();
-    let cfg_any = if is_unsized { "#[cfg(any())]" } else { "" };
 
     vec![
         format!(
@@ -578,13 +583,20 @@ impl{struct_params} {struct_tokens} {{
     pub fn to_inner(&self) -> &{qualified_struct} {{
         &self.inner
     }}
-
-    {cfg_any}
+}}"
+        ),
+        if is_unsized {
+            String::new()
+        } else {
+            format!(
+                "\
+impl{struct_params} {struct_tokens} {{
     pub fn into_inner(self) -> {qualified_struct} {{
         self.inner
     }}
 }}"
-        ),
+            )
+        },
         format!(
             "\
 impl{as_ref_params} AsRef<T> for {struct_tokens} where {qualified_struct}: AsRef<T> {{
@@ -593,25 +605,31 @@ impl{as_ref_params} AsRef<T> for {struct_tokens} where {qualified_struct}: AsRef
     }}
 }}"
         ),
-        format!(
-            "\
-{cfg_any}
+        if is_unsized {
+            String::new()
+        } else {
+            format!(
+                "\
 impl{struct_params} From<{qualified_struct}> for {struct_tokens} {{
     fn from(value: {qualified_struct}) -> Self {{
         Self {{ inner: value }}
     }}
 }}"
-        ),
-        format!(
-            "\
-{cfg_any}
+            )
+        },
+        if is_unsized {
+            String::new()
+        } else {
+            format!(
+                "\
 impl{struct_params} crate::Elaborate for {qualified_struct} {{
     type Output = {struct_tokens};
     fn elaborate(self) -> Self::Output {{
         self.into()
     }}
 }}"
-        ),
+            )
+        },
     ]
 }
 

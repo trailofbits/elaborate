@@ -14,8 +14,8 @@ impl<'a> BorrowedFd < 'a > {
     pub fn to_inner(&self) -> &std :: os :: fd :: BorrowedFd < 'a > {
         &self.inner
     }
-
-    
+}
+impl<'a> BorrowedFd < 'a > {
     pub fn into_inner(self) -> std :: os :: fd :: BorrowedFd < 'a > {
         self.inner
     }
@@ -25,13 +25,11 @@ impl<'a, T> AsRef<T> for BorrowedFd < 'a > where std :: os :: fd :: BorrowedFd <
         <std :: os :: fd :: BorrowedFd < 'a > as AsRef<T>>::as_ref(&self.inner)
     }
 }
-
 impl<'a> From<std :: os :: fd :: BorrowedFd < 'a >> for BorrowedFd < 'a > {
     fn from(value: std :: os :: fd :: BorrowedFd < 'a >) -> Self {
         Self { inner: value }
     }
 }
-
 impl<'a> crate::Elaborate for std :: os :: fd :: BorrowedFd < 'a > {
     type Output = BorrowedFd < 'a >;
     fn elaborate(self) -> Self::Output {
@@ -46,8 +44,8 @@ impl OwnedFd {
     pub fn to_inner(&self) -> &std :: os :: fd :: OwnedFd {
         &self.inner
     }
-
-    
+}
+impl OwnedFd {
     pub fn into_inner(self) -> std :: os :: fd :: OwnedFd {
         self.inner
     }
@@ -57,13 +55,11 @@ impl<T> AsRef<T> for OwnedFd where std :: os :: fd :: OwnedFd: AsRef<T> {
         <std :: os :: fd :: OwnedFd as AsRef<T>>::as_ref(&self.inner)
     }
 }
-
 impl From<std :: os :: fd :: OwnedFd> for OwnedFd {
     fn from(value: std :: os :: fd :: OwnedFd) -> Self {
         Self { inner: value }
     }
 }
-
 impl crate::Elaborate for std :: os :: fd :: OwnedFd {
     type Output = OwnedFd;
     fn elaborate(self) -> Self::Output {

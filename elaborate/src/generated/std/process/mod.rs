@@ -14,8 +14,8 @@ impl Child {
     pub fn to_inner(&self) -> &std :: process :: Child {
         &self.inner
     }
-
-    
+}
+impl Child {
     pub fn into_inner(self) -> std :: process :: Child {
         self.inner
     }
@@ -25,13 +25,11 @@ impl<T> AsRef<T> for Child where std :: process :: Child: AsRef<T> {
         <std :: process :: Child as AsRef<T>>::as_ref(&self.inner)
     }
 }
-
 impl From<std :: process :: Child> for Child {
     fn from(value: std :: process :: Child) -> Self {
         Self { inner: value }
     }
 }
-
 impl crate::Elaborate for std :: process :: Child {
     type Output = Child;
     fn elaborate(self) -> Self::Output {
@@ -46,8 +44,8 @@ impl Command {
     pub fn to_inner(&self) -> &std :: process :: Command {
         &self.inner
     }
-
-    
+}
+impl Command {
     pub fn into_inner(self) -> std :: process :: Command {
         self.inner
     }
@@ -57,13 +55,11 @@ impl<T> AsRef<T> for Command where std :: process :: Command: AsRef<T> {
         <std :: process :: Command as AsRef<T>>::as_ref(&self.inner)
     }
 }
-
 impl From<std :: process :: Command> for Command {
     fn from(value: std :: process :: Command) -> Self {
         Self { inner: value }
     }
 }
-
 impl crate::Elaborate for std :: process :: Command {
     type Output = Command;
     fn elaborate(self) -> Self::Output {
@@ -78,8 +74,8 @@ impl ExitStatus {
     pub fn to_inner(&self) -> &std :: process :: ExitStatus {
         &self.inner
     }
-
-    
+}
+impl ExitStatus {
     pub fn into_inner(self) -> std :: process :: ExitStatus {
         self.inner
     }
@@ -89,13 +85,11 @@ impl<T> AsRef<T> for ExitStatus where std :: process :: ExitStatus: AsRef<T> {
         <std :: process :: ExitStatus as AsRef<T>>::as_ref(&self.inner)
     }
 }
-
 impl From<std :: process :: ExitStatus> for ExitStatus {
     fn from(value: std :: process :: ExitStatus) -> Self {
         Self { inner: value }
     }
 }
-
 impl crate::Elaborate for std :: process :: ExitStatus {
     type Output = ExitStatus;
     fn elaborate(self) -> Self::Output {
@@ -112,8 +106,9 @@ impl ExitStatusError {
     pub fn to_inner(&self) -> &std :: process :: ExitStatusError {
         &self.inner
     }
-
-    
+}
+#[cfg(feature = "exit_status_error")]
+impl ExitStatusError {
     pub fn into_inner(self) -> std :: process :: ExitStatusError {
         self.inner
     }
@@ -125,14 +120,12 @@ impl<T> AsRef<T> for ExitStatusError where std :: process :: ExitStatusError: As
     }
 }
 #[cfg(feature = "exit_status_error")]
-
 impl From<std :: process :: ExitStatusError> for ExitStatusError {
     fn from(value: std :: process :: ExitStatusError) -> Self {
         Self { inner: value }
     }
 }
 #[cfg(feature = "exit_status_error")]
-
 impl crate::Elaborate for std :: process :: ExitStatusError {
     type Output = ExitStatusError;
     fn elaborate(self) -> Self::Output {

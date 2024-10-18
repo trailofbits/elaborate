@@ -14,28 +14,10 @@ impl Path {
     pub fn to_inner(&self) -> &std :: path :: Path {
         &self.inner
     }
-
-    #[cfg(any())]
-    pub fn into_inner(self) -> std :: path :: Path {
-        self.inner
-    }
 }
 impl<T> AsRef<T> for Path where std :: path :: Path: AsRef<T> {
     fn as_ref(&self) -> &T {
         <std :: path :: Path as AsRef<T>>::as_ref(&self.inner)
-    }
-}
-#[cfg(any())]
-impl From<std :: path :: Path> for Path {
-    fn from(value: std :: path :: Path) -> Self {
-        Self { inner: value }
-    }
-}
-#[cfg(any())]
-impl crate::Elaborate for std :: path :: Path {
-    type Output = Path;
-    fn elaborate(self) -> Self::Output {
-        self.into()
     }
 }
 #[repr(transparent)]
@@ -46,8 +28,8 @@ impl PathBuf {
     pub fn to_inner(&self) -> &std :: path :: PathBuf {
         &self.inner
     }
-
-    
+}
+impl PathBuf {
     pub fn into_inner(self) -> std :: path :: PathBuf {
         self.inner
     }
@@ -57,13 +39,11 @@ impl<T> AsRef<T> for PathBuf where std :: path :: PathBuf: AsRef<T> {
         <std :: path :: PathBuf as AsRef<T>>::as_ref(&self.inner)
     }
 }
-
 impl From<std :: path :: PathBuf> for PathBuf {
     fn from(value: std :: path :: PathBuf) -> Self {
         Self { inner: value }
     }
 }
-
 impl crate::Elaborate for std :: path :: PathBuf {
     type Output = PathBuf;
     fn elaborate(self) -> Self::Output {

@@ -37,8 +37,10 @@ impl PidFd {
     pub fn to_inner(&self) -> &std :: os :: linux :: process :: PidFd {
         &self.inner
     }
-
-    
+}
+#[cfg(feature = "linux_pidfd")]
+#[cfg(target_os = "linux")]
+impl PidFd {
     pub fn into_inner(self) -> std :: os :: linux :: process :: PidFd {
         self.inner
     }
@@ -52,7 +54,6 @@ impl<T> AsRef<T> for PidFd where std :: os :: linux :: process :: PidFd: AsRef<T
 }
 #[cfg(feature = "linux_pidfd")]
 #[cfg(target_os = "linux")]
-
 impl From<std :: os :: linux :: process :: PidFd> for PidFd {
     fn from(value: std :: os :: linux :: process :: PidFd) -> Self {
         Self { inner: value }
@@ -60,7 +61,6 @@ impl From<std :: os :: linux :: process :: PidFd> for PidFd {
 }
 #[cfg(feature = "linux_pidfd")]
 #[cfg(target_os = "linux")]
-
 impl crate::Elaborate for std :: os :: linux :: process :: PidFd {
     type Output = PidFd;
     fn elaborate(self) -> Self::Output {

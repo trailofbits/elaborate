@@ -16,8 +16,9 @@ impl SocketAddr {
     pub fn to_inner(&self) -> &std :: os :: unix :: net :: SocketAddr {
         &self.inner
     }
-
-    
+}
+#[cfg(unix)]
+impl SocketAddr {
     pub fn into_inner(self) -> std :: os :: unix :: net :: SocketAddr {
         self.inner
     }
@@ -29,14 +30,12 @@ impl<T> AsRef<T> for SocketAddr where std :: os :: unix :: net :: SocketAddr: As
     }
 }
 #[cfg(unix)]
-
 impl From<std :: os :: unix :: net :: SocketAddr> for SocketAddr {
     fn from(value: std :: os :: unix :: net :: SocketAddr) -> Self {
         Self { inner: value }
     }
 }
 #[cfg(unix)]
-
 impl crate::Elaborate for std :: os :: unix :: net :: SocketAddr {
     type Output = SocketAddr;
     fn elaborate(self) -> Self::Output {
@@ -53,8 +52,9 @@ impl UnixDatagram {
     pub fn to_inner(&self) -> &std :: os :: unix :: net :: UnixDatagram {
         &self.inner
     }
-
-    
+}
+#[cfg(unix)]
+impl UnixDatagram {
     pub fn into_inner(self) -> std :: os :: unix :: net :: UnixDatagram {
         self.inner
     }
@@ -66,14 +66,12 @@ impl<T> AsRef<T> for UnixDatagram where std :: os :: unix :: net :: UnixDatagram
     }
 }
 #[cfg(unix)]
-
 impl From<std :: os :: unix :: net :: UnixDatagram> for UnixDatagram {
     fn from(value: std :: os :: unix :: net :: UnixDatagram) -> Self {
         Self { inner: value }
     }
 }
 #[cfg(unix)]
-
 impl crate::Elaborate for std :: os :: unix :: net :: UnixDatagram {
     type Output = UnixDatagram;
     fn elaborate(self) -> Self::Output {
@@ -90,8 +88,9 @@ impl UnixListener {
     pub fn to_inner(&self) -> &std :: os :: unix :: net :: UnixListener {
         &self.inner
     }
-
-    
+}
+#[cfg(unix)]
+impl UnixListener {
     pub fn into_inner(self) -> std :: os :: unix :: net :: UnixListener {
         self.inner
     }
@@ -103,14 +102,12 @@ impl<T> AsRef<T> for UnixListener where std :: os :: unix :: net :: UnixListener
     }
 }
 #[cfg(unix)]
-
 impl From<std :: os :: unix :: net :: UnixListener> for UnixListener {
     fn from(value: std :: os :: unix :: net :: UnixListener) -> Self {
         Self { inner: value }
     }
 }
 #[cfg(unix)]
-
 impl crate::Elaborate for std :: os :: unix :: net :: UnixListener {
     type Output = UnixListener;
     fn elaborate(self) -> Self::Output {
@@ -127,8 +124,9 @@ impl UnixStream {
     pub fn to_inner(&self) -> &std :: os :: unix :: net :: UnixStream {
         &self.inner
     }
-
-    
+}
+#[cfg(unix)]
+impl UnixStream {
     pub fn into_inner(self) -> std :: os :: unix :: net :: UnixStream {
         self.inner
     }
@@ -140,14 +138,12 @@ impl<T> AsRef<T> for UnixStream where std :: os :: unix :: net :: UnixStream: As
     }
 }
 #[cfg(unix)]
-
 impl From<std :: os :: unix :: net :: UnixStream> for UnixStream {
     fn from(value: std :: os :: unix :: net :: UnixStream) -> Self {
         Self { inner: value }
     }
 }
 #[cfg(unix)]
-
 impl crate::Elaborate for std :: os :: unix :: net :: UnixStream {
     type Output = UnixStream;
     fn elaborate(self) -> Self::Output {

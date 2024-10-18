@@ -16,8 +16,9 @@ impl<'a> BorrowedHandle < 'a > {
     pub fn to_inner(&self) -> &std :: os :: windows :: io :: BorrowedHandle < 'a > {
         &self.inner
     }
-
-    
+}
+#[cfg(windows)]
+impl<'a> BorrowedHandle < 'a > {
     pub fn into_inner(self) -> std :: os :: windows :: io :: BorrowedHandle < 'a > {
         self.inner
     }
@@ -29,14 +30,12 @@ impl<'a, T> AsRef<T> for BorrowedHandle < 'a > where std :: os :: windows :: io 
     }
 }
 #[cfg(windows)]
-
 impl<'a> From<std :: os :: windows :: io :: BorrowedHandle < 'a >> for BorrowedHandle < 'a > {
     fn from(value: std :: os :: windows :: io :: BorrowedHandle < 'a >) -> Self {
         Self { inner: value }
     }
 }
 #[cfg(windows)]
-
 impl<'a> crate::Elaborate for std :: os :: windows :: io :: BorrowedHandle < 'a > {
     type Output = BorrowedHandle < 'a >;
     fn elaborate(self) -> Self::Output {
@@ -53,8 +52,9 @@ impl<'a> BorrowedSocket < 'a > {
     pub fn to_inner(&self) -> &std :: os :: windows :: io :: BorrowedSocket < 'a > {
         &self.inner
     }
-
-    
+}
+#[cfg(windows)]
+impl<'a> BorrowedSocket < 'a > {
     pub fn into_inner(self) -> std :: os :: windows :: io :: BorrowedSocket < 'a > {
         self.inner
     }
@@ -66,14 +66,12 @@ impl<'a, T> AsRef<T> for BorrowedSocket < 'a > where std :: os :: windows :: io 
     }
 }
 #[cfg(windows)]
-
 impl<'a> From<std :: os :: windows :: io :: BorrowedSocket < 'a >> for BorrowedSocket < 'a > {
     fn from(value: std :: os :: windows :: io :: BorrowedSocket < 'a >) -> Self {
         Self { inner: value }
     }
 }
 #[cfg(windows)]
-
 impl<'a> crate::Elaborate for std :: os :: windows :: io :: BorrowedSocket < 'a > {
     type Output = BorrowedSocket < 'a >;
     fn elaborate(self) -> Self::Output {
@@ -90,8 +88,9 @@ impl OwnedHandle {
     pub fn to_inner(&self) -> &std :: os :: windows :: io :: OwnedHandle {
         &self.inner
     }
-
-    
+}
+#[cfg(windows)]
+impl OwnedHandle {
     pub fn into_inner(self) -> std :: os :: windows :: io :: OwnedHandle {
         self.inner
     }
@@ -103,14 +102,12 @@ impl<T> AsRef<T> for OwnedHandle where std :: os :: windows :: io :: OwnedHandle
     }
 }
 #[cfg(windows)]
-
 impl From<std :: os :: windows :: io :: OwnedHandle> for OwnedHandle {
     fn from(value: std :: os :: windows :: io :: OwnedHandle) -> Self {
         Self { inner: value }
     }
 }
 #[cfg(windows)]
-
 impl crate::Elaborate for std :: os :: windows :: io :: OwnedHandle {
     type Output = OwnedHandle;
     fn elaborate(self) -> Self::Output {
@@ -127,8 +124,9 @@ impl OwnedSocket {
     pub fn to_inner(&self) -> &std :: os :: windows :: io :: OwnedSocket {
         &self.inner
     }
-
-    
+}
+#[cfg(windows)]
+impl OwnedSocket {
     pub fn into_inner(self) -> std :: os :: windows :: io :: OwnedSocket {
         self.inner
     }
@@ -140,14 +138,12 @@ impl<T> AsRef<T> for OwnedSocket where std :: os :: windows :: io :: OwnedSocket
     }
 }
 #[cfg(windows)]
-
 impl From<std :: os :: windows :: io :: OwnedSocket> for OwnedSocket {
     fn from(value: std :: os :: windows :: io :: OwnedSocket) -> Self {
         Self { inner: value }
     }
 }
 #[cfg(windows)]
-
 impl crate::Elaborate for std :: os :: windows :: io :: OwnedSocket {
     type Output = OwnedSocket;
     fn elaborate(self) -> Self::Output {
