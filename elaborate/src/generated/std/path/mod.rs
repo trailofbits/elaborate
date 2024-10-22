@@ -20,6 +20,17 @@ impl<T> AsRef<T> for Path where std :: path :: Path: AsRef<T> {
         <std :: path :: Path as AsRef<T>>::as_ref(&self.inner)
     }
 }
+impl From<&std::path::Path> for &Path {
+    fn from(value: &std::path::Path) -> Self {
+        unsafe { &*(std::ptr::from_ref::<std::path::Path>(value) as *const Path) }
+    }
+}
+impl<'a> crate::Elaborate for &'a std::path::Path {
+    type Output = &'a Path;
+    fn elaborate(self) -> Self::Output {
+        self.into()
+    }
+}
 #[repr(transparent)]
 pub struct PathBuf {
     pub(crate) inner: std :: path :: PathBuf,

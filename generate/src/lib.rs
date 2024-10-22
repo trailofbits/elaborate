@@ -6,7 +6,7 @@ use regex::Regex;
 use rustdoc_types::{Crate, Function, Id, ItemEnum, Type};
 use std::{
     cell::RefCell,
-    collections::{BTreeSet, HashSet},
+    collections::{BTreeMap, BTreeSet, HashSet},
     io::Write,
     path::{Path as StdPath, PathBuf},
 };
@@ -555,12 +555,46 @@ fn patch_tokens(
     (tokens, map_kind)
 }
 
+static MANUAL_TRAIT_IMPLEMENTATIONS: Lazy<BTreeMap<Vec<Token>, Vec<String>>> = Lazy::new(|| {
+    [(
+        qualified_type(&["std", "path"], "Path"),
+        &[
+            "\
+impl From<&std::path::Path> for &Path {
+    fn from(value: &std::path::Path) -> Self {
+        unsafe { &*(std::ptr::from_ref::<std::path::Path>(value) as *const Path) }
+    }
+}",
+            "\
+impl<'a> crate::Elaborate for &'a std::path::Path {
+    type Output = &'a Path;
+    fn elaborate(self) -> Self::Output {
+        self.into()
+    }
+}",
+        ],
+    )]
+    .into_iter()
+    .map(|(qualified_type, impls)| {
+        (
+            qualified_type,
+            impls.into_iter().map(|&s| s.to_owned()).collect::<Vec<_>>(),
+        )
+    })
+    .collect()
+});
+
 fn struct_def_and_impls(
     qualified_struct: &[Token],
     struct_tokens: &[Token],
     needs_lifetime: bool,
     is_unsized: bool,
 ) -> Vec<String> {
+    let manual_trait_impls = MANUAL_TRAIT_IMPLEMENTATIONS
+        .get(qualified_struct)
+        .cloned()
+        .unwrap_or_default();
+
     let (struct_params, as_ref_params) = if needs_lifetime {
         (String::from("<'a>"), String::from("<'a, T>"))
     } else {
@@ -569,7 +603,7 @@ fn struct_def_and_impls(
     let qualified_struct = qualified_struct.to_string();
     let struct_tokens = struct_tokens.to_string();
 
-    vec![
+    [
         format!(
             "\
 #[repr(transparent)]
@@ -631,6 +665,9 @@ impl{struct_params} crate::Elaborate for {qualified_struct} {{
             )
         },
     ]
+    .into_iter()
+    .chain(manual_trait_impls.into_iter())
+    .collect()
 }
 
 static MANUAL_FUNCTION_IMPLEMENTATIONS: Lazy<Vec<(Vec<Token>, &str)>> = Lazy::new(|| {
