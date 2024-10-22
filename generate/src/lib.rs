@@ -475,24 +475,34 @@ impl Generator {
 fn item_attrs(
     krate: &Crate,
     map: &PublicItemMap,
-    mut id: Id,
+    id: Id,
     walk_parents: bool,
     tokens: &[Token],
 ) -> Vec<String> {
-    let mut attrs = Vec::new();
-    loop {
-        let item = krate.index.get(&id).unwrap();
-        attrs.extend(rewrite_attrs(&item.attrs));
-        if !walk_parents {
-            break;
-        }
-        if let Some(parent_id) = map.parent_id_unchecked(id) {
-            id = parent_id;
-        } else {
-            break;
+    let mut attrs = item_attrs_inner(krate, map, id, walk_parents);
+    attrs.extend(tokens.required_gates());
+    attrs
+}
+
+fn item_attrs_inner<'a>(
+    krate: &Crate,
+    map: &'a PublicItemMap,
+    id: Id,
+    walk_parents: bool,
+) -> Vec<String> {
+    let item = krate.index.get(&id).unwrap();
+    let mut attrs = rewrite_attrs(&item.attrs);
+    if walk_parents {
+        let mut iter = map.parent_ids_unchecked(id).into_iter();
+        if let Some(parent_id) = iter.next() {
+            let mut parent_attrs = item_attrs_inner(krate, map, parent_id, walk_parents);
+            for parent_id in iter {
+                let other_attrs = item_attrs_inner(krate, map, parent_id, walk_parents);
+                parent_attrs.retain(|x| other_attrs.iter().any(|y| x == y));
+            }
+            attrs.extend(parent_attrs);
         }
     }
-    attrs.extend(tokens.required_gates());
     attrs
 }
 

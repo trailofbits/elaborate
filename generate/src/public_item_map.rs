@@ -52,23 +52,23 @@ impl PublicItemMap {
     }
 
     pub fn parent_id(&self, id: Id) -> Option<Id> {
-        self.parent_id_inner(id, true)
+        let parent_ids = self.parent_ids_inner(id, true);
+        assert!(parent_ids.len() <= 1);
+        parent_ids.into_iter().next()
     }
 
-    /// Like [`Self::parent_id`], but does not check for ambiguity among the parents' tokens
-    pub fn parent_id_unchecked(&self, id: Id) -> Option<Id> {
-        self.parent_id_inner(id, false)
+    /// Like [`Self::parent_id`], but does not ensure the parent is unique and does not check for
+    /// ambiguity among the parents' tokens
+    pub fn parent_ids_unchecked(&self, id: Id) -> HashSet<Id> {
+        self.parent_ids_inner(id, false)
     }
 
-    fn parent_id_inner(&self, id: Id, check_for_ambiguity: bool) -> Option<Id> {
+    fn parent_ids_inner(&self, id: Id, check_for_ambiguity: bool) -> HashSet<Id> {
         let public_items = self.inner.get(&id).unwrap();
         let parent_ids = public_items
             .iter()
             .filter_map(|&(parent_id, _)| parent_id)
             .collect::<HashSet<_>>();
-        if parent_ids.is_empty() {
-            return None;
-        }
         if check_for_ambiguity {
             let parent_tokens = parent_ids
                 .iter()
@@ -104,7 +104,7 @@ parents: {:#?}",
                 );
             }
         }
-        parent_ids.into_iter().next()
+        parent_ids
     }
 
     pub fn tokens(&self, id: Id) -> &[Token] {
