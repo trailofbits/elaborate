@@ -217,13 +217,11 @@ impl Generator {
 
             // smoelius: An `Id` may correspond to multiple `PublicItem`s. If _any_ of the
             // `PublicItem`s' parents are in `parents_of_instrumentable_functions`, proceed.
-            if !public_items.iter().any(|(parent_id, _)| {
-                if let Some(parent_id) = parent_id {
-                    parents_of_instrumentable_functions.contains(parent_id)
-                } else {
-                    false
-                }
-            }) {
+            if !public_items
+                .iter()
+                .filter_map(|&(parent_id, _)| parent_id)
+                .any(|parent_id| parents_of_instrumentable_functions.contains(&parent_id))
+            {
                 continue;
             };
 
