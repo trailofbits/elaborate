@@ -168,7 +168,7 @@ pub fn generate(root: impl AsRef<StdPath>) -> Result<()> {
 
 struct Generator {
     krate: Crate,
-    map: PublicItemMap,
+    public_item_map: PublicItemMap,
     disallowed: RefCell<BTreeSet<String>>,
 }
 
@@ -183,11 +183,11 @@ impl Generator {
         let public_api = public_api::Builder::from_rustdoc_json(&*STD_JSON).build()?;
         let mut generator = Self {
             krate,
-            map: PublicItemMap::default(),
+            public_item_map: PublicItemMap::default(),
             disallowed: RefCell::new(BTreeSet::new()),
         };
         generator
-            .map
+            .public_item_map
             .populate_from_public_api(public_api, |tokens| {
                 if IGNORED_PATHS
                     .iter()
@@ -205,11 +205,11 @@ impl Generator {
 
     #[allow(clippy::too_many_lines)]
     fn generate(&self, root: impl AsRef<StdPath>) -> Result<()> {
-        let mut module = Module::new(&self.map);
+        let mut module = Module::new(&self.public_item_map);
 
         let parents_of_instrumentable_functions = self.parents_of_instrumentable_functions();
 
-        for (&id, public_items) in self.map.iter() {
+        for (&id, public_items) in self.public_item_map.iter() {
             let Some((function, has_result_output, has_option_output)) = self.is_function(id)
             else {
                 continue;
@@ -225,7 +225,7 @@ impl Generator {
                 continue;
             };
 
-            let parent_id = self.map.parent_id(id).unwrap();
+            let parent_id = self.public_item_map.parent_id(id).unwrap();
 
             let parent_item = self.krate.index.get(&parent_id).unwrap();
 
@@ -249,7 +249,7 @@ impl Generator {
             // smoelius: Fetch the parent's tokens first so that if they contain a
             // `qualified_struct`, that `qualified_struct` can be passed to `patch_tokens`.
             let (parent_tokens, _) = patch_tokens(
-                self.map.tokens(parent_id),
+                self.public_item_map.tokens(parent_id),
                 &[],
                 has_sealed_trait_bound,
                 false,
@@ -273,7 +273,7 @@ impl Generator {
             }
 
             let (tokens, map_kind) = patch_tokens(
-                self.map.tokens(id),
+                self.public_item_map.tokens(id),
                 qualified_struct,
                 false,
                 has_result_output,
@@ -361,7 +361,7 @@ impl Generator {
 
     fn parents_of_instrumentable_functions(&self) -> HashSet<Id> {
         let mut parent_ids = HashSet::new();
-        for (&id, public_items) in self.map.iter() {
+        for (&id, public_items) in self.public_item_map.iter() {
             for (parent_id, _) in public_items {
                 let &Some(parent_id) = parent_id else {
                     continue;
@@ -431,7 +431,7 @@ impl Generator {
         let item = self.krate.index.get(&id).unwrap();
         let mut attrs = rewrite_attrs(&item.attrs);
         if walk_parents {
-            let mut iter = self.map.parent_ids_unchecked(id).into_iter();
+            let mut iter = self.public_item_map.parent_ids_unchecked(id).into_iter();
             if let Some(parent_id) = iter.next() {
                 let mut parent_attrs = self.item_attrs_inner(parent_id, walk_parents);
                 for parent_id in iter {
