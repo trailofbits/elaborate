@@ -285,7 +285,7 @@ impl Generator {
             // smoelius: Fetch the parent's attributes first. If the function does not belong to a
             // trait or struct, they will append to the function's attributes so that they are not
             // lost.
-            let parent_attrs = item_attrs(&self.krate, &self.map, parent_id, true, &parent_tokens);
+            let parent_attrs = self.item_attrs(parent_id, true, &parent_tokens);
 
             let attrs = match parent_item.inner {
                 ItemEnum::Trait(_) => {
@@ -293,7 +293,7 @@ impl Generator {
                     assert!(qualified_struct.is_empty());
                     let (trait_path, _) = qualified_trait.extract_initial_path();
                     module.add_trait(&trait_path, &parent_attrs, qualified_trait);
-                    item_attrs(&self.krate, &self.map, id, false, &tokens)
+                    self.item_attrs(id, false, &tokens)
                 }
                 ItemEnum::Impl(_) => {
                     assert!(qualified_trait.is_empty());
@@ -315,12 +315,12 @@ impl Generator {
                             qualified_struct.is_known_unsized_type(),
                         ),
                     );
-                    item_attrs(&self.krate, &self.map, id, false, &tokens)
+                    self.item_attrs(id, false, &tokens)
                 }
                 ItemEnum::Module(_) => {
                     assert!(qualified_trait.is_empty());
                     assert!(qualified_struct.is_empty());
-                    let mut attrs = item_attrs(&self.krate, &self.map, id, false, &tokens);
+                    let mut attrs = self.item_attrs(id, false, &tokens);
                     attrs.extend(parent_attrs);
                     attrs
                 }
@@ -421,6 +421,31 @@ impl Generator {
         }
     }
 
+    /// Gets a [`rustdoc_types::Item`]'s attributes, including its [`TokensExt::required_gates`] as
+    /// determined by the `tokens` argument
+    fn item_attrs(&self, id: Id, walk_parents: bool, tokens: &[Token]) -> Vec<String> {
+        let mut attrs = self.item_attrs_inner(id, walk_parents);
+        attrs.extend(tokens.required_gates());
+        attrs
+    }
+
+    fn item_attrs_inner<'a>(&self, id: Id, walk_parents: bool) -> Vec<String> {
+        let item = self.krate.index.get(&id).unwrap();
+        let mut attrs = rewrite_attrs(&item.attrs);
+        if walk_parents {
+            let mut iter = self.map.parent_ids_unchecked(id).into_iter();
+            if let Some(parent_id) = iter.next() {
+                let mut parent_attrs = self.item_attrs_inner(parent_id, walk_parents);
+                for parent_id in iter {
+                    let other_attrs = self.item_attrs_inner(parent_id, walk_parents);
+                    parent_attrs.retain(|x| other_attrs.iter().any(|y| x == y));
+                }
+                attrs.extend(parent_attrs);
+            }
+        }
+        attrs
+    }
+
     fn disallow(
         &self,
         qualified_trait: &[Token],
@@ -468,42 +493,6 @@ impl Generator {
 
         Ok(())
     }
-}
-
-/// Gets a [`rustdoc_types::Item`]'s attributes, including its [`TokensExt::required_gates`] as
-/// determined by the `tokens` argument
-fn item_attrs(
-    krate: &Crate,
-    map: &PublicItemMap,
-    id: Id,
-    walk_parents: bool,
-    tokens: &[Token],
-) -> Vec<String> {
-    let mut attrs = item_attrs_inner(krate, map, id, walk_parents);
-    attrs.extend(tokens.required_gates());
-    attrs
-}
-
-fn item_attrs_inner<'a>(
-    krate: &Crate,
-    map: &'a PublicItemMap,
-    id: Id,
-    walk_parents: bool,
-) -> Vec<String> {
-    let item = krate.index.get(&id).unwrap();
-    let mut attrs = rewrite_attrs(&item.attrs);
-    if walk_parents {
-        let mut iter = map.parent_ids_unchecked(id).into_iter();
-        if let Some(parent_id) = iter.next() {
-            let mut parent_attrs = item_attrs_inner(krate, map, parent_id, walk_parents);
-            for parent_id in iter {
-                let other_attrs = item_attrs_inner(krate, map, parent_id, walk_parents);
-                parent_attrs.retain(|x| other_attrs.iter().any(|y| x == y));
-            }
-            attrs.extend(parent_attrs);
-        }
-    }
-    attrs
 }
 
 static UNSTABLE_RE: Lazy<Regex> =
