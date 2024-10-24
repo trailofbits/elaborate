@@ -427,7 +427,7 @@ impl Generator {
         attrs
     }
 
-    fn item_attrs_inner<'a>(&self, id: Id, walk_parents: bool) -> Vec<String> {
+    fn item_attrs_inner(&self, id: Id, walk_parents: bool) -> Vec<String> {
         let item = self.krate.index.get(&id).unwrap();
         let mut attrs = rewrite_attrs(&item.attrs);
         if walk_parents {
@@ -575,7 +575,7 @@ impl<'a> crate::Elaborate for &'a std::path::Path {
     .map(|(qualified_type, impls)| {
         (
             qualified_type,
-            impls.into_iter().map(|&s| s.to_owned()).collect::<Vec<_>>(),
+            impls.iter().map(|&s| s.to_owned()).collect::<Vec<_>>(),
         )
     })
     .collect()
@@ -663,7 +663,7 @@ impl{struct_params} crate::Elaborate for {qualified_struct} {{
         },
     ]
     .into_iter()
-    .chain(manual_trait_impls.into_iter())
+    .chain(manual_trait_impls)
     .collect()
 }
 
