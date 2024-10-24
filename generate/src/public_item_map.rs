@@ -25,7 +25,6 @@ use public_api::PublicItem;
 
 use crate::util::{PublicItemExt, TokensExt};
 use anyhow::Result;
-use once_cell::sync::Lazy;
 use public_api::{tokens::Token, PublicApi};
 use rustdoc_types::Id;
 use std::{
@@ -52,59 +51,16 @@ impl PublicItemMap {
     }
 
     pub fn parent_id(&self, id: Id) -> Option<Id> {
-        let parent_ids = self.parent_ids_inner(id, true);
-        assert!(parent_ids.len() <= 1);
-        parent_ids.into_iter().next()
+        let mut iter = self.parent_ids(id);
+        let parent_id = iter.next();
+        assert!(iter.next().is_none());
+        parent_id
     }
 
-    /// Like [`Self::parent_id`], but does not ensure the parent is unique and does not check for
-    /// ambiguity among the parents' tokens
-    pub fn parent_ids_unchecked(&self, id: Id) -> HashSet<Id> {
-        self.parent_ids_inner(id, false)
-    }
-
-    fn parent_ids_inner(&self, id: Id, check_for_ambiguity: bool) -> HashSet<Id> {
+    /// Like [`Self::parent_id`], but does not ensure the parent is unique
+    pub fn parent_ids(&self, id: Id) -> impl Iterator<Item = Id> + use<'_> {
         let public_items = self.inner.get(&id).unwrap();
-        let parent_ids = public_items
-            .iter()
-            .filter_map(|&(parent_id, _)| parent_id)
-            .collect::<HashSet<_>>();
-        if check_for_ambiguity {
-            let parent_tokens = parent_ids
-                .iter()
-                .flat_map(|parent_id| {
-                    // smoelius: A parent might not be in the map because it was ignored.
-                    static EMPTY: Lazy<HashSet<(Option<Id>, Vec<Token>)>> = Lazy::new(HashSet::new);
-                    let parent_public_items = self.inner.get(parent_id).unwrap_or(&EMPTY);
-                    parent_public_items.iter().map(|(_, tokens)| tokens)
-                })
-                .collect::<HashSet<_>>();
-            if parent_tokens.len() > 1 {
-                let tokens = public_items
-                    .iter()
-                    .map(|(_, tokens)| tokens)
-                    .collect::<HashSet<_>>();
-                let parent_tokens = parent_ids
-                    .iter()
-                    .map(|parent_id| {
-                        let parent_public_items = self.inner.get(parent_id).unwrap();
-                        let parent_tokens = parent_public_items
-                            .iter()
-                            .map(|(_, tokens)| tokens)
-                            .collect::<HashSet<_>>();
-                        (parent_id, debug_tokens(parent_tokens))
-                    })
-                    .collect::<Vec<_>>();
-                panic!(
-                    "{id:?} has ambiguous parents
-{id:?}: {:#?}
-parents: {:#?}",
-                    debug_tokens(tokens),
-                    parent_tokens,
-                );
-            }
-        }
-        parent_ids
+        public_items.iter().filter_map(|&(parent_id, _)| parent_id)
     }
 
     pub fn tokens(&self, id: Id) -> &[Token] {

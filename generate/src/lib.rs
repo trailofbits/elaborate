@@ -431,7 +431,7 @@ impl Generator {
         let item = self.krate.index.get(&id).unwrap();
         let mut attrs = rewrite_attrs(&item.attrs);
         if walk_parents {
-            let mut iter = self.public_item_map.parent_ids_unchecked(id).into_iter();
+            let mut iter = self.public_item_map.parent_ids(id);
             if let Some(parent_id) = iter.next() {
                 let mut parent_attrs = self.item_attrs_inner(parent_id, walk_parents);
                 for parent_id in iter {
