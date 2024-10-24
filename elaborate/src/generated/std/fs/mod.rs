@@ -20,7 +20,10 @@ impl DirBuilder {
         self.inner
     }
 }
-impl<T> AsRef<T> for DirBuilder where std :: fs :: DirBuilder: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for DirBuilder
+where
+    std :: fs :: DirBuilder: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: fs :: DirBuilder as AsRef<T>>::as_ref(&self.inner)
     }
@@ -50,7 +53,10 @@ impl DirEntry {
         self.inner
     }
 }
-impl<T> AsRef<T> for DirEntry where std :: fs :: DirEntry: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for DirEntry
+where
+    std :: fs :: DirEntry: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: fs :: DirEntry as AsRef<T>>::as_ref(&self.inner)
     }
@@ -80,7 +86,10 @@ impl File {
         self.inner
     }
 }
-impl<T> AsRef<T> for File where std :: fs :: File: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for File
+where
+    std :: fs :: File: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: fs :: File as AsRef<T>>::as_ref(&self.inner)
     }
@@ -110,7 +119,10 @@ impl Metadata {
         self.inner
     }
 }
-impl<T> AsRef<T> for Metadata where std :: fs :: Metadata: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for Metadata
+where
+    std :: fs :: Metadata: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: fs :: Metadata as AsRef<T>>::as_ref(&self.inner)
     }
@@ -140,7 +152,10 @@ impl OpenOptions {
         self.inner
     }
 }
-impl<T> AsRef<T> for OpenOptions where std :: fs :: OpenOptions: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for OpenOptions
+where
+    std :: fs :: OpenOptions: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: fs :: OpenOptions as AsRef<T>>::as_ref(&self.inner)
     }

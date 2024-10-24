@@ -47,7 +47,10 @@ impl PidFd {
 }
 #[cfg(feature = "linux_pidfd")]
 #[cfg(target_os = "linux")]
-impl<T> AsRef<T> for PidFd where std :: os :: linux :: process :: PidFd: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for PidFd
+where
+    std :: os :: linux :: process :: PidFd: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: os :: linux :: process :: PidFd as AsRef<T>>::as_ref(&self.inner)
     }

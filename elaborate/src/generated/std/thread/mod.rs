@@ -20,7 +20,10 @@ impl Builder {
         self.inner
     }
 }
-impl<T> AsRef<T> for Builder where std :: thread :: Builder: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for Builder
+where
+    std :: thread :: Builder: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: thread :: Builder as AsRef<T>>::as_ref(&self.inner)
     }
@@ -50,7 +53,10 @@ impl Thread {
         self.inner
     }
 }
-impl<T> AsRef<T> for Thread where std :: thread :: Thread: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for Thread
+where
+    std :: thread :: Thread: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: thread :: Thread as AsRef<T>>::as_ref(&self.inner)
     }

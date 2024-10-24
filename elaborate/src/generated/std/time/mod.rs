@@ -20,7 +20,10 @@ impl Instant {
         self.inner
     }
 }
-impl<T> AsRef<T> for Instant where std :: time :: Instant: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for Instant
+where
+    std :: time :: Instant: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: time :: Instant as AsRef<T>>::as_ref(&self.inner)
     }
@@ -50,7 +53,10 @@ impl SystemTime {
         self.inner
     }
 }
-impl<T> AsRef<T> for SystemTime where std :: time :: SystemTime: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for SystemTime
+where
+    std :: time :: SystemTime: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: time :: SystemTime as AsRef<T>>::as_ref(&self.inner)
     }

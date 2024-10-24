@@ -24,7 +24,10 @@ impl SocketAddr {
     }
 }
 #[cfg(unix)]
-impl<T> AsRef<T> for SocketAddr where std :: os :: unix :: net :: SocketAddr: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for SocketAddr
+where
+    std :: os :: unix :: net :: SocketAddr: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: os :: unix :: net :: SocketAddr as AsRef<T>>::as_ref(&self.inner)
     }
@@ -60,7 +63,10 @@ impl UnixDatagram {
     }
 }
 #[cfg(unix)]
-impl<T> AsRef<T> for UnixDatagram where std :: os :: unix :: net :: UnixDatagram: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for UnixDatagram
+where
+    std :: os :: unix :: net :: UnixDatagram: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: os :: unix :: net :: UnixDatagram as AsRef<T>>::as_ref(&self.inner)
     }
@@ -96,7 +102,10 @@ impl UnixListener {
     }
 }
 #[cfg(unix)]
-impl<T> AsRef<T> for UnixListener where std :: os :: unix :: net :: UnixListener: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for UnixListener
+where
+    std :: os :: unix :: net :: UnixListener: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: os :: unix :: net :: UnixListener as AsRef<T>>::as_ref(&self.inner)
     }
@@ -132,7 +141,10 @@ impl UnixStream {
     }
 }
 #[cfg(unix)]
-impl<T> AsRef<T> for UnixStream where std :: os :: unix :: net :: UnixStream: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for UnixStream
+where
+    std :: os :: unix :: net :: UnixStream: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: os :: unix :: net :: UnixStream as AsRef<T>>::as_ref(&self.inner)
     }

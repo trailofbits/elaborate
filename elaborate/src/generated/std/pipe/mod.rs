@@ -24,7 +24,10 @@ impl PipeReader {
     }
 }
 #[cfg(feature = "anonymous_pipe")]
-impl<T> AsRef<T> for PipeReader where std :: pipe :: PipeReader: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for PipeReader
+where
+    std :: pipe :: PipeReader: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: pipe :: PipeReader as AsRef<T>>::as_ref(&self.inner)
     }
@@ -60,7 +63,10 @@ impl PipeWriter {
     }
 }
 #[cfg(feature = "anonymous_pipe")]
-impl<T> AsRef<T> for PipeWriter where std :: pipe :: PipeWriter: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for PipeWriter
+where
+    std :: pipe :: PipeWriter: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: pipe :: PipeWriter as AsRef<T>>::as_ref(&self.inner)
     }

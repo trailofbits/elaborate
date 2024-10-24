@@ -20,7 +20,10 @@ impl Child {
         self.inner
     }
 }
-impl<T> AsRef<T> for Child where std :: process :: Child: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for Child
+where
+    std :: process :: Child: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: process :: Child as AsRef<T>>::as_ref(&self.inner)
     }
@@ -50,7 +53,10 @@ impl Command {
         self.inner
     }
 }
-impl<T> AsRef<T> for Command where std :: process :: Command: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for Command
+where
+    std :: process :: Command: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: process :: Command as AsRef<T>>::as_ref(&self.inner)
     }
@@ -80,7 +86,10 @@ impl ExitStatus {
         self.inner
     }
 }
-impl<T> AsRef<T> for ExitStatus where std :: process :: ExitStatus: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for ExitStatus
+where
+    std :: process :: ExitStatus: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: process :: ExitStatus as AsRef<T>>::as_ref(&self.inner)
     }
@@ -114,7 +123,10 @@ impl ExitStatusError {
     }
 }
 #[cfg(feature = "exit_status_error")]
-impl<T> AsRef<T> for ExitStatusError where std :: process :: ExitStatusError: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for ExitStatusError
+where
+    std :: process :: ExitStatusError: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: process :: ExitStatusError as AsRef<T>>::as_ref(&self.inner)
     }

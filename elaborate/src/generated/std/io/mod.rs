@@ -222,7 +222,10 @@ impl Error {
         self.inner
     }
 }
-impl<T> AsRef<T> for Error where std :: io :: Error: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for Error
+where
+    std :: io :: Error: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: io :: Error as AsRef<T>>::as_ref(&self.inner)
     }
@@ -252,7 +255,10 @@ impl Stdin {
         self.inner
     }
 }
-impl<T> AsRef<T> for Stdin where std :: io :: Stdin: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for Stdin
+where
+    std :: io :: Stdin: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: io :: Stdin as AsRef<T>>::as_ref(&self.inner)
     }

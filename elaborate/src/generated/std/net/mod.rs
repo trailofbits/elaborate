@@ -30,7 +30,10 @@ impl TcpListener {
         self.inner
     }
 }
-impl<T> AsRef<T> for TcpListener where std :: net :: TcpListener: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for TcpListener
+where
+    std :: net :: TcpListener: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: net :: TcpListener as AsRef<T>>::as_ref(&self.inner)
     }
@@ -60,7 +63,10 @@ impl TcpStream {
         self.inner
     }
 }
-impl<T> AsRef<T> for TcpStream where std :: net :: TcpStream: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for TcpStream
+where
+    std :: net :: TcpStream: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: net :: TcpStream as AsRef<T>>::as_ref(&self.inner)
     }
@@ -90,7 +96,10 @@ impl UdpSocket {
         self.inner
     }
 }
-impl<T> AsRef<T> for UdpSocket where std :: net :: UdpSocket: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for UdpSocket
+where
+    std :: net :: UdpSocket: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: net :: UdpSocket as AsRef<T>>::as_ref(&self.inner)
     }

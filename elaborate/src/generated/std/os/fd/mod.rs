@@ -20,7 +20,10 @@ impl<'a> BorrowedFd < 'a > {
         self.inner
     }
 }
-impl<'a, T> AsRef<T> for BorrowedFd < 'a > where std :: os :: fd :: BorrowedFd < 'a >: AsRef<T> {
+impl<'a, T: ?Sized> AsRef<T> for BorrowedFd < 'a >
+where
+    std :: os :: fd :: BorrowedFd < 'a >: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: os :: fd :: BorrowedFd < 'a > as AsRef<T>>::as_ref(&self.inner)
     }
@@ -50,7 +53,10 @@ impl OwnedFd {
         self.inner
     }
 }
-impl<T> AsRef<T> for OwnedFd where std :: os :: fd :: OwnedFd: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for OwnedFd
+where
+    std :: os :: fd :: OwnedFd: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: os :: fd :: OwnedFd as AsRef<T>>::as_ref(&self.inner)
     }

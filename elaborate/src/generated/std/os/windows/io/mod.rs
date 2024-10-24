@@ -24,7 +24,10 @@ impl<'a> BorrowedHandle < 'a > {
     }
 }
 #[cfg(windows)]
-impl<'a, T> AsRef<T> for BorrowedHandle < 'a > where std :: os :: windows :: io :: BorrowedHandle < 'a >: AsRef<T> {
+impl<'a, T: ?Sized> AsRef<T> for BorrowedHandle < 'a >
+where
+    std :: os :: windows :: io :: BorrowedHandle < 'a >: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: os :: windows :: io :: BorrowedHandle < 'a > as AsRef<T>>::as_ref(&self.inner)
     }
@@ -60,7 +63,10 @@ impl<'a> BorrowedSocket < 'a > {
     }
 }
 #[cfg(windows)]
-impl<'a, T> AsRef<T> for BorrowedSocket < 'a > where std :: os :: windows :: io :: BorrowedSocket < 'a >: AsRef<T> {
+impl<'a, T: ?Sized> AsRef<T> for BorrowedSocket < 'a >
+where
+    std :: os :: windows :: io :: BorrowedSocket < 'a >: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: os :: windows :: io :: BorrowedSocket < 'a > as AsRef<T>>::as_ref(&self.inner)
     }
@@ -96,7 +102,10 @@ impl OwnedHandle {
     }
 }
 #[cfg(windows)]
-impl<T> AsRef<T> for OwnedHandle where std :: os :: windows :: io :: OwnedHandle: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for OwnedHandle
+where
+    std :: os :: windows :: io :: OwnedHandle: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: os :: windows :: io :: OwnedHandle as AsRef<T>>::as_ref(&self.inner)
     }
@@ -132,7 +141,10 @@ impl OwnedSocket {
     }
 }
 #[cfg(windows)]
-impl<T> AsRef<T> for OwnedSocket where std :: os :: windows :: io :: OwnedSocket: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for OwnedSocket
+where
+    std :: os :: windows :: io :: OwnedSocket: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: os :: windows :: io :: OwnedSocket as AsRef<T>>::as_ref(&self.inner)
     }

@@ -15,7 +15,10 @@ impl OsStr {
         &self.inner
     }
 }
-impl<T> AsRef<T> for OsStr where std :: ffi :: OsStr: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for OsStr
+where
+    std :: ffi :: OsStr: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: ffi :: OsStr as AsRef<T>>::as_ref(&self.inner)
     }
@@ -34,7 +37,10 @@ impl OsString {
         self.inner
     }
 }
-impl<T> AsRef<T> for OsString where std :: ffi :: OsString: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for OsString
+where
+    std :: ffi :: OsString: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: ffi :: OsString as AsRef<T>>::as_ref(&self.inner)
     }

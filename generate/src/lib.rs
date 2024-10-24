@@ -593,9 +593,9 @@ fn struct_def_and_impls(
         .unwrap_or_default();
 
     let (struct_params, as_ref_params) = if needs_lifetime {
-        (String::from("<'a>"), String::from("<'a, T>"))
+        (String::from("<'a>"), String::from("<'a, T: ?Sized>"))
     } else {
-        (String::new(), String::from("<T>"))
+        (String::new(), String::from("<T: ?Sized>"))
     };
     let qualified_struct = qualified_struct.to_string();
     let struct_tokens = struct_tokens.to_string();
@@ -630,7 +630,10 @@ impl{struct_params} {struct_tokens} {{
         },
         format!(
             "\
-impl{as_ref_params} AsRef<T> for {struct_tokens} where {qualified_struct}: AsRef<T> {{
+impl{as_ref_params} AsRef<T> for {struct_tokens}
+where
+    {qualified_struct}: AsRef<T>,
+{{
     fn as_ref(&self) -> &T {{
         <{qualified_struct} as AsRef<T>>::as_ref(&self.inner)
     }}

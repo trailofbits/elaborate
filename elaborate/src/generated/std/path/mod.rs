@@ -15,7 +15,10 @@ impl Path {
         &self.inner
     }
 }
-impl<T> AsRef<T> for Path where std :: path :: Path: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for Path
+where
+    std :: path :: Path: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: path :: Path as AsRef<T>>::as_ref(&self.inner)
     }
@@ -45,7 +48,10 @@ impl PathBuf {
         self.inner
     }
 }
-impl<T> AsRef<T> for PathBuf where std :: path :: PathBuf: AsRef<T> {
+impl<T: ?Sized> AsRef<T> for PathBuf
+where
+    std :: path :: PathBuf: AsRef<T>,
+{
     fn as_ref(&self) -> &T {
         <std :: path :: PathBuf as AsRef<T>>::as_ref(&self.inner)
     }
