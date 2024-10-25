@@ -1052,6 +1052,24 @@ mod test {
     const SUBMODULES: &[&str] = &["library/backtrace", "library/stdarch"];
 
     #[test]
+    fn generated_is_current() {
+        if repo_is_dirty() {
+            #[allow(clippy::explicit_write)]
+            writeln!(
+                std::io::stderr(),
+                "Skipping `generated_is_current` test as repository is dirty",
+            )
+            .unwrap();
+            return;
+        }
+        assert_cmd::Command::cargo_bin("generate")
+            .unwrap()
+            .assert()
+            .success();
+        assert!(!repo_is_dirty());
+    }
+
+    #[test]
     fn version_commit() {
         let short_commit = &COMMIT[..9];
         let pat = format!("({short_commit} ");
@@ -1179,6 +1197,14 @@ mod test {
                 });
             }
         }
+    }
+
+    fn repo_is_dirty() -> bool {
+        let status = Command::new("git")
+            .args(["diff", "--quiet"])
+            .status()
+            .unwrap();
+        !status.success()
     }
 
     pub fn enabled(key: &str) -> bool {
