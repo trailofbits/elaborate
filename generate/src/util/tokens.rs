@@ -84,6 +84,7 @@ pub trait TokensExt {
     fn has_typed_self(&self) -> Option<usize>;
     fn is_known_uncloneable_type(&self) -> bool;
     fn is_known_unsized_type(&self) -> bool;
+    fn output_contains_ref(&self) -> bool;
     fn required_output_adjustment(&self) -> &str;
     fn output(&self) -> &[Token];
     fn output_offsets(&self) -> Option<(usize, usize)>;
@@ -317,6 +318,10 @@ impl TokensExt for [Token] {
         UNSIZED_TYPES
             .iter()
             .any(|qualified_struct| self == qualified_struct)
+    }
+
+    fn output_contains_ref(&self) -> bool {
+        self.output().contains(&Token::symbol("&"))
     }
 
     fn required_output_adjustment(&self) -> &str {
