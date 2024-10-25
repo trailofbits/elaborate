@@ -56,6 +56,15 @@ where
         <std :: path :: PathBuf as AsRef<T>>::as_ref(&self.inner)
     }
 }
+impl<T: ?Sized> std::ops::Deref for PathBuf
+where
+    std :: path :: PathBuf: std::ops::Deref<Target = T>,
+{
+    type Target = T;
+    fn deref(&self) -> &T {
+        <std :: path :: PathBuf as std::ops::Deref>::deref(&self.inner)
+    }
+}
 impl From<std :: path :: PathBuf> for PathBuf {
     fn from(value: std :: path :: PathBuf) -> Self {
         Self { inner: value }

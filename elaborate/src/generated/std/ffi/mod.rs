@@ -45,6 +45,15 @@ where
         <std :: ffi :: OsString as AsRef<T>>::as_ref(&self.inner)
     }
 }
+impl<T: ?Sized> std::ops::Deref for OsString
+where
+    std :: ffi :: OsString: std::ops::Deref<Target = T>,
+{
+    type Target = T;
+    fn deref(&self) -> &T {
+        <std :: ffi :: OsString as std::ops::Deref>::deref(&self.inner)
+    }
+}
 impl From<std :: ffi :: OsString> for OsString {
     fn from(value: std :: ffi :: OsString) -> Self {
         Self { inner: value }

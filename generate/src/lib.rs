@@ -628,7 +628,7 @@ fn struct_def_and_impls(
         .cloned()
         .unwrap_or_default();
 
-    let (struct_params, as_ref_params) = if needs_lifetime {
+    let (struct_params, trait_params) = if needs_lifetime {
         (String::from("<'a>"), String::from("<'a, T: ?Sized>"))
     } else {
         (String::new(), String::from("<T: ?Sized>"))
@@ -666,7 +666,7 @@ impl{struct_params} {struct_tokens} {{
         },
         format!(
             "\
-impl{as_ref_params} AsRef<T> for {struct_tokens}
+impl{trait_params} AsRef<T> for {struct_tokens}
 where
     {qualified_struct}: AsRef<T>,
 {{
@@ -675,6 +675,22 @@ where
     }}
 }}"
         ),
+        if struct_impls.is_deref {
+            format!(
+                "\
+impl{trait_params} std::ops::Deref for {struct_tokens}
+where
+    {qualified_struct}: std::ops::Deref<Target = T>,
+{{
+    type Target = T;
+    fn deref(&self) -> &T {{
+        <{qualified_struct} as std::ops::Deref>::deref(&self.inner)
+    }}
+}}"
+            )
+        } else {
+            String::new()
+        },
         if struct_impls.is_unsized {
             String::new()
         } else {
