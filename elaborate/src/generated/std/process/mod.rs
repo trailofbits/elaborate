@@ -155,19 +155,19 @@ pub fn kill ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Resu
 
     std :: process :: Child :: kill(&mut self.inner)
         .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type std::process::Child")), "kill"))
+        .with_context(|| crate::call_failed!(Some(&mut self.inner), "kill"))
 }
 pub fn try_wait ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: process :: ExitStatus > > ) {
 
     std :: process :: Child :: try_wait(&mut self.inner)
         .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type std::process::Child")), "try_wait"))
+        .with_context(|| crate::call_failed!(Some(&mut self.inner), "try_wait"))
 }
 pub fn wait ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: process :: ExitStatus > ) {
 
     std :: process :: Child :: wait(&mut self.inner)
         .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type std::process::Child")), "wait"))
+        .with_context(|| crate::call_failed!(Some(&mut self.inner), "wait"))
 }
 pub fn wait_with_output ( self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: process :: Output > ) {
 

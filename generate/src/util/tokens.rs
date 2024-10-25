@@ -48,21 +48,6 @@ static OUTPUT_ADJUSTMENTS: Lazy<Vec<(Vec<Token>, &str)>> = Lazy::new(|| {
     ]
 });
 
-static UNCLONEABLE_TYPES: Lazy<Vec<Vec<Token>>> = Lazy::new(|| {
-    vec![
-        qualified_type(&["std", "io"], "Error"),
-        qualified_type(&["std", "process"], "Child"),
-        qualified_type(&["std", "thread"], "Builder"),
-    ]
-});
-
-static UNSIZED_TYPES: Lazy<Vec<Vec<Token>>> = Lazy::new(|| {
-    vec![
-        qualified_type(&["std", "ffi"], "OsStr"),
-        qualified_type(&["std", "path"], "Path"),
-    ]
-});
-
 pub trait TokensExt {
     fn required_gates(&self) -> Vec<String>;
 
@@ -82,8 +67,6 @@ pub trait TokensExt {
     fn turbofish(&self) -> Vec<Token>;
 
     fn has_typed_self(&self) -> Option<usize>;
-    fn is_known_uncloneable_type(&self) -> bool;
-    fn is_known_unsized_type(&self) -> bool;
     fn output_contains_ref(&self) -> bool;
     fn required_output_adjustment(&self) -> &str;
     fn output(&self) -> &[Token];
@@ -306,18 +289,6 @@ impl TokensExt for [Token] {
         // smoelius: `Token::identifier("self")` as opposed to `Token::self_("self")` appears to be
         // a bug.
         self.position(&[Token::identifier("self"), Token::symbol(":")])
-    }
-
-    fn is_known_uncloneable_type(&self) -> bool {
-        UNCLONEABLE_TYPES
-            .iter()
-            .any(|qualified_struct| self == qualified_struct)
-    }
-
-    fn is_known_unsized_type(&self) -> bool {
-        UNSIZED_TYPES
-            .iter()
-            .any(|qualified_struct| self == qualified_struct)
     }
 
     fn output_contains_ref(&self) -> bool {

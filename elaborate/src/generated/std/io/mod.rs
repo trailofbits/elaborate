@@ -24,13 +24,13 @@ fn read_line ( & mut self , buf : & mut std :: string :: String ) -> crate :: re
 
     < Self as :: std :: io :: BufRead > :: read_line(self, buf)
         .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type impl std::io::BufRead")), "read_line", buf))
+        .with_context(|| crate::call_failed!(Some(self), "read_line", buf))
 }
 fn read_until ( & mut self , byte : u8 , buf : & mut std :: vec :: Vec < u8 > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
 
     < Self as :: std :: io :: BufRead > :: read_until(self, byte, buf)
         .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type impl std::io::BufRead")), "read_until", byte, buf))
+        .with_context(|| crate::call_failed!(Some(self), "read_until", byte, buf))
 }
 fn split ( self , byte : u8 ) -> std :: io :: Split < Self > where Self : core :: marker :: Sized {
 
@@ -41,14 +41,14 @@ fn has_data_left ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io ::
 
     < Self as :: std :: io :: BufRead > :: has_data_left(self)
         .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type impl std::io::BufRead")), "has_data_left"))
+        .with_context(|| crate::call_failed!(Some(self), "has_data_left"))
 }
 #[cfg(feature = "bufread_skip_until")]
 fn skip_until ( & mut self , byte : u8 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
 
     < Self as :: std :: io :: BufRead > :: skip_until(self, byte)
         .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type impl std::io::BufRead")), "skip_until", byte))
+        .with_context(|| crate::call_failed!(Some(self), "skip_until", byte))
 }
 }
 
@@ -70,31 +70,31 @@ fn read ( & mut self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( 
 
     < Self as :: std :: io :: Read > :: read(self, buf)
         .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type impl std::io::Read")), "read", buf))
+        .with_context(|| crate::call_failed!(Some(self), "read", buf))
 }
 fn read_exact ( & mut self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
 
     < Self as :: std :: io :: Read > :: read_exact(self, buf)
         .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type impl std::io::Read")), "read_exact", buf))
+        .with_context(|| crate::call_failed!(Some(self), "read_exact", buf))
 }
 fn read_to_end ( & mut self , buf : & mut std :: vec :: Vec < u8 > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
 
     < Self as :: std :: io :: Read > :: read_to_end(self, buf)
         .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type impl std::io::Read")), "read_to_end", buf))
+        .with_context(|| crate::call_failed!(Some(self), "read_to_end", buf))
 }
 fn read_to_string ( & mut self , buf : & mut std :: string :: String ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
 
     < Self as :: std :: io :: Read > :: read_to_string(self, buf)
         .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type impl std::io::Read")), "read_to_string", buf))
+        .with_context(|| crate::call_failed!(Some(self), "read_to_string", buf))
 }
 fn read_vectored ( & mut self , bufs : & mut [ std :: io :: IoSliceMut < '_ > ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
 
     < Self as :: std :: io :: Read > :: read_vectored(self, bufs)
         .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type impl std::io::Read")), "read_vectored", bufs))
+        .with_context(|| crate::call_failed!(Some(self), "read_vectored", bufs))
 }
 fn take ( self , limit : u64 ) -> std :: io :: Take < Self > where Self : core :: marker :: Sized {
 
@@ -110,14 +110,14 @@ fn read_buf ( & mut self , buf : core :: io :: borrowed_buf :: BorrowedCursor < 
 
     < Self as :: std :: io :: Read > :: read_buf(self, buf)
         .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type impl std::io::Read")), "read_buf", buf))
+        .with_context(|| crate::call_failed!(Some(self), "read_buf", buf))
 }
 #[cfg(feature = "read_buf")]
 fn read_buf_exact ( & mut self , cursor : core :: io :: borrowed_buf :: BorrowedCursor < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
 
     < Self as :: std :: io :: Read > :: read_buf_exact(self, cursor)
         .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type impl std::io::Read")), "read_buf_exact", cursor))
+        .with_context(|| crate::call_failed!(Some(self), "read_buf_exact", cursor))
 }
 }
 
@@ -127,32 +127,32 @@ fn rewind ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result
 
     < Self as :: std :: io :: Seek > :: rewind(self)
         .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type impl std::io::Seek")), "rewind"))
+        .with_context(|| crate::call_failed!(Some(self), "rewind"))
 }
 fn seek ( & mut self , pos : std :: io :: SeekFrom ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u64 > ) {
 
     < Self as :: std :: io :: Seek > :: seek(self, pos)
         .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type impl std::io::Seek")), "seek", pos))
+        .with_context(|| crate::call_failed!(Some(self), "seek", pos))
 }
 fn seek_relative ( & mut self , offset : i64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
 
     < Self as :: std :: io :: Seek > :: seek_relative(self, offset)
         .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type impl std::io::Seek")), "seek_relative", offset))
+        .with_context(|| crate::call_failed!(Some(self), "seek_relative", offset))
 }
 fn stream_position ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u64 > ) {
 
     < Self as :: std :: io :: Seek > :: stream_position(self)
         .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type impl std::io::Seek")), "stream_position"))
+        .with_context(|| crate::call_failed!(Some(self), "stream_position"))
 }
 #[cfg(feature = "seek_stream_len")]
 fn stream_len ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u64 > ) {
 
     < Self as :: std :: io :: Seek > :: stream_len(self)
         .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type impl std::io::Seek")), "stream_len"))
+        .with_context(|| crate::call_failed!(Some(self), "stream_len"))
 }
 }
 
@@ -166,31 +166,31 @@ fn flush ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result 
 
     < Self as :: std :: io :: Write > :: flush(self)
         .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type impl std::io::Write")), "flush"))
+        .with_context(|| crate::call_failed!(Some(self), "flush"))
 }
 fn write ( & mut self , buf : & [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
 
     < Self as :: std :: io :: Write > :: write(self, buf)
         .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type impl std::io::Write")), "write", buf))
+        .with_context(|| crate::call_failed!(Some(self), "write", buf))
 }
 fn write_all ( & mut self , buf : & [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
 
     < Self as :: std :: io :: Write > :: write_all(self, buf)
         .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type impl std::io::Write")), "write_all", buf))
+        .with_context(|| crate::call_failed!(Some(self), "write_all", buf))
 }
 fn write_fmt ( & mut self , fmt : core :: fmt :: Arguments < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
 
     < Self as :: std :: io :: Write > :: write_fmt(self, fmt)
         .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type impl std::io::Write")), "write_fmt", fmt))
+        .with_context(|| crate::call_failed!(Some(self), "write_fmt", fmt))
 }
 fn write_vectored ( & mut self , bufs : & [ std :: io :: IoSlice < '_ > ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
 
     < Self as :: std :: io :: Write > :: write_vectored(self, bufs)
         .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type impl std::io::Write")), "write_vectored", bufs))
+        .with_context(|| crate::call_failed!(Some(self), "write_vectored", bufs))
 }
 #[cfg(feature = "can_vector")]
 fn is_write_vectored ( & self ) -> bool {
@@ -202,7 +202,7 @@ fn write_all_vectored ( & mut self , bufs : & mut [ std :: io :: IoSlice < '_ > 
 
     < Self as :: std :: io :: Write > :: write_all_vectored(self, bufs)
         .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type impl std::io::Write")), "write_all_vectored", bufs))
+        .with_context(|| crate::call_failed!(Some(self), "write_all_vectored", bufs))
 }
 }
 

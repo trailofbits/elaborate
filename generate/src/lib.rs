@@ -3,7 +3,7 @@ use if_chain::if_chain;
 use once_cell::sync::Lazy;
 use public_api::tokens::Token;
 use regex::Regex;
-use rustdoc_types::{Crate, Function, Id, ItemEnum, Type};
+use rustdoc_types::{Crate, Function, Id, Impl, ItemEnum, Type};
 use std::{
     cell::RefCell,
     collections::{BTreeMap, BTreeSet, HashSet},
@@ -41,6 +41,13 @@ pub const COMMIT: &str = "6b9676b45431a1e531b9c5f7bd289fc36a312749";
 enum MapKind {
     Value { pair: bool },
     Err,
+}
+
+#[derive(Default)]
+struct StructImpls {
+    is_copy: bool,
+    is_deref: bool,
+    is_unsized: bool,
 }
 
 #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
@@ -285,13 +292,13 @@ impl Generator {
             // lost.
             let parent_attrs = self.item_attrs(parent_id, true, &parent_tokens);
 
-            let attrs = match parent_item.inner {
+            let (attrs, struct_is_copy) = match parent_item.inner {
                 ItemEnum::Trait(_) => {
                     assert!(!qualified_trait.is_empty());
                     assert!(qualified_struct.is_empty());
                     let (trait_path, _) = qualified_trait.extract_initial_path();
                     module.add_trait(&trait_path, &parent_attrs, qualified_trait);
-                    self.item_attrs(id, false, &tokens)
+                    (self.item_attrs(id, false, &tokens), false)
                 }
                 ItemEnum::Impl(_) => {
                     assert!(qualified_trait.is_empty());
@@ -302,6 +309,7 @@ impl Generator {
                     let (struct_tokens, replaced_in_struct_tokens) =
                         struct_tokens.deanonymize_lifetimes();
                     assert_eq!(replaced_in_qualified_struct, replaced_in_struct_tokens);
+                    let struct_impls = self.struct_impls(parent_id);
                     module.add_struct_def(
                         &struct_path,
                         &parent_attrs,
@@ -310,17 +318,17 @@ impl Generator {
                             &qualified_struct,
                             &struct_tokens,
                             replaced_in_struct_tokens,
-                            qualified_struct.is_known_unsized_type(),
+                            &struct_impls,
                         ),
                     );
-                    self.item_attrs(id, false, &tokens)
+                    (self.item_attrs(id, false, &tokens), struct_impls.is_copy)
                 }
                 ItemEnum::Module(_) => {
                     assert!(qualified_trait.is_empty());
                     assert!(qualified_struct.is_empty());
                     let mut attrs = self.item_attrs(id, false, &tokens);
                     attrs.extend(parent_attrs);
-                    attrs
+                    (attrs, false)
                 }
                 _ => panic!(),
             };
@@ -338,6 +346,7 @@ impl Generator {
                 &fn_path,
                 fn_suffix,
                 map_kind,
+                struct_is_copy,
             );
 
             module.add_fn_def(
@@ -442,6 +451,33 @@ impl Generator {
             }
         }
         attrs
+    }
+
+    fn struct_impls(&self, struct_impl_id: Id) -> StructImpls {
+        let struct_id = self.public_item_map.parent_id(struct_impl_id).unwrap();
+        let ItemEnum::Struct(strukt) = &self.krate.index.get(&struct_id).unwrap().inner else {
+            panic!();
+        };
+        let mut struct_impls = StructImpls::default();
+        for &id in &strukt.impls {
+            let ItemEnum::Impl(Impl {
+                trait_: Some(path),
+                is_negative,
+                ..
+            }) = &self.krate.index.get(&id).unwrap().inner
+            else {
+                continue;
+            };
+            if path.name == "Copy" {
+                struct_impls.is_copy = !is_negative;
+            } else if path.name == "Deref" {
+                struct_impls.is_deref = !is_negative;
+            } else if path.name == "Sized" {
+                // smoelius: N.B. The lack of negation.
+                struct_impls.is_unsized = *is_negative;
+            }
+        }
+        struct_impls
     }
 
     fn disallow(
@@ -585,7 +621,7 @@ fn struct_def_and_impls(
     qualified_struct: &[Token],
     struct_tokens: &[Token],
     needs_lifetime: bool,
-    is_unsized: bool,
+    struct_impls: &StructImpls,
 ) -> Vec<String> {
     let manual_trait_impls = MANUAL_TRAIT_IMPLEMENTATIONS
         .get(qualified_struct)
@@ -616,7 +652,7 @@ impl{struct_params} {struct_tokens} {{
     }}
 }}"
         ),
-        if is_unsized {
+        if struct_impls.is_unsized {
             String::new()
         } else {
             format!(
@@ -639,7 +675,7 @@ where
     }}
 }}"
         ),
-        if is_unsized {
+        if struct_impls.is_unsized {
             String::new()
         } else {
             format!(
@@ -651,7 +687,7 @@ impl{struct_params} From<{qualified_struct}> for {struct_tokens} {{
 }}"
             )
         },
-        if is_unsized {
+        if struct_impls.is_unsized {
             String::new()
         } else {
             format!(
@@ -761,6 +797,7 @@ fn fn_def(
     fn_path: &[&str],
     fn_suffix: &[Token],
     map_kind: Option<MapKind>,
+    struct_is_copy: bool,
 ) -> String {
     let callable_qualified_fn =
         callable_qualified_fn(qualified_trait, qualified_struct, fn_path, fn_suffix);
@@ -784,6 +821,8 @@ fn fn_def(
         qualified_trait,
         qualified_struct,
         &callable_qualified_fn,
+        struct_is_copy,
+        fn_suffix.output_contains_ref(),
     );
 
     let mut redeclarations = Vec::new();
@@ -836,6 +875,8 @@ fn call_and_call_failed(
     qualified_trait: &[Token],
     qualified_struct: &[Token],
     callable_qualified_fn: &[Token],
+    struct_is_copy: bool,
+    output_contains_ref: bool,
 ) -> (String, String) {
     let simplified_self = function
         .sig
@@ -861,8 +902,8 @@ fn call_and_call_failed(
     let mut call_failed = String::from("crate::call_failed!(");
     if let Some(self_inner) = &self_inner {
         if (simplified_self.as_deref() == Some("self")
-            || simplified_self.as_deref() == Some("&mut self"))
-            && (!qualified_trait.is_empty() || qualified_struct.is_known_uncloneable_type())
+            && (!qualified_trait.is_empty() || !struct_is_copy))
+            || (simplified_self.as_deref() == Some("&mut self") && output_contains_ref)
         {
             call_failed.push_str(&format!(
                 r#"Some(crate::CustomDebugMessage("value of type {}"))"#,
