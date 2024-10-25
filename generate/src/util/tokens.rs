@@ -85,6 +85,8 @@ pub trait TokensExt {
     fn is_known_uncloneable_type(&self) -> bool;
     fn is_known_unsized_type(&self) -> bool;
     fn required_output_adjustment(&self) -> &str;
+    fn output(&self) -> &[Token];
+    fn output_offsets(&self) -> Option<(usize, usize)>;
 
     fn replace(&self, from: &[Token], to: &[Token]) -> (Vec<Token>, usize);
     fn position(&self, needle: &[Token]) -> Option<usize>;
@@ -255,15 +257,7 @@ impl TokensExt for [Token] {
             ]
         });
 
-        let start = self
-            .position(&[Token::symbol("->")])
-            .map(|index| index + 1)
-            .unwrap();
-        let end = self
-            .position(&[Token::keyword("where")])
-            .unwrap_or(self.len());
-
-        self[start..end].ends_with(&SUFFIX)
+        self.output().ends_with(&SUFFIX)
     }
 
     fn rewrite_output_type(&self) -> Vec<Token> {
@@ -278,13 +272,7 @@ impl TokensExt for [Token] {
         });
         static SUFFIX: Lazy<Vec<Token>> = Lazy::new(|| vec![Token::symbol(")")]);
 
-        let start = self
-            .position(&[Token::symbol("->")])
-            .map(|index| index + 1)
-            .unwrap();
-        let end = self
-            .position(&[Token::keyword("where")])
-            .unwrap_or(self.len());
+        let (start, end) = self.output_offsets().unwrap();
 
         let tokens = &self[start..end];
 
@@ -344,6 +332,19 @@ impl TokensExt for [Token] {
             }
         }
         ""
+    }
+
+    fn output(&self) -> &[Token] {
+        self.output_offsets()
+            .map_or(&[], |(start, end)| &self[start..end])
+    }
+
+    fn output_offsets(&self) -> Option<(usize, usize)> {
+        let start = self.position(&[Token::symbol("->")]).map(|i| i + 1)?;
+        let end = self
+            .position(&[Token::keyword("where")])
+            .unwrap_or(self.len());
+        Some((start, end))
     }
 
     fn replace(&self, from: &[Token], to: &[Token]) -> (Vec<Token>, usize) {
