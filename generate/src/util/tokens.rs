@@ -181,7 +181,7 @@ impl TokensExt for [Token] {
     }
 
     fn extract_initial_type(&self) -> (&[Token], &[Token]) {
-        if matches!(self[0], Token::Function(_)) {
+        if matches!(self, &[Token::Function(_), ..]) {
             return (&[], self);
         }
         let mut i = 0;
