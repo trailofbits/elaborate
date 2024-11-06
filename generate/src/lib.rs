@@ -320,18 +320,18 @@ impl Generator {
                 _ => panic!(),
             };
 
-            let fn_suffix = tokens.strip_leading_qualifiers_and_fn();
+            let fn_tokens = tokens.strip_leading_qualifiers_and_fn();
 
-            let (fn_path, fn_suffix) = fn_suffix.extract_initial_path();
+            let (fn_path, fn_tokens) = fn_tokens.extract_initial_path();
 
-            let (_, fn_suffix) = fn_suffix.extract_initial_type();
+            let (_, fn_tokens) = fn_tokens.extract_initial_type();
 
             let fn_def = fn_def(
                 function,
                 qualified_trait,
                 qualified_struct,
                 &fn_path,
-                fn_suffix,
+                fn_tokens,
                 map_kind,
                 struct_is_copy,
             );
@@ -346,7 +346,7 @@ impl Generator {
             );
 
             if matches!(map_kind, Some(MapKind::Value { .. })) {
-                self.disallow(qualified_trait, qualified_struct, &fn_path, fn_suffix);
+                self.disallow(qualified_trait, qualified_struct, &fn_path, fn_tokens);
             }
         }
 
@@ -472,12 +472,12 @@ impl Generator {
         qualified_trait: &[Token],
         qualified_struct: &[Token],
         fn_path: &[&str],
-        fn_suffix: &[Token],
+        fn_tokens: &[Token],
     ) {
         let mut disallowed = self.disallowed.borrow_mut();
 
         let disallowable_qualified_fn =
-            disallowable_qualified_fn(qualified_trait, qualified_struct, fn_path, fn_suffix);
+            disallowable_qualified_fn(qualified_trait, qualified_struct, fn_path, fn_tokens);
 
         // smoelius: Disallowing `std::io::Write::write_fmt` causes Clippy to warn about `writeln!`.
         if disallowable_qualified_fn
@@ -798,12 +798,12 @@ fn fn_def(
     qualified_trait: &[Token],
     qualified_struct: &[Token],
     fn_path: &[&str],
-    fn_suffix: &[Token],
+    fn_tokens: &[Token],
     map_kind: Option<MapKind>,
     struct_is_copy: bool,
 ) -> String {
     let callable_qualified_fn =
-        callable_qualified_fn(qualified_trait, qualified_struct, fn_path, fn_suffix);
+        callable_qualified_fn(qualified_trait, qualified_struct, fn_path, fn_tokens);
 
     for (needle, implementation) in &*MANUAL_FUNCTION_IMPLEMENTATIONS {
         if callable_qualified_fn == *needle {
@@ -814,7 +814,7 @@ fn fn_def(
                 } else {
                     ""
                 },
-                fn_suffix.to_string()
+                fn_tokens.to_string()
             );
         }
     }
@@ -825,7 +825,7 @@ fn fn_def(
         qualified_struct,
         &callable_qualified_fn,
         struct_is_copy,
-        fn_suffix.output_contains_ref(),
+        fn_tokens.output_contains_ref(),
     );
 
     let mut redeclarations = Vec::new();
@@ -855,7 +855,7 @@ fn fn_def(
         None => String::new(),
     };
 
-    let output_adjustment = fn_suffix.required_output_adjustment();
+    let output_adjustment = fn_tokens.required_output_adjustment();
 
     format!(
         "\
@@ -868,7 +868,7 @@ fn fn_def(
         } else {
             ""
         },
-        fn_suffix.to_string(),
+        fn_tokens.to_string(),
         redeclarations.join(""),
     )
 }
@@ -975,11 +975,11 @@ fn callable_qualified_fn(
     qualified_trait: &[Token],
     qualified_struct: &[Token],
     fn_path: &[&str],
-    fn_suffix: &[Token],
+    fn_tokens: &[Token],
 ) -> Vec<Token> {
-    assert!(!fn_suffix.is_empty());
-    assert!(matches!(fn_suffix[0], Token::Function(_)));
-    let fn_name = fn_suffix[0].clone();
+    assert!(!fn_tokens.is_empty());
+    assert!(matches!(fn_tokens[0], Token::Function(_)));
+    let fn_name = fn_tokens[0].clone();
     let tokens = if !qualified_trait.is_empty() {
         [
             &[
@@ -1004,11 +1004,11 @@ fn disallowable_qualified_fn(
     qualified_trait: &[Token],
     qualified_struct: &[Token],
     fn_path: &[&str],
-    fn_suffix: &[Token],
+    fn_tokens: &[Token],
 ) -> Vec<Token> {
-    assert!(!fn_suffix.is_empty());
-    assert!(matches!(fn_suffix[0], Token::Function(_)));
-    let fn_name = fn_suffix[0].clone();
+    assert!(!fn_tokens.is_empty());
+    assert!(matches!(fn_tokens[0], Token::Function(_)));
+    let fn_name = fn_tokens[0].clone();
     if !qualified_trait.is_empty() || !qualified_struct.is_empty() {
         [
             qualified_trait,
