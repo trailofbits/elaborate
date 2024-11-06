@@ -324,7 +324,7 @@ impl Generator {
 
             let (fn_path, fn_suffix) = fn_suffix.extract_initial_path();
 
-            let (_, fn_suffix) = fn_suffix.extract_initial_trait_or_type();
+            let (_, fn_suffix) = fn_suffix.extract_initial_type();
 
             let fn_def = fn_def(
                 function,

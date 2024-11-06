@@ -71,14 +71,14 @@ impl<'map> Module<'map> {
     pub fn add_fn_def(
         &mut self,
         path: &[&str],
-        qualified_trait_or_struct: &[Token],
+        qualified_type: &[Token],
         attrs: &Vec<String>,
         def: &str,
     ) {
         let module = self.module_by_path(path);
         module
             .fn_defs
-            .entry(qualified_trait_or_struct.to_vec())
+            .entry(qualified_type.to_vec())
             .or_default()
             .insert(FnDef {
                 attrs: attrs.to_owned(),

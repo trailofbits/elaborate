@@ -57,7 +57,7 @@ pub trait TokensExt {
     fn extract_struct(&self) -> &[Token];
     fn extract_initial_generic_params(&self) -> (&[Token], &[Token]);
     fn extract_initial_path(&self) -> (Vec<&str>, &[Token]);
-    fn extract_initial_trait_or_type(&self) -> (&[Token], &[Token]);
+    fn extract_initial_type(&self) -> (&[Token], &[Token]);
 
     fn deanonymize_lifetimes(&self) -> (Vec<Token>, bool);
     fn remove_sealed(&self) -> Vec<Token>;
@@ -180,7 +180,7 @@ impl TokensExt for [Token] {
         (path, tokens)
     }
 
-    fn extract_initial_trait_or_type(&self) -> (&[Token], &[Token]) {
+    fn extract_initial_type(&self) -> (&[Token], &[Token]) {
         if matches!(self[0], Token::Function(_)) {
             return (&[], self);
         }
