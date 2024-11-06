@@ -1,8 +1,9 @@
 use anyhow::Result;
 use once_cell::sync::Lazy;
-use std::path::PathBuf;
-
-use generate::std_other::{fs::remove_dir_all, path::Path};
+use std::{
+    fs::remove_dir_all,
+    path::{Path, PathBuf},
+};
 
 #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
 static ROOT: Lazy<PathBuf> =

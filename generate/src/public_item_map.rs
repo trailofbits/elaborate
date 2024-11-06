@@ -29,11 +29,8 @@ use public_api::{tokens::Token, PublicApi};
 use rustdoc_types::Id;
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
-    io::Write,
-};
-
-use crate::std_other::{
     fs::{create_dir_all, OpenOptions},
+    io::Write,
     path::Path,
 };
 

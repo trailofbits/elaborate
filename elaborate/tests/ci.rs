@@ -1,18 +1,11 @@
 use assert_cmd::Command;
-use elaborate::std::env::set_current_dir;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use std::{collections::BTreeSet, env::remove_var};
+use std::{
+    collections::BTreeSet, env::remove_var, env::set_current_dir, fs::read_to_string, path::Path,
+};
 use tempfile::tempdir;
 use walkdir::WalkDir;
-
-#[cfg(feature = "__use_elaborate")]
-use elaborate::std as std_other;
-
-#[cfg(not(feature = "__use_elaborate"))]
-use std as std_other;
-
-use std_other::{fs::read_to_string, path::Path};
 
 #[ctor::ctor]
 fn initialize() {

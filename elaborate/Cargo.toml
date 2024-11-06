@@ -50,8 +50,5 @@ unix_socket_peek = []
 wasi_ext = []
 write_all_vectored = []
 
-default = ["__use_elaborate"]
-__use_elaborate = []
-
 [lints]
 workspace = true

@@ -7,19 +7,9 @@ use rustdoc_types::{Crate, Function, Id, Impl, ItemEnum, Type};
 use std::{
     cell::RefCell,
     collections::{BTreeMap, BTreeSet, HashSet},
-    io::Write,
-    path::{Path as StdPath, PathBuf},
-};
-
-#[cfg(feature = "use_elaborate")]
-pub use elaborate::std as std_other;
-
-#[cfg(not(feature = "use_elaborate"))]
-pub use std as std_other;
-
-use crate::std_other::{
     fs::{File, OpenOptions},
-    path::Path,
+    io::Write,
+    path::{Path, PathBuf},
 };
 
 mod public_item_map;
@@ -163,7 +153,7 @@ static REWRITABLE_PATHS: Lazy<Vec<(Vec<Token>, Vec<Token>)>> = Lazy::new(|| {
         .collect()
 });
 
-pub fn generate(root: impl AsRef<StdPath>) -> Result<()> {
+pub fn generate(root: impl AsRef<Path>) -> Result<()> {
     let generator = Generator::new()?;
 
     generator.generate(root)?;
@@ -182,9 +172,6 @@ struct Generator {
 impl Generator {
     fn new() -> Result<Self> {
         let file = File::open(&*STD_JSON)?;
-
-        #[cfg(feature = "use_elaborate")]
-        let file = file.into_inner();
 
         let krate = serde_json::from_reader::<_, Crate>(file)?;
         let public_api = public_api::Builder::from_rustdoc_json(&*STD_JSON).build()?;
@@ -211,7 +198,7 @@ impl Generator {
     }
 
     #[allow(clippy::too_many_lines)]
-    fn generate(&self, root: impl AsRef<StdPath>) -> Result<()> {
+    fn generate(&self, root: impl AsRef<Path>) -> Result<()> {
         let mut module = Module::new(&self.public_item_map);
 
         let parents_of_instrumentable_functions = self.parents_of_instrumentable_functions();
@@ -1038,13 +1025,12 @@ fn disallowable_qualified_fn(
 mod test {
     use super::*;
     use similar_asserts::SimpleDiff;
-    use std::str::FromStr;
-
-    use std_other::{
+    use std::{
         env::var,
         fs::{exists, read_to_string, write},
         path::Path,
         process::Command,
+        str::FromStr,
     };
 
     const RUST_URL: &str = "https://github.com/rust-lang/rust";

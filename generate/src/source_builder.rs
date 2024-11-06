@@ -3,11 +3,9 @@ use anyhow::Result;
 use public_api::tokens::Token;
 use std::{
     collections::{BTreeMap, BTreeSet},
-    fs::File,
+    fs::{create_dir_all, File, OpenOptions},
     io::Write,
 };
-
-use crate::std_other::fs::{create_dir_all, OpenOptions};
 
 struct TraitDef {
     attrs: Vec<String>,
