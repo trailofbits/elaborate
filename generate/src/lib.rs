@@ -1065,6 +1065,7 @@ mod test {
         assert!(stdout.contains(&pat));
     }
 
+    #[cfg_attr(dylint_lib = "general", allow(non_thread_safe_call_in_test))]
     #[test]
     fn std_json() {
         clone_or_update_rust();
