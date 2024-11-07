@@ -201,7 +201,7 @@ impl Generator {
     fn generate(&self, root: impl AsRef<Path>) -> Result<()> {
         let mut module = Module::new(&self.public_item_map);
 
-        let parents_of_instrumentable_functions = self.parents_of_instrumentable_functions();
+        let parents_of_wrappable_functions = self.parents_of_wrappable_functions();
 
         for (&id, public_items) in self.public_item_map.iter() {
             let Some((function, has_result_output, has_option_output)) = self.is_function(id)
@@ -210,11 +210,11 @@ impl Generator {
             };
 
             // smoelius: An `Id` may correspond to multiple `PublicItem`s. If _any_ of the
-            // `PublicItem`s' parents are in `parents_of_instrumentable_functions`, proceed.
+            // `PublicItem`s' parents are in `parents_of_wrappable_functions`, proceed.
             if !public_items
                 .iter()
                 .filter_map(|&(parent_id, _)| parent_id)
-                .any(|parent_id| parents_of_instrumentable_functions.contains(&parent_id))
+                .any(|parent_id| parents_of_wrappable_functions.contains(&parent_id))
             {
                 continue;
             };
@@ -353,7 +353,7 @@ impl Generator {
         Ok(())
     }
 
-    fn parents_of_instrumentable_functions(&self) -> HashSet<Id> {
+    fn parents_of_wrappable_functions(&self) -> HashSet<Id> {
         let mut parent_ids = HashSet::new();
         for (&id, public_items) in self.public_item_map.iter() {
             for (parent_id, _) in public_items {
