@@ -62,11 +62,11 @@ pub trait TokensExt {
     fn deanonymize_lifetimes(&self) -> (Vec<Token>, bool);
     fn remove_sealed(&self) -> Vec<Token>;
     fn selectively_collapse_self(&self, qualified_struct: &[Token]) -> Vec<Token>;
-    fn error_type_is_self(&self) -> bool;
     fn rewrite_output_type(&self) -> Vec<Token>;
     fn turbofish(&self) -> Vec<Token>;
 
     fn has_typed_self(&self) -> Option<usize>;
+    fn error_type_is_self(&self) -> bool;
     fn output_contains_ref(&self) -> bool;
     fn required_output_adjustment(&self) -> &str;
     fn output(&self) -> &[Token];
@@ -232,18 +232,6 @@ impl TokensExt for [Token] {
         [&self[..start], &tokens, &self[end..]].concat()
     }
 
-    fn error_type_is_self(&self) -> bool {
-        static SUFFIX: Lazy<Vec<Token>> = Lazy::new(|| {
-            vec![
-                Token::symbol(","),
-                Token::generic("Self"),
-                Token::symbol(">"),
-            ]
-        });
-
-        self.output().ends_with(&SUFFIX)
-    }
-
     fn rewrite_output_type(&self) -> Vec<Token> {
         static PREFIX: Lazy<Vec<Token>> = Lazy::new(|| {
             vec![
@@ -289,6 +277,18 @@ impl TokensExt for [Token] {
         // smoelius: `Token::identifier("self")` as opposed to `Token::self_("self")` appears to be
         // a bug.
         self.position(&[Token::identifier("self"), Token::symbol(":")])
+    }
+
+    fn error_type_is_self(&self) -> bool {
+        static SUFFIX: Lazy<Vec<Token>> = Lazy::new(|| {
+            vec![
+                Token::symbol(","),
+                Token::generic("Self"),
+                Token::symbol(">"),
+            ]
+        });
+
+        self.output().ends_with(&SUFFIX)
     }
 
     fn output_contains_ref(&self) -> bool {
