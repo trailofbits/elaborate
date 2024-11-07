@@ -247,7 +247,6 @@ impl Generator {
                 &[],
                 has_sealed_trait_bound,
                 false,
-                false,
             );
 
             let qualified_trait = parent_tokens.extract_trait();
@@ -270,8 +269,7 @@ impl Generator {
                 self.public_item_map.tokens(id),
                 qualified_struct,
                 false,
-                has_result_output,
-                has_option_output,
+                has_result_output || has_option_output,
             );
 
             // smoelius: Fetch the parent's attributes first. If the function does not belong to a
@@ -539,8 +537,7 @@ fn patch_tokens(
     tokens: &[Token],
     qualified_struct: &[Token],
     has_sealed_trait_bound: bool,
-    has_result_output: bool,
-    has_option_output: bool,
+    has_output: bool,
 ) -> (Vec<Token>, Option<MapKind>) {
     let mut tokens = tokens.to_vec();
 
@@ -556,7 +553,7 @@ fn patch_tokens(
         tokens = tokens.selectively_collapse_self(qualified_struct);
     }
 
-    let map_kind = if has_result_output || has_option_output {
+    let map_kind = if has_output {
         Some(if tokens.error_type_is_self() {
             MapKind::Err
         } else {
