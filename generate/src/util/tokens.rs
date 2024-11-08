@@ -31,20 +31,6 @@ static GATED_PATHS: Lazy<Vec<(Vec<Token>, &str)>> = Lazy::new(|| {
     .collect()
 });
 
-static OUTPUT_ADJUSTMENTS: Lazy<Vec<(Vec<Token>, &str)>> = Lazy::new(|| {
-    vec![
-        (
-            vec![
-                Token::symbol("&"),
-                Token::keyword("mut"),
-                Token::generic("Self"),
-            ],
-            "; self",
-        ),
-        (vec![Token::generic("Self")], ".into()"),
-    ]
-});
-
 pub trait TokensExt {
     fn required_gates(&self) -> Vec<String>;
 
@@ -56,7 +42,7 @@ pub trait TokensExt {
     fn extract_initial_path(&self) -> (Vec<&str>, &[Token]);
     fn extract_initial_type(&self) -> (&[Token], &[Token]);
 
-    fn deanonymize_lifetimes(&self) -> (Vec<Token>, bool);
+    fn remove_anonymous_lifetimes(&self) -> Vec<Token>;
     fn remove_sealed(&self) -> Vec<Token>;
     fn selectively_collapse_self(&self, qualified_struct: &[Token]) -> Vec<Token>;
     fn rewrite_output_type(&self) -> Vec<Token>;
@@ -64,8 +50,8 @@ pub trait TokensExt {
 
     fn has_typed_self(&self) -> Option<usize>;
     fn error_type_is_self(&self) -> bool;
+    fn output_contains_non_ref_self(&self) -> bool;
     fn output_contains_ref(&self) -> bool;
-    fn required_output_adjustment(&self) -> &str;
     fn output(&self) -> &[Token];
     fn output_offsets(&self) -> Option<(usize, usize)>;
 
@@ -190,11 +176,17 @@ impl TokensExt for [Token] {
         (&self[..i], &self[i + 1..])
     }
 
-    fn deanonymize_lifetimes(&self) -> (Vec<Token>, bool) {
-        let (tokens, replacements) =
-            self.replace(&[Token::lifetime("'_")], &[Token::lifetime("'a")]);
+    fn remove_anonymous_lifetimes(&self) -> Vec<Token> {
+        let (tokens, _) = self.replace(
+            &[
+                Token::symbol("<"),
+                Token::lifetime("'_"),
+                Token::symbol(">"),
+            ],
+            &[],
+        );
 
-        (tokens, replacements != 0)
+        tokens
     }
 
     /// It might be preferable to remove the `Sealed` bound from the [`rustdoc_types::Trait`] before
@@ -291,23 +283,14 @@ impl TokensExt for [Token] {
         self.output().ends_with(&SUFFIX)
     }
 
-    fn output_contains_ref(&self) -> bool {
-        self.output().contains(&Token::symbol("&"))
+    fn output_contains_non_ref_self(&self) -> bool {
+        self.output()
+            .windows(2)
+            .any(|w| w[0] != Token::symbol("&") && w[1] == Token::generic("Self"))
     }
 
-    fn required_output_adjustment(&self) -> &str {
-        let Some(start) = self.position(&[Token::symbol("->")]).map(|i| i + 1) else {
-            return "";
-        };
-        let end = self
-            .position(&[Token::keyword("where")])
-            .unwrap_or(self.len());
-        for (output, adjustment) in &*OUTPUT_ADJUSTMENTS {
-            if &self[start..end] == output {
-                return adjustment;
-            }
-        }
-        ""
+    fn output_contains_ref(&self) -> bool {
+        self.output().contains(&Token::symbol("&"))
     }
 
     fn output(&self) -> &[Token] {
