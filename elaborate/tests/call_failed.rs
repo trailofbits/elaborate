@@ -16,7 +16,7 @@ Os { code: 13, kind: PermissionDenied, message: \"Permission denied\" }",
 
 #[test]
 fn call_failed_with_elaborate() {
-    let error = elaborate::std::fs::create_dir("/dir").unwrap_err();
+    let error = elaborate::std::fs::create_dir_wc("/dir").unwrap_err();
     assert_eq!(
         "\
 call failed:
@@ -45,9 +45,10 @@ Os { code: 2, kind: NotFound, message: \"No such file or directory\" }",
 
 #[test]
 fn struct_call_failed_with_elaborate() {
-    let error = elaborate::std::fs::OpenOptions::new()
+    use elaborate::std::fs::OpenOptionsContext;
+    let error = std::fs::OpenOptions::new()
         .read(true)
-        .open("/nonexistent_file")
+        .open_wc("/nonexistent_file")
         .unwrap_err();
     assert_eq!(
         "\
@@ -96,9 +97,9 @@ Os { code: 9, kind: Uncategorized, message: \"Bad file descriptor\" }",
 
     #[test]
     fn trait_call_failed_with_elaborate() {
-        use elaborate::std::os::unix::fs::FileExt;
+        use elaborate::std::os::unix::fs::FileExtContext;
         let tempfile = readonly_tempfile().unwrap();
-        let error = tempfile.write_at(&[], 0).unwrap_err();
+        let error = tempfile.write_at_wc(&[], 0).unwrap_err();
         assert_eq!(
             "\
 call failed:

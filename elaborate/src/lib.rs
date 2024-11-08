@@ -1,17 +1,6 @@
 use ::std::{any::type_name, fmt::Debug};
 
-#[expect(
-    deprecated,
-    clippy::disallowed_methods,
-    clippy::iter_without_into_iter,
-    clippy::len_without_is_empty,
-    clippy::missing_safety_doc,
-    clippy::module_name_repetitions,
-    clippy::must_use_candidate,
-    clippy::new_without_default,
-    clippy::return_self_not_must_use,
-    clippy::semicolon_if_nothing_returned
-)]
+#[expect(deprecated, clippy::module_name_repetitions)]
 mod generated;
 pub use generated::std;
 
@@ -20,11 +9,6 @@ macro_rules! rewrite_output_type {
     ( $_0:ident $(:: $_1:ident)* < $ty:ty $(, $_2:ty)? $(,)? > ) => {
         anyhow::Result< $ty >
     };
-}
-
-pub trait Elaborate {
-    type Output;
-    fn elaborate(self) -> Self::Output;
 }
 
 #[macro_export]

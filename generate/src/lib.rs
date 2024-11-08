@@ -3,10 +3,10 @@ use if_chain::if_chain;
 use once_cell::sync::Lazy;
 use public_api::tokens::Token;
 use regex::Regex;
-use rustdoc_types::{Crate, Function, Id, Impl, ItemEnum, Type};
+use rustdoc_types::{Crate, Function, Id, ItemEnum, Type};
 use std::{
     cell::RefCell,
-    collections::{BTreeMap, BTreeSet, HashSet},
+    collections::{BTreeMap, HashSet},
     fs::{File, OpenOptions},
     io::Write,
     path::{Path, PathBuf},
@@ -26,19 +26,6 @@ use util::{
 
 pub const TOOLCHAIN: &str = "nightly-2024-10-13";
 pub const COMMIT: &str = "6b9676b45431a1e531b9c5f7bd289fc36a312749";
-
-#[derive(Clone, Copy)]
-enum MapKind {
-    Value { pair: bool },
-    Err,
-}
-
-#[derive(Default)]
-struct StructImpls {
-    is_copy: bool,
-    is_deref: bool,
-    is_unsized: bool,
-}
 
 #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
 static STD_JSON: Lazy<PathBuf> =
@@ -110,18 +97,6 @@ static GENERIC_STRUCTS: Lazy<Vec<Vec<Token>>> = Lazy::new(|| {
         .collect()
 });
 
-static PATHS_REQUIRING_MAP_PAIR: Lazy<Vec<Vec<Token>>> = Lazy::new(|| {
-    const INNER: &[(&[&str], &str, &str)] = &[
-        (&["std", "os", "unix", "net"], "UnixDatagram", "pair"),
-        (&["std", "os", "unix", "net"], "UnixStream", "pair"),
-    ];
-
-    INNER
-        .iter()
-        .map(|(path, ty, name)| qualified_type_function(path, ty, name))
-        .collect()
-});
-
 static REWRITABLE_PATHS: Lazy<Vec<(Vec<Token>, Vec<Token>)>> = Lazy::new(|| {
     const SHORTENABLE_PATHS: &[&[&str]] = &[
         &["core", "net", "ip_addr"],
@@ -166,7 +141,7 @@ pub fn generate(root: impl AsRef<Path>) -> Result<()> {
 struct Generator {
     krate: Crate,
     public_item_map: PublicItemMap,
-    disallowed: RefCell<BTreeSet<String>>,
+    disallowed: RefCell<BTreeMap<Vec<Token>, Vec<Token>>>,
 }
 
 impl Generator {
@@ -178,7 +153,7 @@ impl Generator {
         let mut generator = Self {
             krate,
             public_item_map: PublicItemMap::default(),
-            disallowed: RefCell::new(BTreeSet::new()),
+            disallowed: RefCell::new(BTreeMap::new()),
         };
         generator
             .public_item_map
@@ -204,8 +179,7 @@ impl Generator {
         let parents_of_wrappable_functions = self.parents_of_wrappable_functions();
 
         for (&id, public_items) in self.public_item_map.iter() {
-            let Some((function, has_result_output, has_option_output)) = self.is_function(id)
-            else {
+            let Some((function, true, _) | (function, _, true)) = self.is_function(id) else {
                 continue;
             };
 
@@ -242,12 +216,14 @@ impl Generator {
 
             // smoelius: Fetch the parent's tokens first so that if they contain a
             // `qualified_struct`, that `qualified_struct` can be passed to `patch_tokens`.
-            let (parent_tokens, _) = patch_tokens(
+            let (parent_tokens, false) = patch_tokens(
                 self.public_item_map.tokens(parent_id),
                 &[],
                 has_sealed_trait_bound,
                 false,
-            );
+            ) else {
+                panic!();
+            };
 
             let qualified_trait = parent_tokens.extract_trait();
             let qualified_struct = parent_tokens.extract_struct();
@@ -265,58 +241,63 @@ impl Generator {
                 continue;
             }
 
-            let (tokens, map_kind) = patch_tokens(
+            let (tokens, false) = patch_tokens(
                 self.public_item_map.tokens(id),
                 qualified_struct,
                 false,
-                has_result_output || has_option_output,
-            );
+                true,
+            ) else {
+                continue;
+            };
 
             // smoelius: Fetch the parent's attributes first. If the function does not belong to a
             // trait or struct, they will append to the function's attributes so that they are not
             // lost.
             let parent_attrs = self.item_attrs(parent_id, true, &parent_tokens);
 
-            let (attrs, struct_is_copy) = match parent_item.inner {
+            let attrs = match parent_item.inner {
                 ItemEnum::Trait(_) => {
                     assert!(!qualified_trait.is_empty());
                     assert!(qualified_struct.is_empty());
-                    let (trait_path, _) = qualified_trait.extract_initial_path();
-                    module.add_trait(&trait_path, &parent_attrs, qualified_trait);
-                    (self.item_attrs(id, false, &tokens), false)
+                    let (trait_path, trait_tokens) = qualified_trait.extract_initial_path();
+                    let trait_wrapper_tokens = type_wrapper_tokens(trait_tokens);
+                    module.add_trait_wrapper(
+                        &trait_path,
+                        &parent_attrs,
+                        &[path_prefix(&trait_path), trait_wrapper_tokens.clone()].concat(),
+                        qualified_trait,
+                    );
+                    self.item_attrs(id, false, &tokens)
                 }
                 ItemEnum::Impl(_) => {
                     assert!(qualified_trait.is_empty());
                     assert!(!qualified_struct.is_empty());
                     let (struct_path, struct_tokens) = qualified_struct.extract_initial_path();
-                    let (qualified_struct, replaced_in_qualified_struct) =
-                        qualified_struct.deanonymize_lifetimes();
-                    let (struct_tokens, replaced_in_struct_tokens) =
-                        struct_tokens.deanonymize_lifetimes();
-                    assert_eq!(replaced_in_qualified_struct, replaced_in_struct_tokens);
-                    let struct_impls = self.struct_impls(parent_id);
-                    module.add_struct_def(
+                    let struct_wrapper_tokens = type_wrapper_tokens(struct_tokens);
+                    module.add_struct_wrapper(
                         &struct_path,
                         &parent_attrs,
-                        &qualified_struct,
-                        &struct_def_and_impls(
-                            &qualified_struct,
-                            &struct_tokens,
-                            replaced_in_struct_tokens,
-                            &struct_impls,
-                        ),
+                        &[path_prefix(&struct_path), struct_wrapper_tokens.clone()].concat(),
+                        qualified_struct,
+                        tokens.output_contains_non_ref_self(),
                     );
-                    (self.item_attrs(id, false, &tokens), struct_impls.is_copy)
+                    self.item_attrs(id, false, &tokens)
                 }
                 ItemEnum::Module(_) => {
                     assert!(qualified_trait.is_empty());
                     assert!(qualified_struct.is_empty());
                     let mut attrs = self.item_attrs(id, false, &tokens);
                     attrs.extend(parent_attrs);
-                    (attrs, false)
+                    attrs
                 }
                 _ => panic!(),
             };
+
+            // smoelius: At most one of `qualified_trait` and `qualified_struct` is non-empty.
+            // Concatenating them has the effect of select the non-empty one.
+            let qualified_type = [qualified_trait, qualified_struct].concat();
+
+            let qualified_type_wrapper = qualified_type_wrapper_tokens(&qualified_type);
 
             let fn_tokens = tokens.strip_leading_qualifiers_and_fn();
 
@@ -324,28 +305,21 @@ impl Generator {
 
             let (_, fn_tokens) = fn_tokens.extract_initial_type();
 
-            let fn_def = fn_def(
+            let fn_wrapper_tokens = fn_wrapper_tokens(fn_tokens);
+
+            let sig = fn_sig(function, &qualified_type, &fn_wrapper_tokens);
+
+            let body = fn_body(
                 function,
                 qualified_trait,
                 qualified_struct,
                 &fn_path,
                 fn_tokens,
-                map_kind,
-                struct_is_copy,
             );
 
-            module.add_fn_def(
-                &fn_path,
-                // smoelius: At most one of `qualified_trait` and `qualified_struct` is non-empty.
-                // Concatenating them has the effect of select the non-empty one.
-                &[qualified_trait, qualified_struct].concat(),
-                &attrs,
-                &fn_def,
-            );
+            module.add_fn(&fn_path, &qualified_type_wrapper, &attrs, &sig, &body);
 
-            if matches!(map_kind, Some(MapKind::Value { .. })) {
-                self.disallow(qualified_trait, qualified_struct, &fn_path, fn_tokens);
-            }
+            self.disallow(&qualified_type, &fn_path, fn_tokens);
         }
 
         module.write(root)?;
@@ -438,44 +412,11 @@ impl Generator {
         attrs
     }
 
-    fn struct_impls(&self, struct_impl_id: Id) -> StructImpls {
-        let struct_id = self.public_item_map.parent_id(struct_impl_id).unwrap();
-        let ItemEnum::Struct(strukt) = &self.krate.index.get(&struct_id).unwrap().inner else {
-            panic!();
-        };
-        let mut struct_impls = StructImpls::default();
-        for &id in &strukt.impls {
-            let ItemEnum::Impl(Impl {
-                trait_: Some(path),
-                is_negative,
-                ..
-            }) = &self.krate.index.get(&id).unwrap().inner
-            else {
-                continue;
-            };
-            if path.name == "Copy" {
-                struct_impls.is_copy = !is_negative;
-            } else if path.name == "Deref" {
-                struct_impls.is_deref = !is_negative;
-            } else if path.name == "Sized" {
-                // smoelius: N.B. The lack of negation.
-                struct_impls.is_unsized = *is_negative;
-            }
-        }
-        struct_impls
-    }
-
-    fn disallow(
-        &self,
-        qualified_trait: &[Token],
-        qualified_struct: &[Token],
-        fn_path: &[&str],
-        fn_tokens: &[Token],
-    ) {
+    fn disallow(&self, qualified_type: &[Token], fn_path: &[&str], fn_tokens: &[Token]) {
         let mut disallowed = self.disallowed.borrow_mut();
 
-        let disallowable_qualified_fn =
-            disallowable_qualified_fn(qualified_trait, qualified_struct, fn_path, fn_tokens);
+        let (disallowable_qualified_fn, disallowable_qualified_fn_wrapper) =
+            disallowable_qualified_fn(qualified_type, fn_path, fn_tokens);
 
         // smoelius: Disallowing `std::io::Write::write_fmt` causes Clippy to warn about `writeln!`.
         if disallowable_qualified_fn
@@ -484,8 +425,7 @@ impl Generator {
             return;
         }
 
-        // smoelius: `disallowed` is only for the clippy.toml file, so yolo.
-        disallowed.insert(disallowable_qualified_fn.to_string_unchecked());
+        disallowed.insert(disallowable_qualified_fn, disallowable_qualified_fn_wrapper);
     }
 
     fn write_clippy_toml(&self) -> Result<()> {
@@ -501,11 +441,12 @@ impl Generator {
             .open(path)?;
 
         writeln!(file, "disallowed-methods = [")?;
-        for tokens in disallowed.iter() {
-            let tokens = tokens.to_string().replace(' ', "");
+        for (disallowable_qualified_fn, disallowable_qualified_fn_wrapper) in disallowed.iter() {
             writeln!(
                 file,
-                r#"    {{ path = "{tokens}", reason = "use `elaborate::{tokens}`"}},"#
+                r#"    {{ path = "{}", reason = "use `elaborate::{}`"}},"#,
+                disallowable_qualified_fn.to_string_unchecked(),
+                disallowable_qualified_fn_wrapper.to_string_unchecked()
             )?;
         }
         writeln!(file, "]")?;
@@ -538,7 +479,7 @@ fn patch_tokens(
     qualified_struct: &[Token],
     has_sealed_trait_bound: bool,
     has_output: bool,
-) -> (Vec<Token>, Option<MapKind>) {
+) -> (Vec<Token>, bool) {
     let mut tokens = tokens.to_vec();
 
     for (from, to) in &*REWRITABLE_PATHS {
@@ -553,275 +494,83 @@ fn patch_tokens(
         tokens = tokens.selectively_collapse_self(qualified_struct);
     }
 
-    let map_kind = if has_output {
-        Some(if tokens.error_type_is_self() {
-            MapKind::Err
+    let error_type_is_self = if has_output {
+        if tokens.error_type_is_self() {
+            true
         } else {
             tokens = tokens.rewrite_output_type();
-            let pair = PATHS_REQUIRING_MAP_PAIR
-                .iter()
-                .any(|path| tokens.position(path).is_some());
-            MapKind::Value { pair }
-        })
+            false
+        }
     } else {
-        None
+        false
     };
 
     (tokens, _) = tokens.replace(&[Token::primitive("never")], &[Token::primitive("!")]);
 
-    (tokens, map_kind)
+    (tokens, error_type_is_self)
 }
 
-static MANUAL_TRAIT_IMPLEMENTATIONS: Lazy<BTreeMap<Vec<Token>, Vec<String>>> = Lazy::new(|| {
-    [(
-        qualified_type(&["std", "path"], "Path"),
-        &[
-            "\
-impl From<&std::path::Path> for &Path {
-    fn from(value: &std::path::Path) -> Self {
-        unsafe { &*(std::ptr::from_ref::<std::path::Path>(value) as *const Path) }
+fn qualified_type_wrapper_tokens(qualified_type_tokens: &[Token]) -> Vec<Token> {
+    if qualified_type_tokens.is_empty() {
+        return Vec::new();
     }
-}",
-            "\
-impl<'a> crate::Elaborate for &'a std::path::Path {
-    type Output = &'a Path;
-    fn elaborate(self) -> Self::Output {
-        self.into()
-    }
-}",
-        ],
-    )]
-    .into_iter()
-    .map(|(qualified_type, impls)| {
-        (
-            qualified_type,
-            impls.iter().map(|&s| s.to_owned()).collect::<Vec<_>>(),
-        )
-    })
-    .collect()
-});
+    let (path, type_tokens) = qualified_type_tokens.extract_initial_path();
+    let type_wrapper_tokens = type_wrapper_tokens(type_tokens);
+    [path_prefix(&path), type_wrapper_tokens].concat()
+}
 
-fn struct_def_and_impls(
-    qualified_struct: &[Token],
-    struct_tokens: &[Token],
-    needs_lifetime: bool,
-    struct_impls: &StructImpls,
-) -> Vec<String> {
-    let manual_trait_impls = MANUAL_TRAIT_IMPLEMENTATIONS
-        .get(qualified_struct)
-        .cloned()
-        .unwrap_or_default();
-
-    let (struct_params, trait_params) = if needs_lifetime {
-        (String::from("<'a>"), String::from("<'a, T: ?Sized>"))
-    } else {
-        (String::new(), String::from("<T: ?Sized>"))
+fn type_wrapper_tokens(type_tokens: &[Token]) -> Vec<Token> {
+    let [Token::Type(type_name), ..] = type_tokens else {
+        return Vec::new();
     };
-    let qualified_struct = qualified_struct.to_string();
-    let struct_tokens = struct_tokens.to_string();
-
     [
-        format!(
-            "\
-#[repr(transparent)]
-pub struct {struct_tokens} {{
-    pub(crate) inner: {qualified_struct},
-}}"
-        ),
-        format!(
-            "\
-impl{struct_params} {struct_tokens} {{
-    pub fn to_inner(&self) -> &{qualified_struct} {{
-        &self.inner
-    }}
-}}"
-        ),
-        if struct_impls.is_unsized {
-            String::new()
-        } else {
-            format!(
-                "\
-impl{struct_params} {struct_tokens} {{
-    pub fn into_inner(self) -> {qualified_struct} {{
-        self.inner
-    }}
-}}"
-            )
-        },
-        format!(
-            "\
-impl{trait_params} AsRef<T> for {struct_tokens}
-where
-    {qualified_struct}: AsRef<T>,
-{{
-    fn as_ref(&self) -> &T {{
-        <{qualified_struct} as AsRef<T>>::as_ref(&self.inner)
-    }}
-}}"
-        ),
-        if struct_impls.is_deref {
-            format!(
-                "\
-impl{trait_params} std::ops::Deref for {struct_tokens}
-where
-    {qualified_struct}: std::ops::Deref<Target = T>,
-{{
-    type Target = T;
-    fn deref(&self) -> &T {{
-        <{qualified_struct} as std::ops::Deref>::deref(&self.inner)
-    }}
-}}"
-            )
-        } else {
-            String::new()
-        },
-        if struct_impls.is_unsized {
-            String::new()
-        } else {
-            format!(
-                "\
-impl{struct_params} From<{qualified_struct}> for {struct_tokens} {{
-    fn from(value: {qualified_struct}) -> Self {{
-        Self {{ inner: value }}
-    }}
-}}"
-            )
-        },
-        if struct_impls.is_unsized {
-            String::new()
-        } else {
-            format!(
-                "\
-impl{struct_params} crate::Elaborate for {qualified_struct} {{
-    type Output = {struct_tokens};
-    fn elaborate(self) -> Self::Output {{
-        self.into()
-    }}
-}}"
-            )
-        },
+        &[Token::type_(format!("{type_name}Context"))],
+        &type_tokens[1..],
     ]
-    .into_iter()
-    .chain(manual_trait_impls)
-    .collect()
+    .concat()
+    // smoelius: Having the call to `remove_anonymous_lifetimes` here is ugly.
+    .remove_anonymous_lifetimes()
 }
 
-static MANUAL_FUNCTION_IMPLEMENTATIONS: Lazy<Vec<(Vec<Token>, &str)>> = Lazy::new(|| {
-    const MANUAL_OS_STR_FUNCTION_IMPLEMENTATIONS: &[(&str, &str)] = &[
-        (
-            "from_encoded_bytes_unchecked",
-            "
-    let os_str = std::ffi::OsStr::from_encoded_bytes_unchecked(bytes);
-    &*(std::ptr::from_ref::<std::ffi::OsStr>(os_str) as *const Self)
-",
-        ),
-        (
-            "into_os_string",
-            "
-    let boxed_os_str = unsafe {
-        std::mem::transmute::<std::boxed::Box<Self>, std::boxed::Box<std::ffi::OsStr>>(self)
+fn fn_wrapper_tokens(fn_tokens: &[Token]) -> Vec<Token> {
+    let [Token::Function(fn_name), ..] = fn_tokens else {
+        return Vec::new();
     };
-    std::ffi::OsStr::into_os_string(boxed_os_str)
-",
-        ),
-        (
-            "new",
-            "
-    let os_str = std::ffi::OsStr::new(s);
-    unsafe { &*(std::ptr::from_ref::<std::ffi::OsStr>(os_str) as *const Self) }
-",
-        ),
-    ];
+    [&[Token::function(format!("{fn_name}_wc"))], &fn_tokens[1..]].concat()
+}
 
-    const MANUAL_PATH_FUNCTION_IMPLEMENTATIONS: &[(&str, &str)] = &[
-        (
-            "into_path_buf",
-            "
-    let boxed_path = unsafe {
-        std::mem::transmute::<std::boxed::Box<Self>, std::boxed::Box<std::path::Path>>(self)
-    };
-    std::path::Path::into_path_buf(boxed_path)
-",
-        ),
-        (
-            "new",
-            "
-    let path = std::path::Path::new(s);
-    unsafe { &*(std::ptr::from_ref::<std::path::Path>(path) as *const Self) }
-",
-        ),
-        (
-            "parent",
-            r#"
-    std::path::Path::parent(&self.inner)
-        .map(|path| unsafe { &*(std::ptr::from_ref::<std::path::Path>(path) as *const Self) })
-        .with_context(|| crate::call_failed!(Some(&self.inner), "parent"))
-"#,
-        ),
-        (
-            "strip_prefix",
-            r#"
-    let base = base.as_ref();
-    std::path::Path::strip_prefix(&self.inner, base)
-        .map(|path| unsafe { &*(std::ptr::from_ref::<std::path::Path>(path) as *const Self) })
-        .with_context(|| crate::call_failed!(Some(&self.inner), "strip_prefix", base))
-"#,
-        ),
-    ];
+fn fn_sig(function: &Function, qualified_type: &[Token], fn_wrapper_tokens: &[Token]) -> String {
+    format!(
+        "{}{}fn {}",
+        if qualified_type.is_empty() {
+            "pub "
+        } else {
+            ""
+        },
+        if function.header.is_unsafe {
+            "unsafe "
+        } else {
+            ""
+        },
+        fn_wrapper_tokens.to_string()
+    )
+}
 
-    MANUAL_OS_STR_FUNCTION_IMPLEMENTATIONS
-        .iter()
-        .map(|&(name, implementation)| {
-            (
-                qualified_type_function(&["std", "ffi"], "OsStr", name),
-                implementation,
-            )
-        })
-        .chain(
-            MANUAL_PATH_FUNCTION_IMPLEMENTATIONS
-                .iter()
-                .map(|&(name, implementation)| {
-                    (
-                        qualified_type_function(&["std", "path"], "Path", name),
-                        implementation,
-                    )
-                }),
-        )
-        .collect()
-});
-
-fn fn_def(
+fn fn_body(
     function: &Function,
     qualified_trait: &[Token],
     qualified_struct: &[Token],
     fn_path: &[&str],
     fn_tokens: &[Token],
-    map_kind: Option<MapKind>,
-    struct_is_copy: bool,
 ) -> String {
     let callable_qualified_fn =
         callable_qualified_fn(qualified_trait, qualified_struct, fn_path, fn_tokens);
-
-    for (needle, implementation) in &*MANUAL_FUNCTION_IMPLEMENTATIONS {
-        if callable_qualified_fn == *needle {
-            return format!(
-                "{}fn {} {{{implementation}}}",
-                if function.header.is_unsafe {
-                    "unsafe "
-                } else {
-                    ""
-                },
-                fn_tokens.to_string()
-            );
-        }
-    }
 
     let (call, call_failed) = call_and_call_failed(
         function,
         qualified_trait,
         qualified_struct,
         &callable_qualified_fn,
-        struct_is_copy,
         fn_tokens.output_contains_ref(),
     );
 
@@ -834,38 +583,11 @@ fn fn_def(
         }
     }
 
-    let instrumentation = match map_kind {
-        Some(MapKind::Value { pair }) => format!(
-            "
-        .map({})
-        .with_context(|| {call_failed})",
-            if pair {
-                "|(x, y)| (x.into(), y.into())"
-            } else {
-                "Into::into"
-            }
-        ),
-        Some(MapKind::Err) => String::from(
-            "
-        .map_err(Into::into)",
-        ),
-        None => String::new(),
-    };
-
-    let output_adjustment = fn_tokens.required_output_adjustment();
-
     format!(
-        "\
-{}fn {} {{
-{}
-    {call}{instrumentation}{output_adjustment}
-}}",
-        if function.header.is_unsafe {
-            "unsafe "
-        } else {
-            ""
-        },
-        fn_tokens.to_string(),
+        "
+{}    {call}
+        .with_context(|| {call_failed})
+",
         redeclarations.join(""),
     )
 }
@@ -875,7 +597,6 @@ fn call_and_call_failed(
     qualified_trait: &[Token],
     qualified_struct: &[Token],
     callable_qualified_fn: &[Token],
-    struct_is_copy: bool,
     output_contains_ref: bool,
 ) -> (String, String) {
     let simplified_self = function
@@ -889,28 +610,17 @@ fn call_and_call_failed(
             tokens.to_string_unchecked()
         });
 
-    let self_inner = simplified_self.clone().map(|s| {
-        if qualified_struct.is_empty() {
-            String::from("self")
-        } else {
-            s + ".inner"
-        }
-    });
-
     let mut call = format!("{}(", callable_qualified_fn.to_string());
 
     let mut call_failed = String::from("crate::call_failed!(");
-    if let Some(self_inner) = &self_inner {
-        if (simplified_self.as_deref() == Some("self")
-            && (!qualified_trait.is_empty() || !struct_is_copy))
-            || (simplified_self.as_deref() == Some("&mut self") && output_contains_ref)
-        {
+    if let Some(simplified_self) = simplified_self.as_deref() {
+        if simplified_self == "self" || (simplified_self == "&mut self" && output_contains_ref) {
             call_failed.push_str(&format!(
                 r#"Some(crate::CustomDebugMessage("value of type {}"))"#,
                 self_type_name(qualified_trait, qualified_struct)
             ));
         } else {
-            call_failed.push_str(&format!("Some({self_inner})"));
+            call_failed.push_str("Some(self)");
         }
         call_failed.push_str(&format!(
             r#", "{}""#,
@@ -924,8 +634,8 @@ fn call_and_call_failed(
     }
 
     for (i, (input_name, _)) in function.sig.inputs.iter().enumerate() {
-        if let Some(self_inner) = (i == 0).then_some(()).and(self_inner.as_deref()) {
-            call.push_str(self_inner);
+        if i == 0 && simplified_self.is_some() {
+            call.push_str("self");
 
             // smoelius: `call_failed` was handled above, outside of the loop.
             continue;
@@ -968,6 +678,8 @@ fn self_type_name(qualified_trait: &[Token], qualified_struct: &[Token]) -> Stri
     }
 }
 
+// smoelius: Keep `callable_qualified_fn` and `disallowable_qualified_fn` next to each other, since
+// their implementations are similar.
 fn callable_qualified_fn(
     qualified_trait: &[Token],
     qualified_struct: &[Token],
@@ -997,24 +709,35 @@ fn callable_qualified_fn(
     tokens.turbofish()
 }
 
+// smoelius: Keep `callable_qualified_fn` and `disallowable_qualified_fn` next to each other, since
+// their implementations are similar.
+/// Returns both the "wrapped" and "wrapper" versions of the disallowed qualified function
 fn disallowable_qualified_fn(
-    qualified_trait: &[Token],
-    qualified_struct: &[Token],
+    qualified_type: &[Token],
     fn_path: &[&str],
     fn_tokens: &[Token],
-) -> Vec<Token> {
+) -> (Vec<Token>, Vec<Token>) {
     assert!(!fn_tokens.is_empty());
     assert!(matches!(fn_tokens[0], Token::Function(_)));
     let fn_name = fn_tokens[0].clone();
-    if !qualified_trait.is_empty() || !qualified_struct.is_empty() {
-        [
-            qualified_trait,
-            qualified_struct,
-            &[Token::symbol("::"), fn_name],
-        ]
-        .concat()
+    let fn_wrapper_name = fn_wrapper_tokens(&[fn_name.clone()]);
+    #[allow(clippy::if_not_else)]
+    if !qualified_type.is_empty() {
+        let qualified_type_wrapper = qualified_type_wrapper_tokens(qualified_type);
+        (
+            [qualified_type, &[Token::symbol("::")], &[fn_name]].concat(),
+            [
+                qualified_type_wrapper.as_slice(),
+                &[Token::symbol("::")],
+                &fn_wrapper_name,
+            ]
+            .concat(),
+        )
     } else {
-        [path_prefix(fn_path).as_slice(), &[fn_name]].concat()
+        (
+            [path_prefix(fn_path).as_slice(), &[fn_name]].concat(),
+            [path_prefix(fn_path).as_slice(), &fn_wrapper_name].concat(),
+        )
     }
 }
 

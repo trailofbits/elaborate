@@ -7,27 +7,31 @@ use std::{
     io::Write,
 };
 
-struct TraitDef {
+struct TraitWrapper {
     attrs: Vec<String>,
+    qualified_wrapped_trait: Vec<Token>,
 }
 
-struct StructDefAndImpls {
+struct StructWrapper {
     attrs: Vec<String>,
-    def_and_impls: Vec<String>,
+    qualified_wrapped_struct: Vec<Token>,
+    must_be_sized: bool,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
-struct FnDef {
+struct Fn {
     attrs: Vec<String>,
-    def: String,
+    sig: String,
+    body: String,
 }
 
 pub struct Module<'map> {
     public_item_map: &'map PublicItemMap,
     submodules: BTreeMap<String, Module<'map>>,
-    trait_defs: BTreeMap<Vec<Token>, TraitDef>,
-    struct_def_and_impls: BTreeMap<Vec<Token>, StructDefAndImpls>,
-    fn_defs: BTreeMap<Vec<Token>, BTreeSet<FnDef>>,
+    trait_wrappers: BTreeMap<Vec<Token>, TraitWrapper>,
+    struct_wrappers: BTreeMap<Vec<Token>, StructWrapper>,
+    // smoelius: The keys in this `BTreeMap` are qualified trait or struct wrappers.
+    fns: BTreeMap<Vec<Token>, BTreeSet<Fn>>,
 }
 
 impl<'map> Module<'map> {
@@ -35,54 +39,75 @@ impl<'map> Module<'map> {
         Self {
             public_item_map,
             submodules: BTreeMap::default(),
-            trait_defs: BTreeMap::default(),
-            struct_def_and_impls: BTreeMap::default(),
-            fn_defs: BTreeMap::default(),
+            trait_wrappers: BTreeMap::default(),
+            struct_wrappers: BTreeMap::default(),
+            fns: BTreeMap::default(),
         }
     }
 
-    pub fn add_trait(&mut self, path: &[&str], attrs: &Vec<String>, tokens: &[Token]) {
-        let module = self.module_by_path(path);
-        module.trait_defs.insert(
-            tokens.to_vec(),
-            TraitDef {
-                attrs: attrs.to_owned(),
-            },
-        );
-    }
-
-    pub fn add_struct_def(
+    pub fn add_trait_wrapper(
         &mut self,
         path: &[&str],
         attrs: &Vec<String>,
-        qualified_struct: &[Token],
-        def_and_impls: &[String],
+        qualified_trait_wrapper: &[Token],
+        qualified_wrapped_trait: &[Token],
     ) {
         let module = self.module_by_path(path);
-        module.struct_def_and_impls.insert(
-            qualified_struct.to_vec(),
-            StructDefAndImpls {
+        module.trait_wrappers.insert(
+            qualified_trait_wrapper.to_vec(),
+            TraitWrapper {
                 attrs: attrs.to_owned(),
-                def_and_impls: def_and_impls.to_vec(),
+                qualified_wrapped_trait: qualified_wrapped_trait.to_owned(),
             },
         );
     }
 
-    pub fn add_fn_def(
+    pub fn add_struct_wrapper(
         &mut self,
         path: &[&str],
-        qualified_type: &[Token],
         attrs: &Vec<String>,
-        def: &str,
+        qualified_struct_wrapper: &[Token],
+        qualified_wrapped_struct: &[Token],
+        must_be_sized: bool,
+    ) {
+        let module = self.module_by_path(path);
+        if !module
+            .struct_wrappers
+            .contains_key(qualified_struct_wrapper)
+        {
+            module.struct_wrappers.insert(
+                qualified_struct_wrapper.to_vec(),
+                StructWrapper {
+                    attrs: attrs.to_owned(),
+                    qualified_wrapped_struct: qualified_wrapped_struct.to_owned(),
+                    must_be_sized: false,
+                },
+            );
+        }
+        module
+            .struct_wrappers
+            .get_mut(qualified_struct_wrapper)
+            .unwrap()
+            .must_be_sized |= must_be_sized;
+    }
+
+    pub fn add_fn(
+        &mut self,
+        path: &[&str],
+        qualified_type_wrapper: &[Token],
+        attrs: &Vec<String>,
+        sig: &str,
+        body: &str,
     ) {
         let module = self.module_by_path(path);
         module
-            .fn_defs
-            .entry(qualified_type.to_vec())
+            .fns
+            .entry(qualified_type_wrapper.to_vec())
             .or_default()
-            .insert(FnDef {
+            .insert(Fn {
                 attrs: attrs.to_owned(),
-                def: def.to_owned(),
+                sig: sig.to_owned(),
+                body: body.to_owned(),
             });
     }
 
@@ -112,11 +137,11 @@ impl<'map> Module<'map> {
             writeln!(file, "pub mod {submodule};")?;
         }
         writeln!(file)?;
-        self.write_traits(&mut file)?;
+        self.write_trait_wrappers(&mut file)?;
         writeln!(file)?;
-        self.write_struct_def_and_impls(&mut file)?;
+        self.write_struct_wrappers(&mut file)?;
         writeln!(file)?;
-        self.write_fn_defs(&mut file)?;
+        self.write_fns(&mut file)?;
 
         for (name, submodule) in self.submodules {
             submodule.write(dir.join(name))?;
@@ -125,21 +150,28 @@ impl<'map> Module<'map> {
         Ok(())
     }
 
-    fn write_traits(&mut self, file: &mut File) -> Result<()> {
-        for (qualified_trait, TraitDef { attrs }) in &self.trait_defs {
-            let common_attrs = self.common_attrs(qualified_trait);
+    fn write_trait_wrappers(&mut self, file: &mut File) -> Result<()> {
+        for (
+            qualified_trait_wrapper,
+            TraitWrapper {
+                attrs,
+                qualified_wrapped_trait,
+            },
+        ) in &self.trait_wrappers
+        {
+            let common_attrs = self.common_attrs(qualified_trait_wrapper);
             let attrs = join_attrs(attrs.iter().chain(&common_attrs));
-            let (_, trait_tokens) = qualified_trait.extract_initial_path();
+            let (_, trait_wrapper) = qualified_trait_wrapper.extract_initial_path();
             writeln!(
                 file,
                 "{attrs}pub trait {}: {} {{",
-                trait_tokens.to_string(),
-                qualified_trait.to_string()
+                trait_wrapper.to_string(),
+                qualified_wrapped_trait.to_string()
             )?;
-            if let Some(fn_defs) = self.fn_defs.remove(qualified_trait) {
-                for FnDef { attrs, def } in fn_defs {
+            if let Some(fns) = self.fns.remove(qualified_trait_wrapper) {
+                for Fn { attrs, sig, body } in fns {
                     let attrs = remove_common_attrs(attrs, &common_attrs);
-                    writeln!(file, "{}{def}", join_attrs(&attrs))?;
+                    writeln!(file, "{}{sig} {{{body}}}", join_attrs(&attrs))?;
                 }
             }
             writeln!(
@@ -147,76 +179,106 @@ impl<'map> Module<'map> {
                 "}}
 
 {attrs}impl<T> {} for T where T: {} {{}}",
-                trait_tokens.to_string(),
-                qualified_trait.to_string()
+                trait_wrapper.to_string(),
+                qualified_wrapped_trait.to_string()
             )?;
         }
         Ok(())
     }
 
-    fn write_struct_def_and_impls(&self, file: &mut File) -> Result<()> {
+    /// Writes the wrapper struct trait definition followed by the implementation of that trait for
+    /// the wrapped struct.
+    fn write_struct_wrappers(&mut self, file: &mut File) -> Result<()> {
         for (
-            qualified_struct,
-            StructDefAndImpls {
+            qualified_struct_wrapper,
+            StructWrapper {
                 attrs,
-                def_and_impls,
+                qualified_wrapped_struct,
+                must_be_sized,
             },
-        ) in &self.struct_def_and_impls
+        ) in &self.struct_wrappers
         {
-            let common_attrs = self.common_attrs(qualified_struct);
+            let common_attrs = self.common_attrs(qualified_struct_wrapper);
             let attrs = join_attrs(attrs.iter().chain(&common_attrs));
-            for def_or_impl in def_and_impls {
-                if def_or_impl.is_empty() {
-                    continue;
+            let (_, struct_wrapper) = qualified_struct_wrapper.extract_initial_path();
+            let supertrait = if *must_be_sized { ": Sized" } else { "" };
+            writeln!(
+                file,
+                "{attrs}pub trait {}{supertrait} {{",
+                struct_wrapper.to_string(),
+            )?;
+            if let Some(fns) = self.fns.get(qualified_struct_wrapper) {
+                for Fn {
+                    attrs,
+                    sig,
+                    body: _,
+                } in fns
+                {
+                    let attrs = remove_common_attrs(attrs.clone(), &common_attrs);
+                    writeln!(file, "{}{sig};", join_attrs(&attrs))?;
                 }
-                writeln!(file, "{attrs}{def_or_impl}")?;
             }
+            writeln!(
+                file,
+                "\
+}}
+{attrs}impl {} for {} {{",
+                struct_wrapper.to_string(),
+                qualified_wrapped_struct.to_string()
+            )?;
+            if let Some(fns) = self.fns.remove(qualified_struct_wrapper) {
+                for Fn { attrs, sig, body } in fns {
+                    let attrs = remove_common_attrs(attrs, &common_attrs);
+                    writeln!(file, "{}{sig} {{{body}}}", join_attrs(&attrs))?;
+                }
+            }
+            writeln!(file, "}}")?;
         }
         Ok(())
     }
 
-    fn write_fn_defs(&self, file: &mut File) -> Result<()> {
-        for (qualified_struct, fn_defs) in &self.fn_defs {
+    fn write_fns(&self, file: &mut File) -> Result<()> {
+        for (qualified_struct_wrapper, fns) in &self.fns {
             writeln!(file)?;
-            let common_attrs = if qualified_struct.is_empty() {
+            let common_attrs = if qualified_struct_wrapper.is_empty() {
                 Vec::new()
             } else {
-                self.common_attrs(qualified_struct)
+                self.common_attrs(qualified_struct_wrapper)
             };
-            if !qualified_struct.is_empty() {
+            if !qualified_struct_wrapper.is_empty() {
                 let attrs = self
-                    .struct_def_and_impls
-                    .get(qualified_struct)
-                    .map(|struct_def_and_impls| struct_def_and_impls.attrs.clone())
+                    .struct_wrappers
+                    .get(qualified_struct_wrapper)
+                    .map(|struct_wrapper| struct_wrapper.attrs.clone())
                     .unwrap_or_default();
-                let (_, struct_tokens) = qualified_struct.extract_initial_path();
+                let (_, struct_wrapper) = qualified_struct_wrapper.extract_initial_path();
                 let attrs = join_attrs(attrs.iter().chain(&common_attrs));
-                writeln!(file, "{attrs}impl {} {{", struct_tokens.to_string(),)?;
-            }
-            for FnDef { attrs, def } in fn_defs {
-                let attrs = remove_common_attrs(attrs.clone(), &common_attrs);
                 writeln!(
                     file,
-                    "{}{}{def}",
-                    join_attrs(&attrs),
-                    if true { "pub " } else { "" }
+                    "{attrs}impl {} for {} {{",
+                    struct_wrapper.to_string(),
+                    qualified_struct_wrapper.to_string(),
                 )?;
             }
-            if !qualified_struct.is_empty() {
+            for Fn { attrs, sig, body } in fns {
+                let attrs = remove_common_attrs(attrs.clone(), &common_attrs);
+                writeln!(file, "{}{sig} {{{body}}}", join_attrs(&attrs))?;
+            }
+            if !qualified_struct_wrapper.is_empty() {
                 writeln!(file, "}}")?;
             }
         }
         Ok(())
     }
 
-    fn common_attrs(&self, tokens: &[Token]) -> Vec<String> {
-        let Some(fn_defs) = self.fn_defs.get(tokens) else {
+    fn common_attrs(&self, qualified_type_wrapper: &[Token]) -> Vec<String> {
+        let Some(fns) = self.fns.get(qualified_type_wrapper) else {
             return Vec::new();
         };
-        let mut iter = fn_defs.iter();
+        let mut iter = fns.iter();
         let mut attrs = iter.next().unwrap().attrs.clone();
-        for fn_def in iter {
-            attrs.retain(|x| fn_def.attrs.iter().any(|y| x == y));
+        for fn_ in iter {
+            attrs.retain(|x| fn_.attrs.iter().any(|y| x == y));
         }
         attrs
     }
