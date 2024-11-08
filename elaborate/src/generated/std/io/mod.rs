@@ -5,375 +5,158 @@
 use anyhow::Context;
 
 
-pub trait BufRead: std :: io :: BufRead {
-fn consume ( & mut self , amt : usize ) {
-
-    < Self as :: std :: io :: BufRead > :: consume(self, amt)
-}
-fn fill_buf ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < & [ u8 ] > ) {
-
+pub trait BufReadContext: std :: io :: BufRead {
+fn fill_buf_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < & [ u8 ] > ) {
     < Self as :: std :: io :: BufRead > :: fill_buf(self)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type impl std::io::BufRead")), "fill_buf"))
 }
-fn lines ( self ) -> std :: io :: Lines < Self > where Self : core :: marker :: Sized {
-
-    < Self as :: std :: io :: BufRead > :: lines(self)
-}
-fn read_line ( & mut self , buf : & mut std :: string :: String ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-
+fn read_line_wc ( & mut self , buf : & mut std :: string :: String ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     < Self as :: std :: io :: BufRead > :: read_line(self, buf)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "read_line", buf))
 }
-fn read_until ( & mut self , byte : u8 , buf : & mut std :: vec :: Vec < u8 > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-
+fn read_until_wc ( & mut self , byte : u8 , buf : & mut std :: vec :: Vec < u8 > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     < Self as :: std :: io :: BufRead > :: read_until(self, byte, buf)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "read_until", byte, buf))
 }
-fn split ( self , byte : u8 ) -> std :: io :: Split < Self > where Self : core :: marker :: Sized {
-
-    < Self as :: std :: io :: BufRead > :: split(self, byte)
-}
 #[cfg(feature = "buf_read_has_data_left")]
-fn has_data_left ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
-
+fn has_data_left_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
     < Self as :: std :: io :: BufRead > :: has_data_left(self)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "has_data_left"))
 }
 #[cfg(feature = "bufread_skip_until")]
-fn skip_until ( & mut self , byte : u8 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-
+fn skip_until_wc ( & mut self , byte : u8 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     < Self as :: std :: io :: BufRead > :: skip_until(self, byte)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "skip_until", byte))
 }
 }
 
-impl<T> BufRead for T where T: std :: io :: BufRead {}
-pub trait Read: std :: io :: Read {
-fn by_ref ( & mut self ) -> & mut Self where Self : core :: marker :: Sized {
-
-    < Self as :: std :: io :: Read > :: by_ref(self); self
-}
-fn bytes ( self ) -> std :: io :: Bytes < Self > where Self : core :: marker :: Sized {
-
-    < Self as :: std :: io :: Read > :: bytes(self)
-}
-fn chain < R : std :: io :: Read > ( self , next : R ) -> std :: io :: Chain < Self , R > where Self : core :: marker :: Sized {
-
-    < Self as :: std :: io :: Read > :: chain(self, next)
-}
-fn read ( & mut self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-
-    < Self as :: std :: io :: Read > :: read(self, buf)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(self), "read", buf))
-}
-fn read_exact ( & mut self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
+impl<T> BufReadContext for T where T: std :: io :: BufRead {}
+pub trait ReadContext: std :: io :: Read {
+fn read_exact_wc ( & mut self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: io :: Read > :: read_exact(self, buf)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "read_exact", buf))
 }
-fn read_to_end ( & mut self , buf : & mut std :: vec :: Vec < u8 > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-
+fn read_to_end_wc ( & mut self , buf : & mut std :: vec :: Vec < u8 > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     < Self as :: std :: io :: Read > :: read_to_end(self, buf)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "read_to_end", buf))
 }
-fn read_to_string ( & mut self , buf : & mut std :: string :: String ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-
+fn read_to_string_wc ( & mut self , buf : & mut std :: string :: String ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     < Self as :: std :: io :: Read > :: read_to_string(self, buf)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "read_to_string", buf))
 }
-fn read_vectored ( & mut self , bufs : & mut [ std :: io :: IoSliceMut < '_ > ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-
+fn read_vectored_wc ( & mut self , bufs : & mut [ std :: io :: IoSliceMut < '_ > ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     < Self as :: std :: io :: Read > :: read_vectored(self, bufs)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "read_vectored", bufs))
 }
-fn take ( self , limit : u64 ) -> std :: io :: Take < Self > where Self : core :: marker :: Sized {
-
-    < Self as :: std :: io :: Read > :: take(self, limit)
-}
-#[cfg(feature = "can_vector")]
-fn is_read_vectored ( & self ) -> bool {
-
-    < Self as :: std :: io :: Read > :: is_read_vectored(self)
+fn read_wc ( & mut self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
+    < Self as :: std :: io :: Read > :: read(self, buf)
+        .with_context(|| crate::call_failed!(Some(self), "read", buf))
 }
 #[cfg(feature = "read_buf")]
-fn read_buf ( & mut self , buf : core :: io :: borrowed_buf :: BorrowedCursor < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    < Self as :: std :: io :: Read > :: read_buf(self, buf)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(self), "read_buf", buf))
-}
-#[cfg(feature = "read_buf")]
-fn read_buf_exact ( & mut self , cursor : core :: io :: borrowed_buf :: BorrowedCursor < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
+fn read_buf_exact_wc ( & mut self , cursor : core :: io :: borrowed_buf :: BorrowedCursor < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: io :: Read > :: read_buf_exact(self, cursor)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "read_buf_exact", cursor))
 }
+#[cfg(feature = "read_buf")]
+fn read_buf_wc ( & mut self , buf : core :: io :: borrowed_buf :: BorrowedCursor < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    < Self as :: std :: io :: Read > :: read_buf(self, buf)
+        .with_context(|| crate::call_failed!(Some(self), "read_buf", buf))
+}
 }
 
-impl<T> Read for T where T: std :: io :: Read {}
-pub trait Seek: std :: io :: Seek {
-fn rewind ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
+impl<T> ReadContext for T where T: std :: io :: Read {}
+pub trait SeekContext: std :: io :: Seek {
+fn rewind_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: io :: Seek > :: rewind(self)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "rewind"))
 }
-fn seek ( & mut self , pos : std :: io :: SeekFrom ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u64 > ) {
-
-    < Self as :: std :: io :: Seek > :: seek(self, pos)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(self), "seek", pos))
-}
-fn seek_relative ( & mut self , offset : i64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
+fn seek_relative_wc ( & mut self , offset : i64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: io :: Seek > :: seek_relative(self, offset)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "seek_relative", offset))
 }
-fn stream_position ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u64 > ) {
-
+fn seek_wc ( & mut self , pos : std :: io :: SeekFrom ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u64 > ) {
+    < Self as :: std :: io :: Seek > :: seek(self, pos)
+        .with_context(|| crate::call_failed!(Some(self), "seek", pos))
+}
+fn stream_position_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u64 > ) {
     < Self as :: std :: io :: Seek > :: stream_position(self)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "stream_position"))
 }
 #[cfg(feature = "seek_stream_len")]
-fn stream_len ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u64 > ) {
-
+fn stream_len_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u64 > ) {
     < Self as :: std :: io :: Seek > :: stream_len(self)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "stream_len"))
 }
 }
 
-impl<T> Seek for T where T: std :: io :: Seek {}
-pub trait Write: std :: io :: Write {
-fn by_ref ( & mut self ) -> & mut Self where Self : core :: marker :: Sized {
-
-    < Self as :: std :: io :: Write > :: by_ref(self); self
-}
-fn flush ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
+impl<T> SeekContext for T where T: std :: io :: Seek {}
+pub trait WriteContext: std :: io :: Write {
+fn flush_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: io :: Write > :: flush(self)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "flush"))
 }
-fn write ( & mut self , buf : & [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-
-    < Self as :: std :: io :: Write > :: write(self, buf)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(self), "write", buf))
-}
-fn write_all ( & mut self , buf : & [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
+fn write_all_wc ( & mut self , buf : & [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: io :: Write > :: write_all(self, buf)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "write_all", buf))
 }
-fn write_fmt ( & mut self , fmt : core :: fmt :: Arguments < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
+fn write_fmt_wc ( & mut self , fmt : core :: fmt :: Arguments < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: io :: Write > :: write_fmt(self, fmt)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "write_fmt", fmt))
 }
-fn write_vectored ( & mut self , bufs : & [ std :: io :: IoSlice < '_ > ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-
+fn write_vectored_wc ( & mut self , bufs : & [ std :: io :: IoSlice < '_ > ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     < Self as :: std :: io :: Write > :: write_vectored(self, bufs)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "write_vectored", bufs))
 }
-#[cfg(feature = "can_vector")]
-fn is_write_vectored ( & self ) -> bool {
-
-    < Self as :: std :: io :: Write > :: is_write_vectored(self)
+fn write_wc ( & mut self , buf : & [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
+    < Self as :: std :: io :: Write > :: write(self, buf)
+        .with_context(|| crate::call_failed!(Some(self), "write", buf))
 }
 #[cfg(feature = "write_all_vectored")]
-fn write_all_vectored ( & mut self , bufs : & mut [ std :: io :: IoSlice < '_ > ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
+fn write_all_vectored_wc ( & mut self , bufs : & mut [ std :: io :: IoSlice < '_ > ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: io :: Write > :: write_all_vectored(self, bufs)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "write_all_vectored", bufs))
 }
 }
 
-impl<T> Write for T where T: std :: io :: Write {}
+impl<T> WriteContext for T where T: std :: io :: Write {}
 
-#[repr(transparent)]
-pub struct Error {
-    pub(crate) inner: std :: io :: Error,
+pub trait ErrorContext {
+fn get_mut_wc ( & mut self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & mut ( dyn core :: error :: Error + core :: marker :: Send + core :: marker :: Sync + 'static ) > );
+fn get_ref_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & ( dyn core :: error :: Error + core :: marker :: Send + core :: marker :: Sync + 'static ) > );
+#[cfg(feature = "raw_os_error_ty")]
+fn raw_os_error_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < std :: io :: RawOsError > );
 }
-impl Error {
-    pub fn to_inner(&self) -> &std :: io :: Error {
-        &self.inner
-    }
-}
-impl Error {
-    pub fn into_inner(self) -> std :: io :: Error {
-        self.inner
-    }
-}
-impl<T: ?Sized> AsRef<T> for Error
-where
-    std :: io :: Error: AsRef<T>,
-{
-    fn as_ref(&self) -> &T {
-        <std :: io :: Error as AsRef<T>>::as_ref(&self.inner)
-    }
-}
-impl From<std :: io :: Error> for Error {
-    fn from(value: std :: io :: Error) -> Self {
-        Self { inner: value }
-    }
-}
-impl crate::Elaborate for std :: io :: Error {
-    type Output = Error;
-    fn elaborate(self) -> Self::Output {
-        self.into()
-    }
-}
-#[repr(transparent)]
-pub struct Stdin {
-    pub(crate) inner: std :: io :: Stdin,
-}
-impl Stdin {
-    pub fn to_inner(&self) -> &std :: io :: Stdin {
-        &self.inner
-    }
-}
-impl Stdin {
-    pub fn into_inner(self) -> std :: io :: Stdin {
-        self.inner
-    }
-}
-impl<T: ?Sized> AsRef<T> for Stdin
-where
-    std :: io :: Stdin: AsRef<T>,
-{
-    fn as_ref(&self) -> &T {
-        <std :: io :: Stdin as AsRef<T>>::as_ref(&self.inner)
-    }
-}
-impl From<std :: io :: Stdin> for Stdin {
-    fn from(value: std :: io :: Stdin) -> Self {
-        Self { inner: value }
-    }
-}
-impl crate::Elaborate for std :: io :: Stdin {
-    type Output = Stdin;
-    fn elaborate(self) -> Self::Output {
-        self.into()
-    }
-}
-
-
-pub fn copy < R , W > ( reader : & mut R , writer : & mut W ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u64 > ) where R : std :: io :: Read + ? core :: marker :: Sized , W : std :: io :: Write + ? core :: marker :: Sized {
-
-    std :: io :: copy(reader, writer)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: io :: copy", reader, writer))
-}
-pub fn empty ( ) -> std :: io :: Empty {
-
-    std :: io :: empty()
-}
-pub fn read_to_string < R : std :: io :: Read > ( reader : R ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: string :: String > ) {
-
-    std :: io :: read_to_string(reader)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: io :: read_to_string", crate::CustomDebugMessage("value of type impl Read")))
-}
-pub fn repeat ( byte : u8 ) -> std :: io :: Repeat {
-
-    std :: io :: repeat(byte)
-}
-pub fn sink ( ) -> std :: io :: Sink {
-
-    std :: io :: sink()
-}
-pub fn stderr ( ) -> std :: io :: Stderr {
-
-    std :: io :: stderr()
-}
-pub fn stdin ( ) -> std :: io :: Stdin {
-
-    std :: io :: stdin()
-}
-pub fn stdout ( ) -> std :: io :: Stdout {
-
-    std :: io :: stdout()
-}
-
-impl Error {
-pub fn downcast < E > ( self ) -> core :: result :: Result < E , Self > where E : core :: error :: Error + core :: marker :: Send + core :: marker :: Sync + 'static {
-
-    std :: io :: Error :: downcast(self.inner)
-        .map_err(Into::into)
-}
-pub fn get_mut ( & mut self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & mut ( dyn core :: error :: Error + core :: marker :: Send + core :: marker :: Sync + 'static ) > ) {
-
-    std :: io :: Error :: get_mut(&mut self.inner)
-        .map(Into::into)
+impl ErrorContext for std :: io :: Error {
+fn get_mut_wc ( & mut self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & mut ( dyn core :: error :: Error + core :: marker :: Send + core :: marker :: Sync + 'static ) > ) {
+    std :: io :: Error :: get_mut(self)
         .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type std::io::Error")), "get_mut"))
 }
-pub fn get_ref ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & ( dyn core :: error :: Error + core :: marker :: Send + core :: marker :: Sync + 'static ) > ) {
-
-    std :: io :: Error :: get_ref(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "get_ref"))
-}
-pub fn kind ( & self ) -> std :: io :: ErrorKind {
-
-    std :: io :: Error :: kind(&self.inner)
-}
-pub fn last_os_error ( ) -> Self {
-
-    std :: io :: Error :: last_os_error().into()
-}
-pub fn new < E > ( kind : std :: io :: ErrorKind , error : E ) -> Self where E : core :: convert :: Into < std :: boxed :: Box < ( dyn core :: error :: Error + core :: marker :: Send + core :: marker :: Sync ) > > {
-
-    std :: io :: Error :: new(kind, error).into()
-}
-pub fn other < E > ( error : E ) -> Self where E : core :: convert :: Into < std :: boxed :: Box < ( dyn core :: error :: Error + core :: marker :: Send + core :: marker :: Sync ) > > {
-
-    std :: io :: Error :: other(error).into()
+fn get_ref_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & ( dyn core :: error :: Error + core :: marker :: Send + core :: marker :: Sync + 'static ) > ) {
+    std :: io :: Error :: get_ref(self)
+        .with_context(|| crate::call_failed!(Some(self), "get_ref"))
 }
 #[cfg(feature = "raw_os_error_ty")]
-pub fn from_raw_os_error ( code : std :: io :: RawOsError ) -> Self {
-
-    std :: io :: Error :: from_raw_os_error(code).into()
-}
-#[cfg(feature = "raw_os_error_ty")]
-pub fn raw_os_error ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < std :: io :: RawOsError > ) {
-
-    std :: io :: Error :: raw_os_error(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "raw_os_error"))
+fn raw_os_error_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < std :: io :: RawOsError > ) {
+    std :: io :: Error :: raw_os_error(self)
+        .with_context(|| crate::call_failed!(Some(self), "raw_os_error"))
 }
 }
-
-impl Stdin {
-pub fn lines ( self ) -> std :: io :: Lines < std :: io :: StdinLock < 'static > > {
-
-    std :: io :: Stdin :: lines(self.inner)
+pub trait StdinContext {
+fn read_line_wc ( & self , buf : & mut std :: string :: String ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
 }
-pub fn lock ( & self ) -> std :: io :: StdinLock < 'static > {
-
-    std :: io :: Stdin :: lock(&self.inner)
+impl StdinContext for std :: io :: Stdin {
+fn read_line_wc ( & self , buf : & mut std :: string :: String ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
+    std :: io :: Stdin :: read_line(self, buf)
+        .with_context(|| crate::call_failed!(Some(self), "read_line", buf))
 }
-pub fn read_line ( & self , buf : & mut std :: string :: String ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-
-    std :: io :: Stdin :: read_line(&self.inner, buf)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "read_line", buf))
 }
+
+
+pub fn copy_wc < R , W > ( reader : & mut R , writer : & mut W ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u64 > ) where R : std :: io :: Read + ? core :: marker :: Sized , W : std :: io :: Write + ? core :: marker :: Sized {
+    std :: io :: copy(reader, writer)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: io :: copy", reader, writer))
+}
+pub fn read_to_string_wc < R : std :: io :: Read > ( reader : R ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: string :: String > ) {
+    std :: io :: read_to_string(reader)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: io :: read_to_string", crate::CustomDebugMessage("value of type impl Read")))
 }

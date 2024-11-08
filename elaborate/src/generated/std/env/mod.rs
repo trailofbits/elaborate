@@ -8,83 +8,34 @@ use anyhow::Context;
 
 
 
-pub fn args ( ) -> std :: env :: Args {
-
-    std :: env :: args()
-}
-pub fn args_os ( ) -> std :: env :: ArgsOs {
-
-    std :: env :: args_os()
-}
-pub fn current_dir ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
-
+pub fn current_dir_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
     std :: env :: current_dir()
-        .map(Into::into)
         .with_context(|| crate::call_failed!(None::<()>, "std :: env :: current_dir"))
 }
-pub fn current_exe ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
-
+pub fn current_exe_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
     std :: env :: current_exe()
-        .map(Into::into)
         .with_context(|| crate::call_failed!(None::<()>, "std :: env :: current_exe"))
 }
-pub fn home_dir ( ) -> crate :: rewrite_output_type ! ( core :: option :: Option < std :: path :: PathBuf > ) {
-
+pub fn home_dir_wc ( ) -> crate :: rewrite_output_type ! ( core :: option :: Option < std :: path :: PathBuf > ) {
     std :: env :: home_dir()
-        .map(Into::into)
         .with_context(|| crate::call_failed!(None::<()>, "std :: env :: home_dir"))
 }
-pub fn join_paths < I , T > ( paths : I ) -> crate :: rewrite_output_type ! ( core :: result :: Result < std :: ffi :: OsString , std :: env :: JoinPathsError > ) where I : core :: iter :: IntoIterator < Item = T > , T : core :: convert :: AsRef < std :: ffi :: OsStr > {
-
+pub fn join_paths_wc < I , T > ( paths : I ) -> crate :: rewrite_output_type ! ( core :: result :: Result < std :: ffi :: OsString , std :: env :: JoinPathsError > ) where I : core :: iter :: IntoIterator < Item = T > , T : core :: convert :: AsRef < std :: ffi :: OsStr > {
     std :: env :: join_paths(paths)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(None::<()>, "std :: env :: join_paths", crate::CustomDebugMessage("value of type impl IntoIterator")))
 }
-pub fn set_current_dir < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+pub fn set_current_dir_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let path = path.as_ref();
-
     std :: env :: set_current_dir(path)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(None::<()>, "std :: env :: set_current_dir", path))
 }
-pub fn split_paths < T : core :: convert :: AsRef < std :: ffi :: OsStr > + ? core :: marker :: Sized > ( unparsed : & T ) -> std :: env :: SplitPaths < '_ > {
-
-    std :: env :: split_paths(unparsed)
-}
-pub fn temp_dir ( ) -> std :: path :: PathBuf {
-
-    std :: env :: temp_dir()
-}
-pub fn var < K : core :: convert :: AsRef < std :: ffi :: OsStr > > ( key : K ) -> crate :: rewrite_output_type ! ( core :: result :: Result < std :: string :: String , std :: env :: VarError > ) {
+pub fn var_os_wc < K : core :: convert :: AsRef < std :: ffi :: OsStr > > ( key : K ) -> crate :: rewrite_output_type ! ( core :: option :: Option < std :: ffi :: OsString > ) {
     let key = key.as_ref();
-
-    std :: env :: var(key)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: env :: var", key))
-}
-pub fn var_os < K : core :: convert :: AsRef < std :: ffi :: OsStr > > ( key : K ) -> crate :: rewrite_output_type ! ( core :: option :: Option < std :: ffi :: OsString > ) {
-    let key = key.as_ref();
-
     std :: env :: var_os(key)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(None::<()>, "std :: env :: var_os", key))
 }
-pub fn vars ( ) -> std :: env :: Vars {
-
-    std :: env :: vars()
-}
-pub fn vars_os ( ) -> std :: env :: VarsOs {
-
-    std :: env :: vars_os()
-}
-pub unsafe fn remove_var < K : core :: convert :: AsRef < std :: ffi :: OsStr > > ( key : K ) {
+pub fn var_wc < K : core :: convert :: AsRef < std :: ffi :: OsStr > > ( key : K ) -> crate :: rewrite_output_type ! ( core :: result :: Result < std :: string :: String , std :: env :: VarError > ) {
     let key = key.as_ref();
-
-    std :: env :: remove_var(key)
-}
-pub unsafe fn set_var < K : core :: convert :: AsRef < std :: ffi :: OsStr > , V : core :: convert :: AsRef < std :: ffi :: OsStr > > ( key : K , value : V ) {
-    let key = key.as_ref();
-    let value = value.as_ref();
-
-    std :: env :: set_var(key, value)
+    std :: env :: var(key)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: env :: var", key))
 }

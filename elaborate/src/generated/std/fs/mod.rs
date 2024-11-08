@@ -6,524 +6,236 @@ use anyhow::Context;
 
 
 
-#[repr(transparent)]
-pub struct DirBuilder {
-    pub(crate) inner: std :: fs :: DirBuilder,
+pub trait DirBuilderContext {
+fn create_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
 }
-impl DirBuilder {
-    pub fn to_inner(&self) -> &std :: fs :: DirBuilder {
-        &self.inner
-    }
-}
-impl DirBuilder {
-    pub fn into_inner(self) -> std :: fs :: DirBuilder {
-        self.inner
-    }
-}
-impl<T: ?Sized> AsRef<T> for DirBuilder
-where
-    std :: fs :: DirBuilder: AsRef<T>,
-{
-    fn as_ref(&self) -> &T {
-        <std :: fs :: DirBuilder as AsRef<T>>::as_ref(&self.inner)
-    }
-}
-impl From<std :: fs :: DirBuilder> for DirBuilder {
-    fn from(value: std :: fs :: DirBuilder) -> Self {
-        Self { inner: value }
-    }
-}
-impl crate::Elaborate for std :: fs :: DirBuilder {
-    type Output = DirBuilder;
-    fn elaborate(self) -> Self::Output {
-        self.into()
-    }
-}
-#[repr(transparent)]
-pub struct DirEntry {
-    pub(crate) inner: std :: fs :: DirEntry,
-}
-impl DirEntry {
-    pub fn to_inner(&self) -> &std :: fs :: DirEntry {
-        &self.inner
-    }
-}
-impl DirEntry {
-    pub fn into_inner(self) -> std :: fs :: DirEntry {
-        self.inner
-    }
-}
-impl<T: ?Sized> AsRef<T> for DirEntry
-where
-    std :: fs :: DirEntry: AsRef<T>,
-{
-    fn as_ref(&self) -> &T {
-        <std :: fs :: DirEntry as AsRef<T>>::as_ref(&self.inner)
-    }
-}
-impl From<std :: fs :: DirEntry> for DirEntry {
-    fn from(value: std :: fs :: DirEntry) -> Self {
-        Self { inner: value }
-    }
-}
-impl crate::Elaborate for std :: fs :: DirEntry {
-    type Output = DirEntry;
-    fn elaborate(self) -> Self::Output {
-        self.into()
-    }
-}
-#[repr(transparent)]
-pub struct File {
-    pub(crate) inner: std :: fs :: File,
-}
-impl File {
-    pub fn to_inner(&self) -> &std :: fs :: File {
-        &self.inner
-    }
-}
-impl File {
-    pub fn into_inner(self) -> std :: fs :: File {
-        self.inner
-    }
-}
-impl<T: ?Sized> AsRef<T> for File
-where
-    std :: fs :: File: AsRef<T>,
-{
-    fn as_ref(&self) -> &T {
-        <std :: fs :: File as AsRef<T>>::as_ref(&self.inner)
-    }
-}
-impl From<std :: fs :: File> for File {
-    fn from(value: std :: fs :: File) -> Self {
-        Self { inner: value }
-    }
-}
-impl crate::Elaborate for std :: fs :: File {
-    type Output = File;
-    fn elaborate(self) -> Self::Output {
-        self.into()
-    }
-}
-#[repr(transparent)]
-pub struct Metadata {
-    pub(crate) inner: std :: fs :: Metadata,
-}
-impl Metadata {
-    pub fn to_inner(&self) -> &std :: fs :: Metadata {
-        &self.inner
-    }
-}
-impl Metadata {
-    pub fn into_inner(self) -> std :: fs :: Metadata {
-        self.inner
-    }
-}
-impl<T: ?Sized> AsRef<T> for Metadata
-where
-    std :: fs :: Metadata: AsRef<T>,
-{
-    fn as_ref(&self) -> &T {
-        <std :: fs :: Metadata as AsRef<T>>::as_ref(&self.inner)
-    }
-}
-impl From<std :: fs :: Metadata> for Metadata {
-    fn from(value: std :: fs :: Metadata) -> Self {
-        Self { inner: value }
-    }
-}
-impl crate::Elaborate for std :: fs :: Metadata {
-    type Output = Metadata;
-    fn elaborate(self) -> Self::Output {
-        self.into()
-    }
-}
-#[repr(transparent)]
-pub struct OpenOptions {
-    pub(crate) inner: std :: fs :: OpenOptions,
-}
-impl OpenOptions {
-    pub fn to_inner(&self) -> &std :: fs :: OpenOptions {
-        &self.inner
-    }
-}
-impl OpenOptions {
-    pub fn into_inner(self) -> std :: fs :: OpenOptions {
-        self.inner
-    }
-}
-impl<T: ?Sized> AsRef<T> for OpenOptions
-where
-    std :: fs :: OpenOptions: AsRef<T>,
-{
-    fn as_ref(&self) -> &T {
-        <std :: fs :: OpenOptions as AsRef<T>>::as_ref(&self.inner)
-    }
-}
-impl From<std :: fs :: OpenOptions> for OpenOptions {
-    fn from(value: std :: fs :: OpenOptions) -> Self {
-        Self { inner: value }
-    }
-}
-impl crate::Elaborate for std :: fs :: OpenOptions {
-    type Output = OpenOptions;
-    fn elaborate(self) -> Self::Output {
-        self.into()
-    }
-}
-
-
-pub fn canonicalize < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
+impl DirBuilderContext for std :: fs :: DirBuilder {
+fn create_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let path = path.as_ref();
-
-    std :: fs :: canonicalize(path)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: canonicalize", path))
+    std :: fs :: DirBuilder :: create(self, path)
+        .with_context(|| crate::call_failed!(Some(self), "create", path))
 }
-pub fn copy < P : core :: convert :: AsRef < std :: path :: Path > , Q : core :: convert :: AsRef < std :: path :: Path > > ( from : P , to : Q ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u64 > ) {
-    let from = from.as_ref();
-    let to = to.as_ref();
-
-    std :: fs :: copy(from, to)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: copy", from, to))
 }
-pub fn create_dir < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+pub trait DirEntryContext {
+fn file_type_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: FileType > );
+fn metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > );
+}
+impl DirEntryContext for std :: fs :: DirEntry {
+fn file_type_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: FileType > ) {
+    std :: fs :: DirEntry :: file_type(self)
+        .with_context(|| crate::call_failed!(Some(self), "file_type"))
+}
+fn metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
+    std :: fs :: DirEntry :: metadata(self)
+        .with_context(|| crate::call_failed!(Some(self), "metadata"))
+}
+}
+pub trait FileContext: Sized {
+fn create_new_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+fn create_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+fn metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > );
+fn open_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+fn set_len_wc ( & self , size : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn set_modified_wc ( & self , time : std :: time :: SystemTime ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn set_permissions_wc ( & self , perm : std :: fs :: Permissions ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn set_times_wc ( & self , times : std :: fs :: FileTimes ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn sync_all_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn sync_data_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+#[cfg(feature = "file_buffered")]
+fn create_buffered_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: io :: BufWriter < Self > > );
+#[cfg(feature = "file_buffered")]
+fn open_buffered_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: io :: BufReader < Self > > );
+}
+impl FileContext for std :: fs :: File {
+fn create_new_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     let path = path.as_ref();
-
-    std :: fs :: create_dir(path)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: create_dir", path))
-}
-pub fn create_dir_all < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let path = path.as_ref();
-
-    std :: fs :: create_dir_all(path)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: create_dir_all", path))
-}
-pub fn exists < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
-    let path = path.as_ref();
-
-    std :: fs :: exists(path)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: exists", path))
-}
-pub fn hard_link < P : core :: convert :: AsRef < std :: path :: Path > , Q : core :: convert :: AsRef < std :: path :: Path > > ( original : P , link : Q ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let original = original.as_ref();
-    let link = link.as_ref();
-
-    std :: fs :: hard_link(original, link)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: hard_link", original, link))
-}
-pub fn metadata < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
-    let path = path.as_ref();
-
-    std :: fs :: metadata(path)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: metadata", path))
-}
-pub fn read < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: vec :: Vec < u8 > > ) {
-    let path = path.as_ref();
-
-    std :: fs :: read(path)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: read", path))
-}
-pub fn read_dir < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: ReadDir > ) {
-    let path = path.as_ref();
-
-    std :: fs :: read_dir(path)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: read_dir", path))
-}
-pub fn read_link < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
-    let path = path.as_ref();
-
-    std :: fs :: read_link(path)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: read_link", path))
-}
-pub fn read_to_string < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: string :: String > ) {
-    let path = path.as_ref();
-
-    std :: fs :: read_to_string(path)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: read_to_string", path))
-}
-pub fn remove_dir < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let path = path.as_ref();
-
-    std :: fs :: remove_dir(path)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: remove_dir", path))
-}
-pub fn remove_dir_all < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let path = path.as_ref();
-
-    std :: fs :: remove_dir_all(path)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: remove_dir_all", path))
-}
-pub fn remove_file < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let path = path.as_ref();
-
-    std :: fs :: remove_file(path)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: remove_file", path))
-}
-pub fn rename < P : core :: convert :: AsRef < std :: path :: Path > , Q : core :: convert :: AsRef < std :: path :: Path > > ( from : P , to : Q ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let from = from.as_ref();
-    let to = to.as_ref();
-
-    std :: fs :: rename(from, to)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: rename", from, to))
-}
-pub fn set_permissions < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P , perm : std :: fs :: Permissions ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let path = path.as_ref();
-
-    std :: fs :: set_permissions(path, perm.clone())
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: set_permissions", path, perm))
-}
-pub fn soft_link < P : core :: convert :: AsRef < std :: path :: Path > , Q : core :: convert :: AsRef < std :: path :: Path > > ( original : P , link : Q ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let original = original.as_ref();
-    let link = link.as_ref();
-
-    std :: fs :: soft_link(original, link)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: soft_link", original, link))
-}
-pub fn symlink_metadata < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
-    let path = path.as_ref();
-
-    std :: fs :: symlink_metadata(path)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: symlink_metadata", path))
-}
-pub fn write < P : core :: convert :: AsRef < std :: path :: Path > , C : core :: convert :: AsRef < [ u8 ] > > ( path : P , contents : C ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let path = path.as_ref();
-    let contents = contents.as_ref();
-
-    std :: fs :: write(path, contents)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: write", path, contents))
-}
-
-impl DirBuilder {
-pub fn create < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let path = path.as_ref();
-
-    std :: fs :: DirBuilder :: create(&self.inner, path)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "create", path))
-}
-pub fn new ( ) -> Self {
-
-    std :: fs :: DirBuilder :: new().into()
-}
-pub fn recursive ( & mut self , recursive : bool ) -> & mut Self {
-
-    std :: fs :: DirBuilder :: recursive(&mut self.inner, recursive); self
-}
-}
-
-impl DirEntry {
-pub fn file_name ( & self ) -> std :: ffi :: OsString {
-
-    std :: fs :: DirEntry :: file_name(&self.inner)
-}
-pub fn file_type ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: FileType > ) {
-
-    std :: fs :: DirEntry :: file_type(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "file_type"))
-}
-pub fn metadata ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
-
-    std :: fs :: DirEntry :: metadata(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "metadata"))
-}
-pub fn path ( & self ) -> std :: path :: PathBuf {
-
-    std :: fs :: DirEntry :: path(&self.inner)
-}
-}
-
-impl File {
-pub fn create < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
-    let path = path.as_ref();
-
-    std :: fs :: File :: create(path)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: File :: create", path))
-}
-pub fn create_new < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
-    let path = path.as_ref();
-
     std :: fs :: File :: create_new(path)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: File :: create_new", path))
 }
-pub fn metadata ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
-
-    std :: fs :: File :: metadata(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "metadata"))
-}
-pub fn open < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
+fn create_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     let path = path.as_ref();
-
+    std :: fs :: File :: create(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: File :: create", path))
+}
+fn metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
+    std :: fs :: File :: metadata(self)
+        .with_context(|| crate::call_failed!(Some(self), "metadata"))
+}
+fn open_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
+    let path = path.as_ref();
     std :: fs :: File :: open(path)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: File :: open", path))
 }
-pub fn options ( ) -> std :: fs :: OpenOptions {
-
-    std :: fs :: File :: options()
+fn set_len_wc ( & self , size : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: fs :: File :: set_len(self, size)
+        .with_context(|| crate::call_failed!(Some(self), "set_len", size))
 }
-pub fn set_len ( & self , size : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: fs :: File :: set_len(&self.inner, size)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "set_len", size))
+fn set_modified_wc ( & self , time : std :: time :: SystemTime ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: fs :: File :: set_modified(self, time)
+        .with_context(|| crate::call_failed!(Some(self), "set_modified", time))
 }
-pub fn set_modified ( & self , time : std :: time :: SystemTime ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: fs :: File :: set_modified(&self.inner, time)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "set_modified", time))
+fn set_permissions_wc ( & self , perm : std :: fs :: Permissions ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: fs :: File :: set_permissions(self, perm.clone())
+        .with_context(|| crate::call_failed!(Some(self), "set_permissions", perm))
 }
-pub fn set_permissions ( & self , perm : std :: fs :: Permissions ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: fs :: File :: set_permissions(&self.inner, perm.clone())
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "set_permissions", perm))
+fn set_times_wc ( & self , times : std :: fs :: FileTimes ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: fs :: File :: set_times(self, times)
+        .with_context(|| crate::call_failed!(Some(self), "set_times", times))
 }
-pub fn set_times ( & self , times : std :: fs :: FileTimes ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: fs :: File :: set_times(&self.inner, times)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "set_times", times))
+fn sync_all_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: fs :: File :: sync_all(self)
+        .with_context(|| crate::call_failed!(Some(self), "sync_all"))
 }
-pub fn sync_all ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: fs :: File :: sync_all(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "sync_all"))
+fn sync_data_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: fs :: File :: sync_data(self)
+        .with_context(|| crate::call_failed!(Some(self), "sync_data"))
 }
-pub fn sync_data ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: fs :: File :: sync_data(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "sync_data"))
-}
-pub fn try_clone ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
-
-    std :: fs :: File :: try_clone(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "try_clone"))
+fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
+    std :: fs :: File :: try_clone(self)
+        .with_context(|| crate::call_failed!(Some(self), "try_clone"))
 }
 #[cfg(feature = "file_buffered")]
-pub fn create_buffered < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: io :: BufWriter < Self > > ) {
+fn create_buffered_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: io :: BufWriter < Self > > ) {
     let path = path.as_ref();
-
     std :: fs :: File :: create_buffered(path)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: File :: create_buffered", path))
 }
 #[cfg(feature = "file_buffered")]
-pub fn open_buffered < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: io :: BufReader < Self > > ) {
+fn open_buffered_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: io :: BufReader < Self > > ) {
     let path = path.as_ref();
-
     std :: fs :: File :: open_buffered(path)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: File :: open_buffered", path))
 }
 }
-
-impl Metadata {
-pub fn accessed ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: time :: SystemTime > ) {
-
-    std :: fs :: Metadata :: accessed(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "accessed"))
+pub trait MetadataContext {
+fn accessed_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: time :: SystemTime > );
+fn created_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: time :: SystemTime > );
+fn modified_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: time :: SystemTime > );
 }
-pub fn created ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: time :: SystemTime > ) {
-
-    std :: fs :: Metadata :: created(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "created"))
+impl MetadataContext for std :: fs :: Metadata {
+fn accessed_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: time :: SystemTime > ) {
+    std :: fs :: Metadata :: accessed(self)
+        .with_context(|| crate::call_failed!(Some(self), "accessed"))
 }
-pub fn file_type ( & self ) -> std :: fs :: FileType {
-
-    std :: fs :: Metadata :: file_type(&self.inner)
+fn created_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: time :: SystemTime > ) {
+    std :: fs :: Metadata :: created(self)
+        .with_context(|| crate::call_failed!(Some(self), "created"))
 }
-pub fn is_dir ( & self ) -> bool {
-
-    std :: fs :: Metadata :: is_dir(&self.inner)
-}
-pub fn is_file ( & self ) -> bool {
-
-    std :: fs :: Metadata :: is_file(&self.inner)
-}
-pub fn is_symlink ( & self ) -> bool {
-
-    std :: fs :: Metadata :: is_symlink(&self.inner)
-}
-pub fn len ( & self ) -> u64 {
-
-    std :: fs :: Metadata :: len(&self.inner)
-}
-pub fn modified ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: time :: SystemTime > ) {
-
-    std :: fs :: Metadata :: modified(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "modified"))
-}
-pub fn permissions ( & self ) -> std :: fs :: Permissions {
-
-    std :: fs :: Metadata :: permissions(&self.inner)
+fn modified_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: time :: SystemTime > ) {
+    std :: fs :: Metadata :: modified(self)
+        .with_context(|| crate::call_failed!(Some(self), "modified"))
 }
 }
-
-impl OpenOptions {
-pub fn append ( & mut self , append : bool ) -> & mut Self {
-
-    std :: fs :: OpenOptions :: append(&mut self.inner, append); self
+pub trait OpenOptionsContext {
+fn open_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: File > );
 }
-pub fn create ( & mut self , create : bool ) -> & mut Self {
-
-    std :: fs :: OpenOptions :: create(&mut self.inner, create); self
-}
-pub fn create_new ( & mut self , create_new : bool ) -> & mut Self {
-
-    std :: fs :: OpenOptions :: create_new(&mut self.inner, create_new); self
-}
-pub fn new ( ) -> Self {
-
-    std :: fs :: OpenOptions :: new().into()
-}
-pub fn open < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: File > ) {
+impl OpenOptionsContext for std :: fs :: OpenOptions {
+fn open_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: File > ) {
     let path = path.as_ref();
-
-    std :: fs :: OpenOptions :: open(&self.inner, path)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "open", path))
+    std :: fs :: OpenOptions :: open(self, path)
+        .with_context(|| crate::call_failed!(Some(self), "open", path))
 }
-pub fn read ( & mut self , read : bool ) -> & mut Self {
-
-    std :: fs :: OpenOptions :: read(&mut self.inner, read); self
 }
-pub fn truncate ( & mut self , truncate : bool ) -> & mut Self {
 
-    std :: fs :: OpenOptions :: truncate(&mut self.inner, truncate); self
-}
-pub fn write ( & mut self , write : bool ) -> & mut Self {
 
-    std :: fs :: OpenOptions :: write(&mut self.inner, write); self
+pub fn canonicalize_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
+    let path = path.as_ref();
+    std :: fs :: canonicalize(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: canonicalize", path))
 }
+pub fn copy_wc < P : core :: convert :: AsRef < std :: path :: Path > , Q : core :: convert :: AsRef < std :: path :: Path > > ( from : P , to : Q ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u64 > ) {
+    let from = from.as_ref();
+    let to = to.as_ref();
+    std :: fs :: copy(from, to)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: copy", from, to))
+}
+pub fn create_dir_all_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    let path = path.as_ref();
+    std :: fs :: create_dir_all(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: create_dir_all", path))
+}
+pub fn create_dir_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    let path = path.as_ref();
+    std :: fs :: create_dir(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: create_dir", path))
+}
+pub fn exists_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
+    let path = path.as_ref();
+    std :: fs :: exists(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: exists", path))
+}
+pub fn hard_link_wc < P : core :: convert :: AsRef < std :: path :: Path > , Q : core :: convert :: AsRef < std :: path :: Path > > ( original : P , link : Q ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    let original = original.as_ref();
+    let link = link.as_ref();
+    std :: fs :: hard_link(original, link)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: hard_link", original, link))
+}
+pub fn metadata_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
+    let path = path.as_ref();
+    std :: fs :: metadata(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: metadata", path))
+}
+pub fn read_dir_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: ReadDir > ) {
+    let path = path.as_ref();
+    std :: fs :: read_dir(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: read_dir", path))
+}
+pub fn read_link_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
+    let path = path.as_ref();
+    std :: fs :: read_link(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: read_link", path))
+}
+pub fn read_to_string_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: string :: String > ) {
+    let path = path.as_ref();
+    std :: fs :: read_to_string(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: read_to_string", path))
+}
+pub fn read_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: vec :: Vec < u8 > > ) {
+    let path = path.as_ref();
+    std :: fs :: read(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: read", path))
+}
+pub fn remove_dir_all_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    let path = path.as_ref();
+    std :: fs :: remove_dir_all(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: remove_dir_all", path))
+}
+pub fn remove_dir_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    let path = path.as_ref();
+    std :: fs :: remove_dir(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: remove_dir", path))
+}
+pub fn remove_file_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    let path = path.as_ref();
+    std :: fs :: remove_file(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: remove_file", path))
+}
+pub fn rename_wc < P : core :: convert :: AsRef < std :: path :: Path > , Q : core :: convert :: AsRef < std :: path :: Path > > ( from : P , to : Q ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    let from = from.as_ref();
+    let to = to.as_ref();
+    std :: fs :: rename(from, to)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: rename", from, to))
+}
+pub fn set_permissions_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P , perm : std :: fs :: Permissions ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    let path = path.as_ref();
+    std :: fs :: set_permissions(path, perm.clone())
+        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: set_permissions", path, perm))
+}
+pub fn soft_link_wc < P : core :: convert :: AsRef < std :: path :: Path > , Q : core :: convert :: AsRef < std :: path :: Path > > ( original : P , link : Q ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    let original = original.as_ref();
+    let link = link.as_ref();
+    std :: fs :: soft_link(original, link)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: soft_link", original, link))
+}
+pub fn symlink_metadata_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
+    let path = path.as_ref();
+    std :: fs :: symlink_metadata(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: symlink_metadata", path))
+}
+pub fn write_wc < P : core :: convert :: AsRef < std :: path :: Path > , C : core :: convert :: AsRef < [ u8 ] > > ( path : P , contents : C ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    let path = path.as_ref();
+    let contents = contents.as_ref();
+    std :: fs :: write(path, contents)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: write", path, contents))
 }

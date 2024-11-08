@@ -6,90 +6,68 @@ use anyhow::Context;
 
 
 #[cfg(unix)]
-pub trait FileExt: std :: os :: unix :: fs :: FileExt {
+pub trait FileExtContext: std :: os :: unix :: fs :: FileExt {
 #[cfg(feature = "unix_file_vectored_at")]
-fn read_vectored_at ( & self , bufs : & mut [ std :: io :: IoSliceMut < '_ > ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-
+fn read_vectored_at_wc ( & self , bufs : & mut [ std :: io :: IoSliceMut < '_ > ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     < Self as :: std :: os :: unix :: fs :: FileExt > :: read_vectored_at(self, bufs, offset)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "read_vectored_at", bufs, offset))
 }
 #[cfg(feature = "unix_file_vectored_at")]
-fn write_vectored_at ( & self , bufs : & [ std :: io :: IoSlice < '_ > ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-
+fn write_vectored_at_wc ( & self , bufs : & [ std :: io :: IoSlice < '_ > ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     < Self as :: std :: os :: unix :: fs :: FileExt > :: write_vectored_at(self, bufs, offset)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "write_vectored_at", bufs, offset))
 }
-fn read_at ( & self , buf : & mut [ u8 ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-
+fn read_at_wc ( & self , buf : & mut [ u8 ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     < Self as :: std :: os :: unix :: fs :: FileExt > :: read_at(self, buf, offset)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "read_at", buf, offset))
 }
-fn read_exact_at ( & self , buf : & mut [ u8 ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
+fn read_exact_at_wc ( & self , buf : & mut [ u8 ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: os :: unix :: fs :: FileExt > :: read_exact_at(self, buf, offset)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "read_exact_at", buf, offset))
 }
-fn write_all_at ( & self , buf : & [ u8 ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
+fn write_all_at_wc ( & self , buf : & [ u8 ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: os :: unix :: fs :: FileExt > :: write_all_at(self, buf, offset)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "write_all_at", buf, offset))
 }
-fn write_at ( & self , buf : & [ u8 ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-
+fn write_at_wc ( & self , buf : & [ u8 ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     < Self as :: std :: os :: unix :: fs :: FileExt > :: write_at(self, buf, offset)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "write_at", buf, offset))
 }
 }
 
 #[cfg(unix)]
-impl<T> FileExt for T where T: std :: os :: unix :: fs :: FileExt {}
+impl<T> FileExtContext for T where T: std :: os :: unix :: fs :: FileExt {}
 
 
 
 #[cfg(unix)]
-pub fn chown < P : core :: convert :: AsRef < std :: path :: Path > > ( dir : P , uid : core :: option :: Option < u32 > , gid : core :: option :: Option < u32 > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+pub fn chown_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( dir : P , uid : core :: option :: Option < u32 > , gid : core :: option :: Option < u32 > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let dir = dir.as_ref();
-
     std :: os :: unix :: fs :: chown(dir, uid, gid)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(None::<()>, "std :: os :: unix :: fs :: chown", dir, uid, gid))
 }
 #[cfg(unix)]
-pub fn chroot < P : core :: convert :: AsRef < std :: path :: Path > > ( dir : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+pub fn chroot_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( dir : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let dir = dir.as_ref();
-
     std :: os :: unix :: fs :: chroot(dir)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(None::<()>, "std :: os :: unix :: fs :: chroot", dir))
 }
 #[cfg(unix)]
-pub fn fchown < F : std :: os :: fd :: AsFd > ( fd : F , uid : core :: option :: Option < u32 > , gid : core :: option :: Option < u32 > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+pub fn fchown_wc < F : std :: os :: fd :: AsFd > ( fd : F , uid : core :: option :: Option < u32 > , gid : core :: option :: Option < u32 > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let fd = fd.as_fd();
-
     std :: os :: unix :: fs :: fchown(fd, uid, gid)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(None::<()>, "std :: os :: unix :: fs :: fchown", fd, uid, gid))
 }
 #[cfg(unix)]
-pub fn lchown < P : core :: convert :: AsRef < std :: path :: Path > > ( dir : P , uid : core :: option :: Option < u32 > , gid : core :: option :: Option < u32 > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+pub fn lchown_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( dir : P , uid : core :: option :: Option < u32 > , gid : core :: option :: Option < u32 > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let dir = dir.as_ref();
-
     std :: os :: unix :: fs :: lchown(dir, uid, gid)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(None::<()>, "std :: os :: unix :: fs :: lchown", dir, uid, gid))
 }
 #[cfg(unix)]
-pub fn symlink < P : core :: convert :: AsRef < std :: path :: Path > , Q : core :: convert :: AsRef < std :: path :: Path > > ( original : P , link : Q ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+pub fn symlink_wc < P : core :: convert :: AsRef < std :: path :: Path > , Q : core :: convert :: AsRef < std :: path :: Path > > ( original : P , link : Q ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let original = original.as_ref();
     let link = link.as_ref();
-
     std :: os :: unix :: fs :: symlink(original, link)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(None::<()>, "std :: os :: unix :: fs :: symlink", original, link))
 }

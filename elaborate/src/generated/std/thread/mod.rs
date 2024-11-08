@@ -6,183 +6,39 @@ use anyhow::Context;
 
 
 
-#[repr(transparent)]
-pub struct Builder {
-    pub(crate) inner: std :: thread :: Builder,
+pub trait BuilderContext {
+fn spawn_scoped_wc < 'scope , 'env , F , T > ( self , scope : & 'scope std :: thread :: Scope < 'scope , 'env > , f : F ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: thread :: ScopedJoinHandle < 'scope , T > > ) where F : core :: ops :: FnOnce ( ) -> T + core :: marker :: Send + 'scope , T : core :: marker :: Send + 'scope;
+fn spawn_wc < F , T > ( self , f : F ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: thread :: JoinHandle < T > > ) where F : core :: ops :: FnOnce ( ) -> T + core :: marker :: Send + 'static , T : core :: marker :: Send + 'static;
+#[cfg(feature = "thread_spawn_unchecked")]
+unsafe fn spawn_unchecked_wc < F , T > ( self , f : F ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: thread :: JoinHandle < T > > ) where F : core :: ops :: FnOnce ( ) -> T + core :: marker :: Send , T : core :: marker :: Send;
 }
-impl Builder {
-    pub fn to_inner(&self) -> &std :: thread :: Builder {
-        &self.inner
-    }
-}
-impl Builder {
-    pub fn into_inner(self) -> std :: thread :: Builder {
-        self.inner
-    }
-}
-impl<T: ?Sized> AsRef<T> for Builder
-where
-    std :: thread :: Builder: AsRef<T>,
-{
-    fn as_ref(&self) -> &T {
-        <std :: thread :: Builder as AsRef<T>>::as_ref(&self.inner)
-    }
-}
-impl From<std :: thread :: Builder> for Builder {
-    fn from(value: std :: thread :: Builder) -> Self {
-        Self { inner: value }
-    }
-}
-impl crate::Elaborate for std :: thread :: Builder {
-    type Output = Builder;
-    fn elaborate(self) -> Self::Output {
-        self.into()
-    }
-}
-#[repr(transparent)]
-pub struct Thread {
-    pub(crate) inner: std :: thread :: Thread,
-}
-impl Thread {
-    pub fn to_inner(&self) -> &std :: thread :: Thread {
-        &self.inner
-    }
-}
-impl Thread {
-    pub fn into_inner(self) -> std :: thread :: Thread {
-        self.inner
-    }
-}
-impl<T: ?Sized> AsRef<T> for Thread
-where
-    std :: thread :: Thread: AsRef<T>,
-{
-    fn as_ref(&self) -> &T {
-        <std :: thread :: Thread as AsRef<T>>::as_ref(&self.inner)
-    }
-}
-impl From<std :: thread :: Thread> for Thread {
-    fn from(value: std :: thread :: Thread) -> Self {
-        Self { inner: value }
-    }
-}
-impl crate::Elaborate for std :: thread :: Thread {
-    type Output = Thread;
-    fn elaborate(self) -> Self::Output {
-        self.into()
-    }
-}
-
-
-pub fn available_parallelism ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: num :: NonZero < usize > > ) {
-
-    std :: thread :: available_parallelism()
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: thread :: available_parallelism"))
-}
-pub fn current ( ) -> std :: thread :: Thread {
-
-    std :: thread :: current()
-}
-pub fn panicking ( ) -> bool {
-
-    std :: thread :: panicking()
-}
-pub fn park ( ) {
-
-    std :: thread :: park()
-}
-pub fn park_timeout ( dur : core :: time :: Duration ) {
-
-    std :: thread :: park_timeout(dur)
-}
-pub fn park_timeout_ms ( ms : u32 ) {
-
-    std :: thread :: park_timeout_ms(ms)
-}
-pub fn scope < 'env , F , T > ( f : F ) -> T where F : for < 'scope > core :: ops :: FnOnce ( & 'scope std :: thread :: Scope < 'scope , 'env > ) -> T {
-
-    std :: thread :: scope(f)
-}
-pub fn sleep ( dur : core :: time :: Duration ) {
-
-    std :: thread :: sleep(dur)
-}
-pub fn sleep_ms ( ms : u32 ) {
-
-    std :: thread :: sleep_ms(ms)
-}
-pub fn spawn < F , T > ( f : F ) -> std :: thread :: JoinHandle < T > where F : core :: ops :: FnOnce ( ) -> T + core :: marker :: Send + 'static , T : core :: marker :: Send + 'static {
-
-    std :: thread :: spawn(f)
-}
-pub fn yield_now ( ) {
-
-    std :: thread :: yield_now()
-}
-#[cfg(feature = "thread_sleep_until")]
-pub fn sleep_until ( deadline : std :: time :: Instant ) {
-
-    std :: thread :: sleep_until(deadline)
-}
-
-impl Builder {
-pub fn name ( self , name : std :: string :: String ) -> Self {
-
-    std :: thread :: Builder :: name(self.inner, name).into()
-}
-pub fn new ( ) -> Self {
-
-    std :: thread :: Builder :: new().into()
-}
-pub fn spawn < F , T > ( self , f : F ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: thread :: JoinHandle < T > > ) where F : core :: ops :: FnOnce ( ) -> T + core :: marker :: Send + 'static , T : core :: marker :: Send + 'static {
-
-    std :: thread :: Builder :: spawn(self.inner, f)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type std::thread::Builder")), "spawn", crate::CustomDebugMessage("value of type impl FnOnce")))
-}
-pub fn spawn_scoped < 'scope , 'env , F , T > ( self , scope : & 'scope std :: thread :: Scope < 'scope , 'env > , f : F ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: thread :: ScopedJoinHandle < 'scope , T > > ) where F : core :: ops :: FnOnce ( ) -> T + core :: marker :: Send + 'scope , T : core :: marker :: Send + 'scope {
-
-    std :: thread :: Builder :: spawn_scoped(self.inner, scope, f)
-        .map(Into::into)
+impl BuilderContext for std :: thread :: Builder {
+fn spawn_scoped_wc < 'scope , 'env , F , T > ( self , scope : & 'scope std :: thread :: Scope < 'scope , 'env > , f : F ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: thread :: ScopedJoinHandle < 'scope , T > > ) where F : core :: ops :: FnOnce ( ) -> T + core :: marker :: Send + 'scope , T : core :: marker :: Send + 'scope {
+    std :: thread :: Builder :: spawn_scoped(self, scope, f)
         .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type std::thread::Builder")), "spawn_scoped", scope, crate::CustomDebugMessage("value of type impl FnOnce")))
 }
-pub fn stack_size ( self , size : usize ) -> Self {
-
-    std :: thread :: Builder :: stack_size(self.inner, size).into()
+fn spawn_wc < F , T > ( self , f : F ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: thread :: JoinHandle < T > > ) where F : core :: ops :: FnOnce ( ) -> T + core :: marker :: Send + 'static , T : core :: marker :: Send + 'static {
+    std :: thread :: Builder :: spawn(self, f)
+        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type std::thread::Builder")), "spawn", crate::CustomDebugMessage("value of type impl FnOnce")))
 }
 #[cfg(feature = "thread_spawn_unchecked")]
-pub unsafe fn spawn_unchecked < F , T > ( self , f : F ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: thread :: JoinHandle < T > > ) where F : core :: ops :: FnOnce ( ) -> T + core :: marker :: Send , T : core :: marker :: Send {
-
-    std :: thread :: Builder :: spawn_unchecked(self.inner, f)
-        .map(Into::into)
+unsafe fn spawn_unchecked_wc < F , T > ( self , f : F ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: thread :: JoinHandle < T > > ) where F : core :: ops :: FnOnce ( ) -> T + core :: marker :: Send , T : core :: marker :: Send {
+    std :: thread :: Builder :: spawn_unchecked(self, f)
         .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type std::thread::Builder")), "spawn_unchecked", crate::CustomDebugMessage("value of type impl FnOnce")))
 }
 }
-
-impl Thread {
-pub fn id ( & self ) -> std :: thread :: ThreadId {
-
-    std :: thread :: Thread :: id(&self.inner)
+pub trait ThreadContext {
+fn name_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & str > );
 }
-pub fn name ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & str > ) {
-
-    std :: thread :: Thread :: name(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "name"))
+impl ThreadContext for std :: thread :: Thread {
+fn name_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & str > ) {
+    std :: thread :: Thread :: name(self)
+        .with_context(|| crate::call_failed!(Some(self), "name"))
 }
-pub fn unpark ( & self ) {
-
-    std :: thread :: Thread :: unpark(&self.inner)
 }
-#[cfg(feature = "thread_raw")]
-pub fn into_raw ( self ) -> * const ( ) {
 
-    std :: thread :: Thread :: into_raw(self.inner)
-}
-#[cfg(feature = "thread_raw")]
-pub unsafe fn from_raw ( ptr : * const ( ) ) -> Self {
 
-    std :: thread :: Thread :: from_raw(ptr).into()
-}
+pub fn available_parallelism_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: num :: NonZero < usize > > ) {
+    std :: thread :: available_parallelism()
+        .with_context(|| crate::call_failed!(None::<()>, "std :: thread :: available_parallelism"))
 }

@@ -7,200 +7,126 @@ use anyhow::Context;
 
 #[cfg(feature = "wasi_ext")]
 #[cfg(target_os = "wasi")]
-pub trait FileExt: std :: os :: wasi :: fs :: FileExt {
-fn advise ( & self , offset : u64 , len : u64 , advice : u8 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
+pub trait FileExtContext: std :: os :: wasi :: fs :: FileExt {
+fn advise_wc ( & self , offset : u64 , len : u64 , advice : u8 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: os :: wasi :: fs :: FileExt > :: advise(self, offset, len, advice)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "advise", offset, len, advice))
 }
-fn allocate ( & self , offset : u64 , len : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
+fn allocate_wc ( & self , offset : u64 , len : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: os :: wasi :: fs :: FileExt > :: allocate(self, offset, len)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "allocate", offset, len))
 }
-fn create_directory < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , dir : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+fn create_directory_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , dir : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let dir = dir.as_ref();
-
     < Self as :: std :: os :: wasi :: fs :: FileExt > :: create_directory(self, dir)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "create_directory", dir))
 }
-fn fdstat_set_flags ( & self , flags : u16 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
+fn fdstat_set_flags_wc ( & self , flags : u16 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: os :: wasi :: fs :: FileExt > :: fdstat_set_flags(self, flags)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "fdstat_set_flags", flags))
 }
-fn fdstat_set_rights ( & self , rights : u64 , inheriting : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
+fn fdstat_set_rights_wc ( & self , rights : u64 , inheriting : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: os :: wasi :: fs :: FileExt > :: fdstat_set_rights(self, rights, inheriting)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "fdstat_set_rights", rights, inheriting))
 }
-fn metadata_at < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , lookup_flags : u32 , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
+fn metadata_at_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , lookup_flags : u32 , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
     let path = path.as_ref();
-
     < Self as :: std :: os :: wasi :: fs :: FileExt > :: metadata_at(self, lookup_flags, path)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "metadata_at", lookup_flags, path))
 }
-fn read_at ( & self , buf : & mut [ u8 ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-
+fn read_at_wc ( & self , buf : & mut [ u8 ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     < Self as :: std :: os :: wasi :: fs :: FileExt > :: read_at(self, buf, offset)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "read_at", buf, offset))
 }
-fn read_exact_at ( & self , buf : & mut [ u8 ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
+fn read_exact_at_wc ( & self , buf : & mut [ u8 ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: os :: wasi :: fs :: FileExt > :: read_exact_at(self, buf, offset)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "read_exact_at", buf, offset))
 }
-fn read_link < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
+fn read_link_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
     let path = path.as_ref();
-
     < Self as :: std :: os :: wasi :: fs :: FileExt > :: read_link(self, path)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "read_link", path))
 }
-fn read_vectored_at ( & self , bufs : & mut [ std :: io :: IoSliceMut < '_ > ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-
+fn read_vectored_at_wc ( & self , bufs : & mut [ std :: io :: IoSliceMut < '_ > ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     < Self as :: std :: os :: wasi :: fs :: FileExt > :: read_vectored_at(self, bufs, offset)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "read_vectored_at", bufs, offset))
 }
-fn remove_directory < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+fn remove_directory_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let path = path.as_ref();
-
     < Self as :: std :: os :: wasi :: fs :: FileExt > :: remove_directory(self, path)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "remove_directory", path))
 }
-fn remove_file < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+fn remove_file_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let path = path.as_ref();
-
     < Self as :: std :: os :: wasi :: fs :: FileExt > :: remove_file(self, path)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "remove_file", path))
 }
-fn tell ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u64 > ) {
-
+fn tell_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u64 > ) {
     < Self as :: std :: os :: wasi :: fs :: FileExt > :: tell(self)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "tell"))
 }
-fn write_all_at ( & self , buf : & [ u8 ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
+fn write_all_at_wc ( & self , buf : & [ u8 ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: os :: wasi :: fs :: FileExt > :: write_all_at(self, buf, offset)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "write_all_at", buf, offset))
 }
-fn write_at ( & self , buf : & [ u8 ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-
+fn write_at_wc ( & self , buf : & [ u8 ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     < Self as :: std :: os :: wasi :: fs :: FileExt > :: write_at(self, buf, offset)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "write_at", buf, offset))
 }
-fn write_vectored_at ( & self , bufs : & [ std :: io :: IoSlice < '_ > ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-
+fn write_vectored_at_wc ( & self , bufs : & [ std :: io :: IoSlice < '_ > ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     < Self as :: std :: os :: wasi :: fs :: FileExt > :: write_vectored_at(self, bufs, offset)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "write_vectored_at", bufs, offset))
 }
 }
 
 #[cfg(feature = "wasi_ext")]
 #[cfg(target_os = "wasi")]
-impl<T> FileExt for T where T: std :: os :: wasi :: fs :: FileExt {}
+impl<T> FileExtContext for T where T: std :: os :: wasi :: fs :: FileExt {}
 #[cfg(feature = "wasi_ext")]
 #[cfg(target_os = "wasi")]
-pub trait OpenOptionsExt: std :: os :: wasi :: fs :: OpenOptionsExt {
-fn directory ( & mut self , dir : bool ) -> & mut Self {
-
-    < Self as :: std :: os :: wasi :: fs :: OpenOptionsExt > :: directory(self, dir); self
-}
-fn dsync ( & mut self , dsync : bool ) -> & mut Self {
-
-    < Self as :: std :: os :: wasi :: fs :: OpenOptionsExt > :: dsync(self, dsync); self
-}
-fn fs_rights_base ( & mut self , rights : u64 ) -> & mut Self {
-
-    < Self as :: std :: os :: wasi :: fs :: OpenOptionsExt > :: fs_rights_base(self, rights); self
-}
-fn fs_rights_inheriting ( & mut self , rights : u64 ) -> & mut Self {
-
-    < Self as :: std :: os :: wasi :: fs :: OpenOptionsExt > :: fs_rights_inheriting(self, rights); self
-}
-fn lookup_flags ( & mut self , flags : u32 ) -> & mut Self {
-
-    < Self as :: std :: os :: wasi :: fs :: OpenOptionsExt > :: lookup_flags(self, flags); self
-}
-fn nonblock ( & mut self , nonblock : bool ) -> & mut Self {
-
-    < Self as :: std :: os :: wasi :: fs :: OpenOptionsExt > :: nonblock(self, nonblock); self
-}
-fn open_at < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , file : & std :: fs :: File , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: File > ) {
+pub trait OpenOptionsExtContext: std :: os :: wasi :: fs :: OpenOptionsExt {
+fn open_at_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , file : & std :: fs :: File , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: File > ) {
     let path = path.as_ref();
-
     < Self as :: std :: os :: wasi :: fs :: OpenOptionsExt > :: open_at(self, file, path)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "open_at", file, path))
 }
-fn rsync ( & mut self , rsync : bool ) -> & mut Self {
-
-    < Self as :: std :: os :: wasi :: fs :: OpenOptionsExt > :: rsync(self, rsync); self
-}
-fn sync ( & mut self , sync : bool ) -> & mut Self {
-
-    < Self as :: std :: os :: wasi :: fs :: OpenOptionsExt > :: sync(self, sync); self
-}
 }
 
 #[cfg(feature = "wasi_ext")]
 #[cfg(target_os = "wasi")]
-impl<T> OpenOptionsExt for T where T: std :: os :: wasi :: fs :: OpenOptionsExt {}
+impl<T> OpenOptionsExtContext for T where T: std :: os :: wasi :: fs :: OpenOptionsExt {}
 
 
 
 #[cfg(feature = "wasi_ext")]
 #[cfg(target_os = "wasi")]
-pub fn link < P : core :: convert :: AsRef < std :: path :: Path > , U : core :: convert :: AsRef < std :: path :: Path > > ( old_fd : & std :: fs :: File , old_flags : u32 , old_path : P , new_fd : & std :: fs :: File , new_path : U ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+pub fn link_wc < P : core :: convert :: AsRef < std :: path :: Path > , U : core :: convert :: AsRef < std :: path :: Path > > ( old_fd : & std :: fs :: File , old_flags : u32 , old_path : P , new_fd : & std :: fs :: File , new_path : U ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let old_path = old_path.as_ref();
     let new_path = new_path.as_ref();
-
     std :: os :: wasi :: fs :: link(old_fd, old_flags, old_path, new_fd, new_path)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(None::<()>, "std :: os :: wasi :: fs :: link", old_fd, old_flags, old_path, new_fd, new_path))
 }
 #[cfg(feature = "wasi_ext")]
 #[cfg(target_os = "wasi")]
-pub fn rename < P : core :: convert :: AsRef < std :: path :: Path > , U : core :: convert :: AsRef < std :: path :: Path > > ( old_fd : & std :: fs :: File , old_path : P , new_fd : & std :: fs :: File , new_path : U ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+pub fn rename_wc < P : core :: convert :: AsRef < std :: path :: Path > , U : core :: convert :: AsRef < std :: path :: Path > > ( old_fd : & std :: fs :: File , old_path : P , new_fd : & std :: fs :: File , new_path : U ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let old_path = old_path.as_ref();
     let new_path = new_path.as_ref();
-
     std :: os :: wasi :: fs :: rename(old_fd, old_path, new_fd, new_path)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(None::<()>, "std :: os :: wasi :: fs :: rename", old_fd, old_path, new_fd, new_path))
 }
 #[cfg(feature = "wasi_ext")]
 #[cfg(target_os = "wasi")]
-pub fn symlink < P : core :: convert :: AsRef < std :: path :: Path > , U : core :: convert :: AsRef < std :: path :: Path > > ( old_path : P , fd : & std :: fs :: File , new_path : U ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+pub fn symlink_path_wc < P : core :: convert :: AsRef < std :: path :: Path > , U : core :: convert :: AsRef < std :: path :: Path > > ( old_path : P , new_path : U ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let old_path = old_path.as_ref();
     let new_path = new_path.as_ref();
-
-    std :: os :: wasi :: fs :: symlink(old_path, fd, new_path)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: os :: wasi :: fs :: symlink", old_path, fd, new_path))
+    std :: os :: wasi :: fs :: symlink_path(old_path, new_path)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: os :: wasi :: fs :: symlink_path", old_path, new_path))
 }
 #[cfg(feature = "wasi_ext")]
 #[cfg(target_os = "wasi")]
-pub fn symlink_path < P : core :: convert :: AsRef < std :: path :: Path > , U : core :: convert :: AsRef < std :: path :: Path > > ( old_path : P , new_path : U ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+pub fn symlink_wc < P : core :: convert :: AsRef < std :: path :: Path > , U : core :: convert :: AsRef < std :: path :: Path > > ( old_path : P , fd : & std :: fs :: File , new_path : U ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let old_path = old_path.as_ref();
     let new_path = new_path.as_ref();
-
-    std :: os :: wasi :: fs :: symlink_path(old_path, new_path)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: os :: wasi :: fs :: symlink_path", old_path, new_path))
+    std :: os :: wasi :: fs :: symlink(old_path, fd, new_path)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: os :: wasi :: fs :: symlink", old_path, fd, new_path))
 }
