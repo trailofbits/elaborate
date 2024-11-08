@@ -6,361 +6,96 @@ use anyhow::Context;
 
 
 
-#[repr(transparent)]
-pub struct Path {
-    pub(crate) inner: std :: path :: Path,
+pub trait PathBufContext {
+fn try_reserve_exact_wc ( & mut self , additional : usize ) -> crate :: rewrite_output_type ! ( core :: result :: Result < ( ) , std :: collections :: TryReserveError > );
+fn try_reserve_wc ( & mut self , additional : usize ) -> crate :: rewrite_output_type ! ( core :: result :: Result < ( ) , std :: collections :: TryReserveError > );
 }
-impl Path {
-    pub fn to_inner(&self) -> &std :: path :: Path {
-        &self.inner
-    }
+impl PathBufContext for std :: path :: PathBuf {
+fn try_reserve_exact_wc ( & mut self , additional : usize ) -> crate :: rewrite_output_type ! ( core :: result :: Result < ( ) , std :: collections :: TryReserveError > ) {
+    std :: path :: PathBuf :: try_reserve_exact(self, additional)
+        .with_context(|| crate::call_failed!(Some(self), "try_reserve_exact", additional))
 }
-impl<T: ?Sized> AsRef<T> for Path
-where
-    std :: path :: Path: AsRef<T>,
-{
-    fn as_ref(&self) -> &T {
-        <std :: path :: Path as AsRef<T>>::as_ref(&self.inner)
-    }
+fn try_reserve_wc ( & mut self , additional : usize ) -> crate :: rewrite_output_type ! ( core :: result :: Result < ( ) , std :: collections :: TryReserveError > ) {
+    std :: path :: PathBuf :: try_reserve(self, additional)
+        .with_context(|| crate::call_failed!(Some(self), "try_reserve", additional))
 }
-impl From<&std::path::Path> for &Path {
-    fn from(value: &std::path::Path) -> Self {
-        unsafe { &*(std::ptr::from_ref::<std::path::Path>(value) as *const Path) }
-    }
 }
-impl<'a> crate::Elaborate for &'a std::path::Path {
-    type Output = &'a Path;
-    fn elaborate(self) -> Self::Output {
-        self.into()
-    }
+pub trait PathContext {
+fn canonicalize_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > );
+fn extension_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > );
+fn file_name_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > );
+fn file_stem_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > );
+fn metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > );
+fn parent_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & Self > );
+fn read_dir_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: ReadDir > );
+fn read_link_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > );
+fn strip_prefix_wc < P > ( & self , base : P ) -> crate :: rewrite_output_type ! ( core :: result :: Result < & Self , std :: path :: StripPrefixError > ) where P : core :: convert :: AsRef < std :: path :: Path >;
+fn symlink_metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > );
+fn to_str_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & str > );
+fn try_exists_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > );
+#[cfg(feature = "path_file_prefix")]
+fn file_prefix_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > );
 }
-#[repr(transparent)]
-pub struct PathBuf {
-    pub(crate) inner: std :: path :: PathBuf,
+impl PathContext for std :: path :: Path {
+fn canonicalize_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
+    std :: path :: Path :: canonicalize(self)
+        .with_context(|| crate::call_failed!(Some(self), "canonicalize"))
 }
-impl PathBuf {
-    pub fn to_inner(&self) -> &std :: path :: PathBuf {
-        &self.inner
-    }
+fn extension_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > ) {
+    std :: path :: Path :: extension(self)
+        .with_context(|| crate::call_failed!(Some(self), "extension"))
 }
-impl PathBuf {
-    pub fn into_inner(self) -> std :: path :: PathBuf {
-        self.inner
-    }
+fn file_name_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > ) {
+    std :: path :: Path :: file_name(self)
+        .with_context(|| crate::call_failed!(Some(self), "file_name"))
 }
-impl<T: ?Sized> AsRef<T> for PathBuf
-where
-    std :: path :: PathBuf: AsRef<T>,
-{
-    fn as_ref(&self) -> &T {
-        <std :: path :: PathBuf as AsRef<T>>::as_ref(&self.inner)
-    }
+fn file_stem_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > ) {
+    std :: path :: Path :: file_stem(self)
+        .with_context(|| crate::call_failed!(Some(self), "file_stem"))
 }
-impl<T: ?Sized> std::ops::Deref for PathBuf
-where
-    std :: path :: PathBuf: std::ops::Deref<Target = T>,
-{
-    type Target = T;
-    fn deref(&self) -> &T {
-        <std :: path :: PathBuf as std::ops::Deref>::deref(&self.inner)
-    }
+fn metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
+    std :: path :: Path :: metadata(self)
+        .with_context(|| crate::call_failed!(Some(self), "metadata"))
 }
-impl From<std :: path :: PathBuf> for PathBuf {
-    fn from(value: std :: path :: PathBuf) -> Self {
-        Self { inner: value }
-    }
+fn parent_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & Self > ) {
+    std :: path :: Path :: parent(self)
+        .with_context(|| crate::call_failed!(Some(self), "parent"))
 }
-impl crate::Elaborate for std :: path :: PathBuf {
-    type Output = PathBuf;
-    fn elaborate(self) -> Self::Output {
-        self.into()
-    }
+fn read_dir_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: ReadDir > ) {
+    std :: path :: Path :: read_dir(self)
+        .with_context(|| crate::call_failed!(Some(self), "read_dir"))
 }
-
-
-pub fn absolute < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
-    let path = path.as_ref();
-
-    std :: path :: absolute(path)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: path :: absolute", path))
+fn read_link_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
+    std :: path :: Path :: read_link(self)
+        .with_context(|| crate::call_failed!(Some(self), "read_link"))
 }
-pub fn is_separator ( c : char ) -> bool {
-
-    std :: path :: is_separator(c)
-}
-
-impl Path {
-pub fn ancestors ( & self ) -> std :: path :: Ancestors < '_ > {
-
-    std :: path :: Path :: ancestors(&self.inner)
-}
-pub fn as_mut_os_str ( & mut self ) -> & mut std :: ffi :: OsStr {
-
-    std :: path :: Path :: as_mut_os_str(&mut self.inner)
-}
-pub fn as_os_str ( & self ) -> & std :: ffi :: OsStr {
-
-    std :: path :: Path :: as_os_str(&self.inner)
-}
-pub fn canonicalize ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
-
-    std :: path :: Path :: canonicalize(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "canonicalize"))
-}
-pub fn components ( & self ) -> std :: path :: Components < '_ > {
-
-    std :: path :: Path :: components(&self.inner)
-}
-pub fn display ( & self ) -> std :: path :: Display < '_ > {
-
-    std :: path :: Path :: display(&self.inner)
-}
-pub fn ends_with < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , child : P ) -> bool {
-    let child = child.as_ref();
-
-    std :: path :: Path :: ends_with(&self.inner, child)
-}
-pub fn exists ( & self ) -> bool {
-
-    std :: path :: Path :: exists(&self.inner)
-}
-pub fn extension ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > ) {
-
-    std :: path :: Path :: extension(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "extension"))
-}
-pub fn file_name ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > ) {
-
-    std :: path :: Path :: file_name(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "file_name"))
-}
-pub fn file_stem ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > ) {
-
-    std :: path :: Path :: file_stem(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "file_stem"))
-}
-pub fn has_root ( & self ) -> bool {
-
-    std :: path :: Path :: has_root(&self.inner)
-}
-pub fn into_path_buf ( self : std :: boxed :: Box < Self > ) -> std :: path :: PathBuf {
-    let boxed_path = unsafe {
-        std::mem::transmute::<std::boxed::Box<Self>, std::boxed::Box<std::path::Path>>(self)
-    };
-    std::path::Path::into_path_buf(boxed_path)
-}
-pub fn is_absolute ( & self ) -> bool {
-
-    std :: path :: Path :: is_absolute(&self.inner)
-}
-pub fn is_dir ( & self ) -> bool {
-
-    std :: path :: Path :: is_dir(&self.inner)
-}
-pub fn is_file ( & self ) -> bool {
-
-    std :: path :: Path :: is_file(&self.inner)
-}
-pub fn is_relative ( & self ) -> bool {
-
-    std :: path :: Path :: is_relative(&self.inner)
-}
-pub fn is_symlink ( & self ) -> bool {
-
-    std :: path :: Path :: is_symlink(&self.inner)
-}
-pub fn iter ( & self ) -> std :: path :: Iter < '_ > {
-
-    std :: path :: Path :: iter(&self.inner)
-}
-pub fn join < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , path : P ) -> std :: path :: PathBuf {
-    let path = path.as_ref();
-
-    std :: path :: Path :: join(&self.inner, path)
-}
-pub fn metadata ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
-
-    std :: path :: Path :: metadata(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "metadata"))
-}
-pub fn new < S : core :: convert :: AsRef < std :: ffi :: OsStr > + ? core :: marker :: Sized > ( s : & S ) -> & Self {
-    let path = std::path::Path::new(s);
-    unsafe { &*(std::ptr::from_ref::<std::path::Path>(path) as *const Self) }
-}
-pub fn parent ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & Self > ) {
-    std::path::Path::parent(&self.inner)
-        .map(|path| unsafe { &*(std::ptr::from_ref::<std::path::Path>(path) as *const Self) })
-        .with_context(|| crate::call_failed!(Some(&self.inner), "parent"))
-}
-pub fn read_dir ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: ReadDir > ) {
-
-    std :: path :: Path :: read_dir(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "read_dir"))
-}
-pub fn read_link ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
-
-    std :: path :: Path :: read_link(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "read_link"))
-}
-pub fn starts_with < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , base : P ) -> bool {
+fn strip_prefix_wc < P > ( & self , base : P ) -> crate :: rewrite_output_type ! ( core :: result :: Result < & Self , std :: path :: StripPrefixError > ) where P : core :: convert :: AsRef < std :: path :: Path > {
     let base = base.as_ref();
-
-    std :: path :: Path :: starts_with(&self.inner, base)
+    std :: path :: Path :: strip_prefix(self, base)
+        .with_context(|| crate::call_failed!(Some(self), "strip_prefix", base))
 }
-pub fn strip_prefix < P > ( & self , base : P ) -> crate :: rewrite_output_type ! ( core :: result :: Result < & Self , std :: path :: StripPrefixError > ) where P : core :: convert :: AsRef < std :: path :: Path > {
-    let base = base.as_ref();
-    std::path::Path::strip_prefix(&self.inner, base)
-        .map(|path| unsafe { &*(std::ptr::from_ref::<std::path::Path>(path) as *const Self) })
-        .with_context(|| crate::call_failed!(Some(&self.inner), "strip_prefix", base))
+fn symlink_metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
+    std :: path :: Path :: symlink_metadata(self)
+        .with_context(|| crate::call_failed!(Some(self), "symlink_metadata"))
 }
-pub fn symlink_metadata ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
-
-    std :: path :: Path :: symlink_metadata(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "symlink_metadata"))
+fn to_str_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & str > ) {
+    std :: path :: Path :: to_str(self)
+        .with_context(|| crate::call_failed!(Some(self), "to_str"))
 }
-pub fn to_path_buf ( & self ) -> std :: path :: PathBuf {
-
-    std :: path :: Path :: to_path_buf(&self.inner)
-}
-pub fn to_str ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & str > ) {
-
-    std :: path :: Path :: to_str(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "to_str"))
-}
-pub fn to_string_lossy ( & self ) -> std :: borrow :: Cow < '_ , str > {
-
-    std :: path :: Path :: to_string_lossy(&self.inner)
-}
-pub fn try_exists ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
-
-    std :: path :: Path :: try_exists(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "try_exists"))
-}
-pub fn with_extension < S : core :: convert :: AsRef < std :: ffi :: OsStr > > ( & self , extension : S ) -> std :: path :: PathBuf {
-    let extension = extension.as_ref();
-
-    std :: path :: Path :: with_extension(&self.inner, extension)
-}
-pub fn with_file_name < S : core :: convert :: AsRef < std :: ffi :: OsStr > > ( & self , file_name : S ) -> std :: path :: PathBuf {
-    let file_name = file_name.as_ref();
-
-    std :: path :: Path :: with_file_name(&self.inner, file_name)
-}
-#[cfg(feature = "path_add_extension")]
-pub fn with_added_extension < S : core :: convert :: AsRef < std :: ffi :: OsStr > > ( & self , extension : S ) -> std :: path :: PathBuf {
-    let extension = extension.as_ref();
-
-    std :: path :: Path :: with_added_extension(&self.inner, extension)
+fn try_exists_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
+    std :: path :: Path :: try_exists(self)
+        .with_context(|| crate::call_failed!(Some(self), "try_exists"))
 }
 #[cfg(feature = "path_file_prefix")]
-pub fn file_prefix ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > ) {
-
-    std :: path :: Path :: file_prefix(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "file_prefix"))
+fn file_prefix_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > ) {
+    std :: path :: Path :: file_prefix(self)
+        .with_context(|| crate::call_failed!(Some(self), "file_prefix"))
 }
 }
 
-impl PathBuf {
-pub fn as_mut_os_string ( & mut self ) -> & mut std :: ffi :: OsString {
 
-    std :: path :: PathBuf :: as_mut_os_string(&mut self.inner)
-}
-pub fn as_path ( & self ) -> & std :: path :: Path {
-
-    std :: path :: PathBuf :: as_path(&self.inner)
-}
-pub fn capacity ( & self ) -> usize {
-
-    std :: path :: PathBuf :: capacity(&self.inner)
-}
-pub fn clear ( & mut self ) {
-
-    std :: path :: PathBuf :: clear(&mut self.inner)
-}
-pub fn into_boxed_path ( self ) -> std :: boxed :: Box < std :: path :: Path > {
-
-    std :: path :: PathBuf :: into_boxed_path(self.inner)
-}
-pub fn into_os_string ( self ) -> std :: ffi :: OsString {
-
-    std :: path :: PathBuf :: into_os_string(self.inner)
-}
-pub fn new ( ) -> Self {
-
-    std :: path :: PathBuf :: new().into()
-}
-pub fn pop ( & mut self ) -> bool {
-
-    std :: path :: PathBuf :: pop(&mut self.inner)
-}
-pub fn push < P : core :: convert :: AsRef < std :: path :: Path > > ( & mut self , path : P ) {
+pub fn absolute_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
     let path = path.as_ref();
-
-    std :: path :: PathBuf :: push(&mut self.inner, path)
-}
-pub fn reserve ( & mut self , additional : usize ) {
-
-    std :: path :: PathBuf :: reserve(&mut self.inner, additional)
-}
-pub fn reserve_exact ( & mut self , additional : usize ) {
-
-    std :: path :: PathBuf :: reserve_exact(&mut self.inner, additional)
-}
-pub fn set_extension < S : core :: convert :: AsRef < std :: ffi :: OsStr > > ( & mut self , extension : S ) -> bool {
-    let extension = extension.as_ref();
-
-    std :: path :: PathBuf :: set_extension(&mut self.inner, extension)
-}
-pub fn set_file_name < S : core :: convert :: AsRef < std :: ffi :: OsStr > > ( & mut self , file_name : S ) {
-    let file_name = file_name.as_ref();
-
-    std :: path :: PathBuf :: set_file_name(&mut self.inner, file_name)
-}
-pub fn shrink_to ( & mut self , min_capacity : usize ) {
-
-    std :: path :: PathBuf :: shrink_to(&mut self.inner, min_capacity)
-}
-pub fn shrink_to_fit ( & mut self ) {
-
-    std :: path :: PathBuf :: shrink_to_fit(&mut self.inner)
-}
-pub fn try_reserve ( & mut self , additional : usize ) -> crate :: rewrite_output_type ! ( core :: result :: Result < ( ) , std :: collections :: TryReserveError > ) {
-
-    std :: path :: PathBuf :: try_reserve(&mut self.inner, additional)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&mut self.inner), "try_reserve", additional))
-}
-pub fn try_reserve_exact ( & mut self , additional : usize ) -> crate :: rewrite_output_type ! ( core :: result :: Result < ( ) , std :: collections :: TryReserveError > ) {
-
-    std :: path :: PathBuf :: try_reserve_exact(&mut self.inner, additional)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&mut self.inner), "try_reserve_exact", additional))
-}
-pub fn with_capacity ( capacity : usize ) -> Self {
-
-    std :: path :: PathBuf :: with_capacity(capacity).into()
-}
-#[cfg(feature = "os_string_pathbuf_leak")]
-pub fn leak < 'a > ( self ) -> & 'a mut std :: path :: Path {
-
-    std :: path :: PathBuf :: leak(self.inner)
-}
-#[cfg(feature = "path_add_extension")]
-pub fn add_extension < S : core :: convert :: AsRef < std :: ffi :: OsStr > > ( & mut self , extension : S ) -> bool {
-    let extension = extension.as_ref();
-
-    std :: path :: PathBuf :: add_extension(&mut self.inner, extension)
-}
+    std :: path :: absolute(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: path :: absolute", path))
 }

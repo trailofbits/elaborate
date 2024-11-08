@@ -6,88 +6,22 @@ use anyhow::Context;
 
 
 
-#[repr(transparent)]
-pub struct BorrowedFd < 'a > {
-    pub(crate) inner: std :: os :: fd :: BorrowedFd < 'a >,
+pub trait BorrowedFdContext {
+fn try_clone_to_owned_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: fd :: OwnedFd > );
 }
-impl<'a> BorrowedFd < 'a > {
-    pub fn to_inner(&self) -> &std :: os :: fd :: BorrowedFd < 'a > {
-        &self.inner
-    }
+impl BorrowedFdContext for std :: os :: fd :: BorrowedFd < '_ > {
+fn try_clone_to_owned_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: fd :: OwnedFd > ) {
+    std :: os :: fd :: BorrowedFd :: < '_ > :: try_clone_to_owned(self)
+        .with_context(|| crate::call_failed!(Some(self), "try_clone_to_owned"))
 }
-impl<'a> BorrowedFd < 'a > {
-    pub fn into_inner(self) -> std :: os :: fd :: BorrowedFd < 'a > {
-        self.inner
-    }
 }
-impl<'a, T: ?Sized> AsRef<T> for BorrowedFd < 'a >
-where
-    std :: os :: fd :: BorrowedFd < 'a >: AsRef<T>,
-{
-    fn as_ref(&self) -> &T {
-        <std :: os :: fd :: BorrowedFd < 'a > as AsRef<T>>::as_ref(&self.inner)
-    }
+pub trait OwnedFdContext: Sized {
+fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
 }
-impl<'a> From<std :: os :: fd :: BorrowedFd < 'a >> for BorrowedFd < 'a > {
-    fn from(value: std :: os :: fd :: BorrowedFd < 'a >) -> Self {
-        Self { inner: value }
-    }
-}
-impl<'a> crate::Elaborate for std :: os :: fd :: BorrowedFd < 'a > {
-    type Output = BorrowedFd < 'a >;
-    fn elaborate(self) -> Self::Output {
-        self.into()
-    }
-}
-#[repr(transparent)]
-pub struct OwnedFd {
-    pub(crate) inner: std :: os :: fd :: OwnedFd,
-}
-impl OwnedFd {
-    pub fn to_inner(&self) -> &std :: os :: fd :: OwnedFd {
-        &self.inner
-    }
-}
-impl OwnedFd {
-    pub fn into_inner(self) -> std :: os :: fd :: OwnedFd {
-        self.inner
-    }
-}
-impl<T: ?Sized> AsRef<T> for OwnedFd
-where
-    std :: os :: fd :: OwnedFd: AsRef<T>,
-{
-    fn as_ref(&self) -> &T {
-        <std :: os :: fd :: OwnedFd as AsRef<T>>::as_ref(&self.inner)
-    }
-}
-impl From<std :: os :: fd :: OwnedFd> for OwnedFd {
-    fn from(value: std :: os :: fd :: OwnedFd) -> Self {
-        Self { inner: value }
-    }
-}
-impl crate::Elaborate for std :: os :: fd :: OwnedFd {
-    type Output = OwnedFd;
-    fn elaborate(self) -> Self::Output {
-        self.into()
-    }
-}
-
-
-impl BorrowedFd < '_ > {
-pub fn try_clone_to_owned ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: fd :: OwnedFd > ) {
-
-    std :: os :: fd :: BorrowedFd :: < '_ > :: try_clone_to_owned(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "try_clone_to_owned"))
+impl OwnedFdContext for std :: os :: fd :: OwnedFd {
+fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
+    std :: os :: fd :: OwnedFd :: try_clone(self)
+        .with_context(|| crate::call_failed!(Some(self), "try_clone"))
 }
 }
 
-impl OwnedFd {
-pub fn try_clone ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
-
-    std :: os :: fd :: OwnedFd :: try_clone(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "try_clone"))
-}
-}

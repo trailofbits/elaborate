@@ -5,494 +5,329 @@
 use anyhow::Context;
 
 
-pub trait ToSocketAddrs: std :: net :: ToSocketAddrs {
-fn to_socket_addrs ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self :: Iter > ) {
-
+pub trait ToSocketAddrsContext: std :: net :: ToSocketAddrs {
+fn to_socket_addrs_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self :: Iter > ) {
     < Self as :: std :: net :: ToSocketAddrs > :: to_socket_addrs(self)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "to_socket_addrs"))
 }
 }
 
-impl<T> ToSocketAddrs for T where T: std :: net :: ToSocketAddrs {}
+impl<T> ToSocketAddrsContext for T where T: std :: net :: ToSocketAddrs {}
 
-#[repr(transparent)]
-pub struct TcpListener {
-    pub(crate) inner: std :: net :: TcpListener,
+pub trait TcpListenerContext: Sized {
+fn accept_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( std :: net :: TcpStream , core :: net :: SocketAddr ) > );
+fn bind_wc < A : std :: net :: ToSocketAddrs > ( addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > );
+fn only_v6_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > );
+fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn set_only_v6_wc ( & self , only_v6 : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn set_ttl_wc ( & self , ttl : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > );
+fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+fn ttl_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u32 > );
 }
-impl TcpListener {
-    pub fn to_inner(&self) -> &std :: net :: TcpListener {
-        &self.inner
-    }
+impl TcpListenerContext for std :: net :: TcpListener {
+fn accept_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( std :: net :: TcpStream , core :: net :: SocketAddr ) > ) {
+    std :: net :: TcpListener :: accept(self)
+        .with_context(|| crate::call_failed!(Some(self), "accept"))
 }
-impl TcpListener {
-    pub fn into_inner(self) -> std :: net :: TcpListener {
-        self.inner
-    }
-}
-impl<T: ?Sized> AsRef<T> for TcpListener
-where
-    std :: net :: TcpListener: AsRef<T>,
-{
-    fn as_ref(&self) -> &T {
-        <std :: net :: TcpListener as AsRef<T>>::as_ref(&self.inner)
-    }
-}
-impl From<std :: net :: TcpListener> for TcpListener {
-    fn from(value: std :: net :: TcpListener) -> Self {
-        Self { inner: value }
-    }
-}
-impl crate::Elaborate for std :: net :: TcpListener {
-    type Output = TcpListener;
-    fn elaborate(self) -> Self::Output {
-        self.into()
-    }
-}
-#[repr(transparent)]
-pub struct TcpStream {
-    pub(crate) inner: std :: net :: TcpStream,
-}
-impl TcpStream {
-    pub fn to_inner(&self) -> &std :: net :: TcpStream {
-        &self.inner
-    }
-}
-impl TcpStream {
-    pub fn into_inner(self) -> std :: net :: TcpStream {
-        self.inner
-    }
-}
-impl<T: ?Sized> AsRef<T> for TcpStream
-where
-    std :: net :: TcpStream: AsRef<T>,
-{
-    fn as_ref(&self) -> &T {
-        <std :: net :: TcpStream as AsRef<T>>::as_ref(&self.inner)
-    }
-}
-impl From<std :: net :: TcpStream> for TcpStream {
-    fn from(value: std :: net :: TcpStream) -> Self {
-        Self { inner: value }
-    }
-}
-impl crate::Elaborate for std :: net :: TcpStream {
-    type Output = TcpStream;
-    fn elaborate(self) -> Self::Output {
-        self.into()
-    }
-}
-#[repr(transparent)]
-pub struct UdpSocket {
-    pub(crate) inner: std :: net :: UdpSocket,
-}
-impl UdpSocket {
-    pub fn to_inner(&self) -> &std :: net :: UdpSocket {
-        &self.inner
-    }
-}
-impl UdpSocket {
-    pub fn into_inner(self) -> std :: net :: UdpSocket {
-        self.inner
-    }
-}
-impl<T: ?Sized> AsRef<T> for UdpSocket
-where
-    std :: net :: UdpSocket: AsRef<T>,
-{
-    fn as_ref(&self) -> &T {
-        <std :: net :: UdpSocket as AsRef<T>>::as_ref(&self.inner)
-    }
-}
-impl From<std :: net :: UdpSocket> for UdpSocket {
-    fn from(value: std :: net :: UdpSocket) -> Self {
-        Self { inner: value }
-    }
-}
-impl crate::Elaborate for std :: net :: UdpSocket {
-    type Output = UdpSocket;
-    fn elaborate(self) -> Self::Output {
-        self.into()
-    }
-}
-
-
-impl TcpListener {
-pub fn accept ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( std :: net :: TcpStream , core :: net :: SocketAddr ) > ) {
-
-    std :: net :: TcpListener :: accept(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "accept"))
-}
-pub fn bind < A : std :: net :: ToSocketAddrs > ( addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
-
+fn bind_wc < A : std :: net :: ToSocketAddrs > ( addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     std :: net :: TcpListener :: bind(addr)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(None::<()>, "std :: net :: TcpListener :: bind", crate::CustomDebugMessage("value of type impl ToSocketAddrs")))
 }
-pub fn incoming ( & self ) -> std :: net :: Incoming < '_ > {
-
-    std :: net :: TcpListener :: incoming(&self.inner)
+fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > ) {
+    std :: net :: TcpListener :: local_addr(self)
+        .with_context(|| crate::call_failed!(Some(self), "local_addr"))
 }
-pub fn local_addr ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > ) {
-
-    std :: net :: TcpListener :: local_addr(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "local_addr"))
+fn only_v6_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
+    std :: net :: TcpListener :: only_v6(self)
+        .with_context(|| crate::call_failed!(Some(self), "only_v6"))
 }
-pub fn only_v6 ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
-
-    std :: net :: TcpListener :: only_v6(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "only_v6"))
+fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: TcpListener :: set_nonblocking(self, nonblocking)
+        .with_context(|| crate::call_failed!(Some(self), "set_nonblocking", nonblocking))
 }
-pub fn set_nonblocking ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: net :: TcpListener :: set_nonblocking(&self.inner, nonblocking)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "set_nonblocking", nonblocking))
+fn set_only_v6_wc ( & self , only_v6 : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: TcpListener :: set_only_v6(self, only_v6)
+        .with_context(|| crate::call_failed!(Some(self), "set_only_v6", only_v6))
 }
-pub fn set_only_v6 ( & self , only_v6 : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: net :: TcpListener :: set_only_v6(&self.inner, only_v6)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "set_only_v6", only_v6))
+fn set_ttl_wc ( & self , ttl : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: TcpListener :: set_ttl(self, ttl)
+        .with_context(|| crate::call_failed!(Some(self), "set_ttl", ttl))
 }
-pub fn set_ttl ( & self , ttl : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: net :: TcpListener :: set_ttl(&self.inner, ttl)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "set_ttl", ttl))
+fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > ) {
+    std :: net :: TcpListener :: take_error(self)
+        .with_context(|| crate::call_failed!(Some(self), "take_error"))
 }
-pub fn take_error ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > ) {
-
-    std :: net :: TcpListener :: take_error(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "take_error"))
+fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
+    std :: net :: TcpListener :: try_clone(self)
+        .with_context(|| crate::call_failed!(Some(self), "try_clone"))
 }
-pub fn try_clone ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
-
-    std :: net :: TcpListener :: try_clone(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "try_clone"))
-}
-pub fn ttl ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u32 > ) {
-
-    std :: net :: TcpListener :: ttl(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "ttl"))
-}
-#[cfg(feature = "tcplistener_into_incoming")]
-pub fn into_incoming ( self ) -> std :: net :: IntoIncoming {
-
-    std :: net :: TcpListener :: into_incoming(self.inner)
+fn ttl_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u32 > ) {
+    std :: net :: TcpListener :: ttl(self)
+        .with_context(|| crate::call_failed!(Some(self), "ttl"))
 }
 }
-
-impl TcpStream {
-pub fn connect < A : std :: net :: ToSocketAddrs > ( addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
-
-    std :: net :: TcpStream :: connect(addr)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: net :: TcpStream :: connect", crate::CustomDebugMessage("value of type impl ToSocketAddrs")))
+pub trait TcpStreamContext: Sized {
+fn connect_timeout_wc ( addr : & core :: net :: SocketAddr , timeout : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+fn connect_wc < A : std :: net :: ToSocketAddrs > ( addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > );
+fn nodelay_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > );
+fn peek_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
+fn peer_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > );
+fn read_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > );
+fn set_nodelay_wc ( & self , nodelay : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn set_read_timeout_wc ( & self , dur : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn set_ttl_wc ( & self , ttl : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn set_write_timeout_wc ( & self , dur : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn shutdown_wc ( & self , how : std :: net :: Shutdown ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > );
+fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+fn ttl_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u32 > );
+fn write_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > );
+#[cfg(feature = "tcp_linger")]
+fn linger_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > );
+#[cfg(feature = "tcp_linger")]
+fn set_linger_wc ( & self , linger : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
 }
-pub fn connect_timeout ( addr : & core :: net :: SocketAddr , timeout : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
-
+impl TcpStreamContext for std :: net :: TcpStream {
+fn connect_timeout_wc ( addr : & core :: net :: SocketAddr , timeout : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     std :: net :: TcpStream :: connect_timeout(addr, timeout)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(None::<()>, "std :: net :: TcpStream :: connect_timeout", addr, timeout))
 }
-pub fn local_addr ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > ) {
-
-    std :: net :: TcpStream :: local_addr(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "local_addr"))
+fn connect_wc < A : std :: net :: ToSocketAddrs > ( addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
+    std :: net :: TcpStream :: connect(addr)
+        .with_context(|| crate::call_failed!(None::<()>, "std :: net :: TcpStream :: connect", crate::CustomDebugMessage("value of type impl ToSocketAddrs")))
 }
-pub fn nodelay ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
-
-    std :: net :: TcpStream :: nodelay(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "nodelay"))
+fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > ) {
+    std :: net :: TcpStream :: local_addr(self)
+        .with_context(|| crate::call_failed!(Some(self), "local_addr"))
 }
-pub fn peek ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-
-    std :: net :: TcpStream :: peek(&self.inner, buf)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "peek", buf))
+fn nodelay_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
+    std :: net :: TcpStream :: nodelay(self)
+        .with_context(|| crate::call_failed!(Some(self), "nodelay"))
 }
-pub fn peer_addr ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > ) {
-
-    std :: net :: TcpStream :: peer_addr(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "peer_addr"))
+fn peek_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
+    std :: net :: TcpStream :: peek(self, buf)
+        .with_context(|| crate::call_failed!(Some(self), "peek", buf))
 }
-pub fn read_timeout ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
-
-    std :: net :: TcpStream :: read_timeout(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "read_timeout"))
+fn peer_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > ) {
+    std :: net :: TcpStream :: peer_addr(self)
+        .with_context(|| crate::call_failed!(Some(self), "peer_addr"))
 }
-pub fn set_nodelay ( & self , nodelay : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: net :: TcpStream :: set_nodelay(&self.inner, nodelay)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "set_nodelay", nodelay))
+fn read_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
+    std :: net :: TcpStream :: read_timeout(self)
+        .with_context(|| crate::call_failed!(Some(self), "read_timeout"))
 }
-pub fn set_nonblocking ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: net :: TcpStream :: set_nonblocking(&self.inner, nonblocking)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "set_nonblocking", nonblocking))
+fn set_nodelay_wc ( & self , nodelay : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: TcpStream :: set_nodelay(self, nodelay)
+        .with_context(|| crate::call_failed!(Some(self), "set_nodelay", nodelay))
 }
-pub fn set_read_timeout ( & self , dur : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: net :: TcpStream :: set_read_timeout(&self.inner, dur)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "set_read_timeout", dur))
+fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: TcpStream :: set_nonblocking(self, nonblocking)
+        .with_context(|| crate::call_failed!(Some(self), "set_nonblocking", nonblocking))
 }
-pub fn set_ttl ( & self , ttl : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: net :: TcpStream :: set_ttl(&self.inner, ttl)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "set_ttl", ttl))
+fn set_read_timeout_wc ( & self , dur : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: TcpStream :: set_read_timeout(self, dur)
+        .with_context(|| crate::call_failed!(Some(self), "set_read_timeout", dur))
 }
-pub fn set_write_timeout ( & self , dur : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: net :: TcpStream :: set_write_timeout(&self.inner, dur)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "set_write_timeout", dur))
+fn set_ttl_wc ( & self , ttl : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: TcpStream :: set_ttl(self, ttl)
+        .with_context(|| crate::call_failed!(Some(self), "set_ttl", ttl))
 }
-pub fn shutdown ( & self , how : std :: net :: Shutdown ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: net :: TcpStream :: shutdown(&self.inner, how)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "shutdown", how))
+fn set_write_timeout_wc ( & self , dur : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: TcpStream :: set_write_timeout(self, dur)
+        .with_context(|| crate::call_failed!(Some(self), "set_write_timeout", dur))
 }
-pub fn take_error ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > ) {
-
-    std :: net :: TcpStream :: take_error(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "take_error"))
+fn shutdown_wc ( & self , how : std :: net :: Shutdown ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: TcpStream :: shutdown(self, how)
+        .with_context(|| crate::call_failed!(Some(self), "shutdown", how))
 }
-pub fn try_clone ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
-
-    std :: net :: TcpStream :: try_clone(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "try_clone"))
+fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > ) {
+    std :: net :: TcpStream :: take_error(self)
+        .with_context(|| crate::call_failed!(Some(self), "take_error"))
 }
-pub fn ttl ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u32 > ) {
-
-    std :: net :: TcpStream :: ttl(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "ttl"))
+fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
+    std :: net :: TcpStream :: try_clone(self)
+        .with_context(|| crate::call_failed!(Some(self), "try_clone"))
 }
-pub fn write_timeout ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
-
-    std :: net :: TcpStream :: write_timeout(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "write_timeout"))
+fn ttl_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u32 > ) {
+    std :: net :: TcpStream :: ttl(self)
+        .with_context(|| crate::call_failed!(Some(self), "ttl"))
+}
+fn write_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
+    std :: net :: TcpStream :: write_timeout(self)
+        .with_context(|| crate::call_failed!(Some(self), "write_timeout"))
 }
 #[cfg(feature = "tcp_linger")]
-pub fn linger ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
-
-    std :: net :: TcpStream :: linger(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "linger"))
+fn linger_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
+    std :: net :: TcpStream :: linger(self)
+        .with_context(|| crate::call_failed!(Some(self), "linger"))
 }
 #[cfg(feature = "tcp_linger")]
-pub fn set_linger ( & self , linger : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: net :: TcpStream :: set_linger(&self.inner, linger)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "set_linger", linger))
+fn set_linger_wc ( & self , linger : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: TcpStream :: set_linger(self, linger)
+        .with_context(|| crate::call_failed!(Some(self), "set_linger", linger))
 }
 }
-
-impl UdpSocket {
-pub fn bind < A : std :: net :: ToSocketAddrs > ( addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
-
+pub trait UdpSocketContext: Sized {
+fn bind_wc < A : std :: net :: ToSocketAddrs > ( addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+fn broadcast_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > );
+fn connect_wc < A : std :: net :: ToSocketAddrs > ( & self , addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn join_multicast_v4_wc ( & self , multiaddr : & core :: net :: Ipv4Addr , interface : & core :: net :: Ipv4Addr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn join_multicast_v6_wc ( & self , multiaddr : & core :: net :: Ipv6Addr , interface : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn leave_multicast_v4_wc ( & self , multiaddr : & core :: net :: Ipv4Addr , interface : & core :: net :: Ipv4Addr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn leave_multicast_v6_wc ( & self , multiaddr : & core :: net :: Ipv6Addr , interface : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > );
+fn multicast_loop_v4_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > );
+fn multicast_loop_v6_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > );
+fn multicast_ttl_v4_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u32 > );
+fn peek_from_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , core :: net :: SocketAddr ) > );
+fn peek_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
+fn peer_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > );
+fn read_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > );
+fn recv_from_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , core :: net :: SocketAddr ) > );
+fn recv_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
+fn send_to_wc < A : std :: net :: ToSocketAddrs > ( & self , buf : & [ u8 ] , addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
+fn send_wc ( & self , buf : & [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
+fn set_broadcast_wc ( & self , broadcast : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn set_multicast_loop_v4_wc ( & self , multicast_loop_v4 : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn set_multicast_loop_v6_wc ( & self , multicast_loop_v6 : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn set_multicast_ttl_v4_wc ( & self , multicast_ttl_v4 : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn set_read_timeout_wc ( & self , dur : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn set_ttl_wc ( & self , ttl : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn set_write_timeout_wc ( & self , dur : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > );
+fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+fn ttl_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u32 > );
+fn write_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > );
+}
+impl UdpSocketContext for std :: net :: UdpSocket {
+fn bind_wc < A : std :: net :: ToSocketAddrs > ( addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     std :: net :: UdpSocket :: bind(addr)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(None::<()>, "std :: net :: UdpSocket :: bind", crate::CustomDebugMessage("value of type impl ToSocketAddrs")))
 }
-pub fn broadcast ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
+fn broadcast_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
+    std :: net :: UdpSocket :: broadcast(self)
+        .with_context(|| crate::call_failed!(Some(self), "broadcast"))
+}
+fn connect_wc < A : std :: net :: ToSocketAddrs > ( & self , addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: UdpSocket :: connect(self, addr)
+        .with_context(|| crate::call_failed!(Some(self), "connect", crate::CustomDebugMessage("value of type impl ToSocketAddrs")))
+}
+fn join_multicast_v4_wc ( & self , multiaddr : & core :: net :: Ipv4Addr , interface : & core :: net :: Ipv4Addr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: UdpSocket :: join_multicast_v4(self, multiaddr, interface)
+        .with_context(|| crate::call_failed!(Some(self), "join_multicast_v4", multiaddr, interface))
+}
+fn join_multicast_v6_wc ( & self , multiaddr : & core :: net :: Ipv6Addr , interface : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: UdpSocket :: join_multicast_v6(self, multiaddr, interface)
+        .with_context(|| crate::call_failed!(Some(self), "join_multicast_v6", multiaddr, interface))
+}
+fn leave_multicast_v4_wc ( & self , multiaddr : & core :: net :: Ipv4Addr , interface : & core :: net :: Ipv4Addr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: UdpSocket :: leave_multicast_v4(self, multiaddr, interface)
+        .with_context(|| crate::call_failed!(Some(self), "leave_multicast_v4", multiaddr, interface))
+}
+fn leave_multicast_v6_wc ( & self , multiaddr : & core :: net :: Ipv6Addr , interface : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: UdpSocket :: leave_multicast_v6(self, multiaddr, interface)
+        .with_context(|| crate::call_failed!(Some(self), "leave_multicast_v6", multiaddr, interface))
+}
+fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > ) {
+    std :: net :: UdpSocket :: local_addr(self)
+        .with_context(|| crate::call_failed!(Some(self), "local_addr"))
+}
+fn multicast_loop_v4_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
+    std :: net :: UdpSocket :: multicast_loop_v4(self)
+        .with_context(|| crate::call_failed!(Some(self), "multicast_loop_v4"))
+}
+fn multicast_loop_v6_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
+    std :: net :: UdpSocket :: multicast_loop_v6(self)
+        .with_context(|| crate::call_failed!(Some(self), "multicast_loop_v6"))
+}
+fn multicast_ttl_v4_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u32 > ) {
+    std :: net :: UdpSocket :: multicast_ttl_v4(self)
+        .with_context(|| crate::call_failed!(Some(self), "multicast_ttl_v4"))
+}
+fn peek_from_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , core :: net :: SocketAddr ) > ) {
+    std :: net :: UdpSocket :: peek_from(self, buf)
+        .with_context(|| crate::call_failed!(Some(self), "peek_from", buf))
+}
+fn peek_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
+    std :: net :: UdpSocket :: peek(self, buf)
+        .with_context(|| crate::call_failed!(Some(self), "peek", buf))
+}
+fn peer_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > ) {
+    std :: net :: UdpSocket :: peer_addr(self)
+        .with_context(|| crate::call_failed!(Some(self), "peer_addr"))
+}
+fn read_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
+    std :: net :: UdpSocket :: read_timeout(self)
+        .with_context(|| crate::call_failed!(Some(self), "read_timeout"))
+}
+fn recv_from_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , core :: net :: SocketAddr ) > ) {
+    std :: net :: UdpSocket :: recv_from(self, buf)
+        .with_context(|| crate::call_failed!(Some(self), "recv_from", buf))
+}
+fn recv_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
+    std :: net :: UdpSocket :: recv(self, buf)
+        .with_context(|| crate::call_failed!(Some(self), "recv", buf))
+}
+fn send_to_wc < A : std :: net :: ToSocketAddrs > ( & self , buf : & [ u8 ] , addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
+    std :: net :: UdpSocket :: send_to(self, buf, addr)
+        .with_context(|| crate::call_failed!(Some(self), "send_to", buf, crate::CustomDebugMessage("value of type impl ToSocketAddrs")))
+}
+fn send_wc ( & self , buf : & [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
+    std :: net :: UdpSocket :: send(self, buf)
+        .with_context(|| crate::call_failed!(Some(self), "send", buf))
+}
+fn set_broadcast_wc ( & self , broadcast : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: UdpSocket :: set_broadcast(self, broadcast)
+        .with_context(|| crate::call_failed!(Some(self), "set_broadcast", broadcast))
+}
+fn set_multicast_loop_v4_wc ( & self , multicast_loop_v4 : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: UdpSocket :: set_multicast_loop_v4(self, multicast_loop_v4)
+        .with_context(|| crate::call_failed!(Some(self), "set_multicast_loop_v4", multicast_loop_v4))
+}
+fn set_multicast_loop_v6_wc ( & self , multicast_loop_v6 : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: UdpSocket :: set_multicast_loop_v6(self, multicast_loop_v6)
+        .with_context(|| crate::call_failed!(Some(self), "set_multicast_loop_v6", multicast_loop_v6))
+}
+fn set_multicast_ttl_v4_wc ( & self , multicast_ttl_v4 : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: UdpSocket :: set_multicast_ttl_v4(self, multicast_ttl_v4)
+        .with_context(|| crate::call_failed!(Some(self), "set_multicast_ttl_v4", multicast_ttl_v4))
+}
+fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: UdpSocket :: set_nonblocking(self, nonblocking)
+        .with_context(|| crate::call_failed!(Some(self), "set_nonblocking", nonblocking))
+}
+fn set_read_timeout_wc ( & self , dur : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: UdpSocket :: set_read_timeout(self, dur)
+        .with_context(|| crate::call_failed!(Some(self), "set_read_timeout", dur))
+}
+fn set_ttl_wc ( & self , ttl : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: UdpSocket :: set_ttl(self, ttl)
+        .with_context(|| crate::call_failed!(Some(self), "set_ttl", ttl))
+}
+fn set_write_timeout_wc ( & self , dur : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: UdpSocket :: set_write_timeout(self, dur)
+        .with_context(|| crate::call_failed!(Some(self), "set_write_timeout", dur))
+}
+fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > ) {
+    std :: net :: UdpSocket :: take_error(self)
+        .with_context(|| crate::call_failed!(Some(self), "take_error"))
+}
+fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
+    std :: net :: UdpSocket :: try_clone(self)
+        .with_context(|| crate::call_failed!(Some(self), "try_clone"))
+}
+fn ttl_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u32 > ) {
+    std :: net :: UdpSocket :: ttl(self)
+        .with_context(|| crate::call_failed!(Some(self), "ttl"))
+}
+fn write_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
+    std :: net :: UdpSocket :: write_timeout(self)
+        .with_context(|| crate::call_failed!(Some(self), "write_timeout"))
+}
+}
 
-    std :: net :: UdpSocket :: broadcast(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "broadcast"))
-}
-pub fn connect < A : std :: net :: ToSocketAddrs > ( & self , addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: net :: UdpSocket :: connect(&self.inner, addr)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "connect", crate::CustomDebugMessage("value of type impl ToSocketAddrs")))
-}
-pub fn join_multicast_v4 ( & self , multiaddr : & core :: net :: Ipv4Addr , interface : & core :: net :: Ipv4Addr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: net :: UdpSocket :: join_multicast_v4(&self.inner, multiaddr, interface)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "join_multicast_v4", multiaddr, interface))
-}
-pub fn join_multicast_v6 ( & self , multiaddr : & core :: net :: Ipv6Addr , interface : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: net :: UdpSocket :: join_multicast_v6(&self.inner, multiaddr, interface)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "join_multicast_v6", multiaddr, interface))
-}
-pub fn leave_multicast_v4 ( & self , multiaddr : & core :: net :: Ipv4Addr , interface : & core :: net :: Ipv4Addr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: net :: UdpSocket :: leave_multicast_v4(&self.inner, multiaddr, interface)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "leave_multicast_v4", multiaddr, interface))
-}
-pub fn leave_multicast_v6 ( & self , multiaddr : & core :: net :: Ipv6Addr , interface : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: net :: UdpSocket :: leave_multicast_v6(&self.inner, multiaddr, interface)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "leave_multicast_v6", multiaddr, interface))
-}
-pub fn local_addr ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > ) {
-
-    std :: net :: UdpSocket :: local_addr(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "local_addr"))
-}
-pub fn multicast_loop_v4 ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
-
-    std :: net :: UdpSocket :: multicast_loop_v4(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "multicast_loop_v4"))
-}
-pub fn multicast_loop_v6 ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
-
-    std :: net :: UdpSocket :: multicast_loop_v6(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "multicast_loop_v6"))
-}
-pub fn multicast_ttl_v4 ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u32 > ) {
-
-    std :: net :: UdpSocket :: multicast_ttl_v4(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "multicast_ttl_v4"))
-}
-pub fn peek ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-
-    std :: net :: UdpSocket :: peek(&self.inner, buf)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "peek", buf))
-}
-pub fn peek_from ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , core :: net :: SocketAddr ) > ) {
-
-    std :: net :: UdpSocket :: peek_from(&self.inner, buf)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "peek_from", buf))
-}
-pub fn peer_addr ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > ) {
-
-    std :: net :: UdpSocket :: peer_addr(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "peer_addr"))
-}
-pub fn read_timeout ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
-
-    std :: net :: UdpSocket :: read_timeout(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "read_timeout"))
-}
-pub fn recv ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-
-    std :: net :: UdpSocket :: recv(&self.inner, buf)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "recv", buf))
-}
-pub fn recv_from ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , core :: net :: SocketAddr ) > ) {
-
-    std :: net :: UdpSocket :: recv_from(&self.inner, buf)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "recv_from", buf))
-}
-pub fn send ( & self , buf : & [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-
-    std :: net :: UdpSocket :: send(&self.inner, buf)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "send", buf))
-}
-pub fn send_to < A : std :: net :: ToSocketAddrs > ( & self , buf : & [ u8 ] , addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-
-    std :: net :: UdpSocket :: send_to(&self.inner, buf, addr)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "send_to", buf, crate::CustomDebugMessage("value of type impl ToSocketAddrs")))
-}
-pub fn set_broadcast ( & self , broadcast : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: net :: UdpSocket :: set_broadcast(&self.inner, broadcast)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "set_broadcast", broadcast))
-}
-pub fn set_multicast_loop_v4 ( & self , multicast_loop_v4 : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: net :: UdpSocket :: set_multicast_loop_v4(&self.inner, multicast_loop_v4)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "set_multicast_loop_v4", multicast_loop_v4))
-}
-pub fn set_multicast_loop_v6 ( & self , multicast_loop_v6 : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: net :: UdpSocket :: set_multicast_loop_v6(&self.inner, multicast_loop_v6)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "set_multicast_loop_v6", multicast_loop_v6))
-}
-pub fn set_multicast_ttl_v4 ( & self , multicast_ttl_v4 : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: net :: UdpSocket :: set_multicast_ttl_v4(&self.inner, multicast_ttl_v4)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "set_multicast_ttl_v4", multicast_ttl_v4))
-}
-pub fn set_nonblocking ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: net :: UdpSocket :: set_nonblocking(&self.inner, nonblocking)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "set_nonblocking", nonblocking))
-}
-pub fn set_read_timeout ( & self , dur : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: net :: UdpSocket :: set_read_timeout(&self.inner, dur)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "set_read_timeout", dur))
-}
-pub fn set_ttl ( & self , ttl : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: net :: UdpSocket :: set_ttl(&self.inner, ttl)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "set_ttl", ttl))
-}
-pub fn set_write_timeout ( & self , dur : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: net :: UdpSocket :: set_write_timeout(&self.inner, dur)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "set_write_timeout", dur))
-}
-pub fn take_error ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > ) {
-
-    std :: net :: UdpSocket :: take_error(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "take_error"))
-}
-pub fn try_clone ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
-
-    std :: net :: UdpSocket :: try_clone(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "try_clone"))
-}
-pub fn ttl ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u32 > ) {
-
-    std :: net :: UdpSocket :: ttl(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "ttl"))
-}
-pub fn write_timeout ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
-
-    std :: net :: UdpSocket :: write_timeout(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "write_timeout"))
-}
-}

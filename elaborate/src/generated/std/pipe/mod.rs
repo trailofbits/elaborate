@@ -7,109 +7,31 @@ use anyhow::Context;
 
 
 #[cfg(feature = "anonymous_pipe")]
-#[repr(transparent)]
-pub struct PipeReader {
-    pub(crate) inner: std :: pipe :: PipeReader,
+pub trait PipeReaderContext: Sized {
+fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
 }
 #[cfg(feature = "anonymous_pipe")]
-impl PipeReader {
-    pub fn to_inner(&self) -> &std :: pipe :: PipeReader {
-        &self.inner
-    }
+impl PipeReaderContext for std :: pipe :: PipeReader {
+fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
+    std :: pipe :: PipeReader :: try_clone(self)
+        .with_context(|| crate::call_failed!(Some(self), "try_clone"))
+}
 }
 #[cfg(feature = "anonymous_pipe")]
-impl PipeReader {
-    pub fn into_inner(self) -> std :: pipe :: PipeReader {
-        self.inner
-    }
+pub trait PipeWriterContext: Sized {
+fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
 }
 #[cfg(feature = "anonymous_pipe")]
-impl<T: ?Sized> AsRef<T> for PipeReader
-where
-    std :: pipe :: PipeReader: AsRef<T>,
-{
-    fn as_ref(&self) -> &T {
-        <std :: pipe :: PipeReader as AsRef<T>>::as_ref(&self.inner)
-    }
+impl PipeWriterContext for std :: pipe :: PipeWriter {
+fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
+    std :: pipe :: PipeWriter :: try_clone(self)
+        .with_context(|| crate::call_failed!(Some(self), "try_clone"))
 }
-#[cfg(feature = "anonymous_pipe")]
-impl From<std :: pipe :: PipeReader> for PipeReader {
-    fn from(value: std :: pipe :: PipeReader) -> Self {
-        Self { inner: value }
-    }
-}
-#[cfg(feature = "anonymous_pipe")]
-impl crate::Elaborate for std :: pipe :: PipeReader {
-    type Output = PipeReader;
-    fn elaborate(self) -> Self::Output {
-        self.into()
-    }
-}
-#[cfg(feature = "anonymous_pipe")]
-#[repr(transparent)]
-pub struct PipeWriter {
-    pub(crate) inner: std :: pipe :: PipeWriter,
-}
-#[cfg(feature = "anonymous_pipe")]
-impl PipeWriter {
-    pub fn to_inner(&self) -> &std :: pipe :: PipeWriter {
-        &self.inner
-    }
-}
-#[cfg(feature = "anonymous_pipe")]
-impl PipeWriter {
-    pub fn into_inner(self) -> std :: pipe :: PipeWriter {
-        self.inner
-    }
-}
-#[cfg(feature = "anonymous_pipe")]
-impl<T: ?Sized> AsRef<T> for PipeWriter
-where
-    std :: pipe :: PipeWriter: AsRef<T>,
-{
-    fn as_ref(&self) -> &T {
-        <std :: pipe :: PipeWriter as AsRef<T>>::as_ref(&self.inner)
-    }
-}
-#[cfg(feature = "anonymous_pipe")]
-impl From<std :: pipe :: PipeWriter> for PipeWriter {
-    fn from(value: std :: pipe :: PipeWriter) -> Self {
-        Self { inner: value }
-    }
-}
-#[cfg(feature = "anonymous_pipe")]
-impl crate::Elaborate for std :: pipe :: PipeWriter {
-    type Output = PipeWriter;
-    fn elaborate(self) -> Self::Output {
-        self.into()
-    }
 }
 
 
 #[cfg(feature = "anonymous_pipe")]
-pub fn pipe ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( std :: pipe :: PipeReader , std :: pipe :: PipeWriter ) > ) {
-
+pub fn pipe_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( std :: pipe :: PipeReader , std :: pipe :: PipeWriter ) > ) {
     std :: pipe :: pipe()
-        .map(Into::into)
         .with_context(|| crate::call_failed!(None::<()>, "std :: pipe :: pipe"))
-}
-
-#[cfg(feature = "anonymous_pipe")]
-impl PipeReader {
-pub fn try_clone ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
-
-    std :: pipe :: PipeReader :: try_clone(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "try_clone"))
-}
-}
-
-#[cfg(feature = "anonymous_pipe")]
-impl PipeWriter {
-pub fn try_clone ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
-
-    std :: pipe :: PipeWriter :: try_clone(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "try_clone"))
-}
 }

@@ -6,138 +6,47 @@ use anyhow::Context;
 
 
 
-#[repr(transparent)]
-pub struct Instant {
-    pub(crate) inner: std :: time :: Instant,
+pub trait InstantContext: Sized {
+fn checked_add_wc ( & self , duration : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( core :: option :: Option < Self > );
+fn checked_duration_since_wc ( & self , earlier : std :: time :: Instant ) -> crate :: rewrite_output_type ! ( core :: option :: Option < core :: time :: Duration > );
+fn checked_sub_wc ( & self , duration : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( core :: option :: Option < Self > );
 }
-impl Instant {
-    pub fn to_inner(&self) -> &std :: time :: Instant {
-        &self.inner
-    }
+impl InstantContext for std :: time :: Instant {
+fn checked_add_wc ( & self , duration : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( core :: option :: Option < Self > ) {
+    std :: time :: Instant :: checked_add(self, duration)
+        .with_context(|| crate::call_failed!(Some(self), "checked_add", duration))
 }
-impl Instant {
-    pub fn into_inner(self) -> std :: time :: Instant {
-        self.inner
-    }
+fn checked_duration_since_wc ( & self , earlier : std :: time :: Instant ) -> crate :: rewrite_output_type ! ( core :: option :: Option < core :: time :: Duration > ) {
+    std :: time :: Instant :: checked_duration_since(self, earlier)
+        .with_context(|| crate::call_failed!(Some(self), "checked_duration_since", earlier))
 }
-impl<T: ?Sized> AsRef<T> for Instant
-where
-    std :: time :: Instant: AsRef<T>,
-{
-    fn as_ref(&self) -> &T {
-        <std :: time :: Instant as AsRef<T>>::as_ref(&self.inner)
-    }
+fn checked_sub_wc ( & self , duration : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( core :: option :: Option < Self > ) {
+    std :: time :: Instant :: checked_sub(self, duration)
+        .with_context(|| crate::call_failed!(Some(self), "checked_sub", duration))
 }
-impl From<std :: time :: Instant> for Instant {
-    fn from(value: std :: time :: Instant) -> Self {
-        Self { inner: value }
-    }
 }
-impl crate::Elaborate for std :: time :: Instant {
-    type Output = Instant;
-    fn elaborate(self) -> Self::Output {
-        self.into()
-    }
+pub trait SystemTimeContext: Sized {
+fn checked_add_wc ( & self , duration : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( core :: option :: Option < Self > );
+fn checked_sub_wc ( & self , duration : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( core :: option :: Option < Self > );
+fn duration_since_wc ( & self , earlier : std :: time :: SystemTime ) -> crate :: rewrite_output_type ! ( core :: result :: Result < core :: time :: Duration , std :: time :: SystemTimeError > );
+fn elapsed_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: result :: Result < core :: time :: Duration , std :: time :: SystemTimeError > );
 }
-#[repr(transparent)]
-pub struct SystemTime {
-    pub(crate) inner: std :: time :: SystemTime,
+impl SystemTimeContext for std :: time :: SystemTime {
+fn checked_add_wc ( & self , duration : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( core :: option :: Option < Self > ) {
+    std :: time :: SystemTime :: checked_add(self, duration)
+        .with_context(|| crate::call_failed!(Some(self), "checked_add", duration))
 }
-impl SystemTime {
-    pub fn to_inner(&self) -> &std :: time :: SystemTime {
-        &self.inner
-    }
+fn checked_sub_wc ( & self , duration : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( core :: option :: Option < Self > ) {
+    std :: time :: SystemTime :: checked_sub(self, duration)
+        .with_context(|| crate::call_failed!(Some(self), "checked_sub", duration))
 }
-impl SystemTime {
-    pub fn into_inner(self) -> std :: time :: SystemTime {
-        self.inner
-    }
+fn duration_since_wc ( & self , earlier : std :: time :: SystemTime ) -> crate :: rewrite_output_type ! ( core :: result :: Result < core :: time :: Duration , std :: time :: SystemTimeError > ) {
+    std :: time :: SystemTime :: duration_since(self, earlier)
+        .with_context(|| crate::call_failed!(Some(self), "duration_since", earlier))
 }
-impl<T: ?Sized> AsRef<T> for SystemTime
-where
-    std :: time :: SystemTime: AsRef<T>,
-{
-    fn as_ref(&self) -> &T {
-        <std :: time :: SystemTime as AsRef<T>>::as_ref(&self.inner)
-    }
-}
-impl From<std :: time :: SystemTime> for SystemTime {
-    fn from(value: std :: time :: SystemTime) -> Self {
-        Self { inner: value }
-    }
-}
-impl crate::Elaborate for std :: time :: SystemTime {
-    type Output = SystemTime;
-    fn elaborate(self) -> Self::Output {
-        self.into()
-    }
-}
-
-
-impl Instant {
-pub fn checked_add ( & self , duration : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( core :: option :: Option < Self > ) {
-
-    std :: time :: Instant :: checked_add(&self.inner, duration)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "checked_add", duration))
-}
-pub fn checked_duration_since ( & self , earlier : std :: time :: Instant ) -> crate :: rewrite_output_type ! ( core :: option :: Option < core :: time :: Duration > ) {
-
-    std :: time :: Instant :: checked_duration_since(&self.inner, earlier)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "checked_duration_since", earlier))
-}
-pub fn checked_sub ( & self , duration : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( core :: option :: Option < Self > ) {
-
-    std :: time :: Instant :: checked_sub(&self.inner, duration)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "checked_sub", duration))
-}
-pub fn duration_since ( & self , earlier : std :: time :: Instant ) -> core :: time :: Duration {
-
-    std :: time :: Instant :: duration_since(&self.inner, earlier)
-}
-pub fn elapsed ( & self ) -> core :: time :: Duration {
-
-    std :: time :: Instant :: elapsed(&self.inner)
-}
-pub fn now ( ) -> Self {
-
-    std :: time :: Instant :: now().into()
-}
-pub fn saturating_duration_since ( & self , earlier : std :: time :: Instant ) -> core :: time :: Duration {
-
-    std :: time :: Instant :: saturating_duration_since(&self.inner, earlier)
+fn elapsed_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: result :: Result < core :: time :: Duration , std :: time :: SystemTimeError > ) {
+    std :: time :: SystemTime :: elapsed(self)
+        .with_context(|| crate::call_failed!(Some(self), "elapsed"))
 }
 }
 
-impl SystemTime {
-pub fn checked_add ( & self , duration : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( core :: option :: Option < Self > ) {
-
-    std :: time :: SystemTime :: checked_add(&self.inner, duration)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "checked_add", duration))
-}
-pub fn checked_sub ( & self , duration : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( core :: option :: Option < Self > ) {
-
-    std :: time :: SystemTime :: checked_sub(&self.inner, duration)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "checked_sub", duration))
-}
-pub fn duration_since ( & self , earlier : std :: time :: SystemTime ) -> crate :: rewrite_output_type ! ( core :: result :: Result < core :: time :: Duration , std :: time :: SystemTimeError > ) {
-
-    std :: time :: SystemTime :: duration_since(&self.inner, earlier)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "duration_since", earlier))
-}
-pub fn elapsed ( & self ) -> crate :: rewrite_output_type ! ( core :: result :: Result < core :: time :: Duration , std :: time :: SystemTimeError > ) {
-
-    std :: time :: SystemTime :: elapsed(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "elapsed"))
-}
-pub fn now ( ) -> Self {
-
-    std :: time :: SystemTime :: now().into()
-}
-}

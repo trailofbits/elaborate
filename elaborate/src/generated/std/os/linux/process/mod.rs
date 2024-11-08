@@ -7,90 +7,38 @@ use anyhow::Context;
 
 #[cfg(feature = "linux_pidfd")]
 #[cfg(target_os = "linux")]
-pub trait ChildExt: std :: os :: linux :: process :: ChildExt {
-fn into_pidfd ( self ) -> core :: result :: Result < std :: os :: linux :: process :: PidFd , Self > where Self : core :: marker :: Sized {
-
-    < Self as :: std :: os :: linux :: process :: ChildExt > :: into_pidfd(self)
-        .map_err(Into::into)
-}
-fn pidfd ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < & std :: os :: linux :: process :: PidFd > ) {
-
+pub trait ChildExtContext: std :: os :: linux :: process :: ChildExt {
+fn pidfd_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < & std :: os :: linux :: process :: PidFd > ) {
     < Self as :: std :: os :: linux :: process :: ChildExt > :: pidfd(self)
-        .map(Into::into)
         .with_context(|| crate::call_failed!(Some(self), "pidfd"))
 }
 }
 
 #[cfg(feature = "linux_pidfd")]
 #[cfg(target_os = "linux")]
-impl<T> ChildExt for T where T: std :: os :: linux :: process :: ChildExt {}
+impl<T> ChildExtContext for T where T: std :: os :: linux :: process :: ChildExt {}
 
 #[cfg(feature = "linux_pidfd")]
 #[cfg(target_os = "linux")]
-#[repr(transparent)]
-pub struct PidFd {
-    pub(crate) inner: std :: os :: linux :: process :: PidFd,
+pub trait PidFdContext {
+fn kill_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+fn try_wait_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: process :: ExitStatus > > );
+fn wait_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: process :: ExitStatus > );
 }
 #[cfg(feature = "linux_pidfd")]
 #[cfg(target_os = "linux")]
-impl PidFd {
-    pub fn to_inner(&self) -> &std :: os :: linux :: process :: PidFd {
-        &self.inner
-    }
+impl PidFdContext for std :: os :: linux :: process :: PidFd {
+fn kill_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: os :: linux :: process :: PidFd :: kill(self)
+        .with_context(|| crate::call_failed!(Some(self), "kill"))
 }
-#[cfg(feature = "linux_pidfd")]
-#[cfg(target_os = "linux")]
-impl PidFd {
-    pub fn into_inner(self) -> std :: os :: linux :: process :: PidFd {
-        self.inner
-    }
+fn try_wait_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: process :: ExitStatus > > ) {
+    std :: os :: linux :: process :: PidFd :: try_wait(self)
+        .with_context(|| crate::call_failed!(Some(self), "try_wait"))
 }
-#[cfg(feature = "linux_pidfd")]
-#[cfg(target_os = "linux")]
-impl<T: ?Sized> AsRef<T> for PidFd
-where
-    std :: os :: linux :: process :: PidFd: AsRef<T>,
-{
-    fn as_ref(&self) -> &T {
-        <std :: os :: linux :: process :: PidFd as AsRef<T>>::as_ref(&self.inner)
-    }
+fn wait_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: process :: ExitStatus > ) {
+    std :: os :: linux :: process :: PidFd :: wait(self)
+        .with_context(|| crate::call_failed!(Some(self), "wait"))
 }
-#[cfg(feature = "linux_pidfd")]
-#[cfg(target_os = "linux")]
-impl From<std :: os :: linux :: process :: PidFd> for PidFd {
-    fn from(value: std :: os :: linux :: process :: PidFd) -> Self {
-        Self { inner: value }
-    }
-}
-#[cfg(feature = "linux_pidfd")]
-#[cfg(target_os = "linux")]
-impl crate::Elaborate for std :: os :: linux :: process :: PidFd {
-    type Output = PidFd;
-    fn elaborate(self) -> Self::Output {
-        self.into()
-    }
 }
 
-
-#[cfg(feature = "linux_pidfd")]
-#[cfg(target_os = "linux")]
-impl PidFd {
-pub fn kill ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-
-    std :: os :: linux :: process :: PidFd :: kill(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "kill"))
-}
-pub fn try_wait ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: process :: ExitStatus > > ) {
-
-    std :: os :: linux :: process :: PidFd :: try_wait(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "try_wait"))
-}
-pub fn wait ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: process :: ExitStatus > ) {
-
-    std :: os :: linux :: process :: PidFd :: wait(&self.inner)
-        .map(Into::into)
-        .with_context(|| crate::call_failed!(Some(&self.inner), "wait"))
-}
-}
