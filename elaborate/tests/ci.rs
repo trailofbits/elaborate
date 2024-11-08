@@ -62,7 +62,7 @@ fn features_are_used() {
         if feature == "default" || feature.starts_with("__") {
             continue;
         }
-        assert!(features_used.contains(feature));
+        assert!(features_used.contains(feature), "`{feature}` is unused");
     }
 }
 
