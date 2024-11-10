@@ -154,9 +154,9 @@ fn read_line_wc ( & self , buf : & mut std :: string :: String ) -> crate :: rew
 
 pub fn copy_wc < R , W > ( reader : & mut R , writer : & mut W ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u64 > ) where R : std :: io :: Read + ? core :: marker :: Sized , W : std :: io :: Write + ? core :: marker :: Sized {
     std :: io :: copy(reader, writer)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: io :: copy", reader, writer))
+        .with_context(|| crate::call_failed!(None::<()>, "std::io::copy", reader, writer))
 }
 pub fn read_to_string_wc < R : std :: io :: Read > ( reader : R ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: string :: String > ) {
     std :: io :: read_to_string(reader)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: io :: read_to_string", crate::CustomDebugMessage("value of type impl Read")))
+        .with_context(|| crate::call_failed!(None::<()>, "std::io::read_to_string", crate::CustomDebugMessage("value of type impl Read")))
 }

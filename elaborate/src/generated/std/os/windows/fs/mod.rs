@@ -54,19 +54,19 @@ pub fn junction_point_wc < P : core :: convert :: AsRef < std :: path :: Path > 
     let original = original.as_ref();
     let link = link.as_ref();
     std :: os :: windows :: fs :: junction_point(original, link)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: os :: windows :: fs :: junction_point", original, link))
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::windows::fs::junction_point", original, link))
 }
 #[cfg(windows)]
 pub fn symlink_dir_wc < P : core :: convert :: AsRef < std :: path :: Path > , Q : core :: convert :: AsRef < std :: path :: Path > > ( original : P , link : Q ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let original = original.as_ref();
     let link = link.as_ref();
     std :: os :: windows :: fs :: symlink_dir(original, link)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: os :: windows :: fs :: symlink_dir", original, link))
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::windows::fs::symlink_dir", original, link))
 }
 #[cfg(windows)]
 pub fn symlink_file_wc < P : core :: convert :: AsRef < std :: path :: Path > , Q : core :: convert :: AsRef < std :: path :: Path > > ( original : P , link : Q ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let original = original.as_ref();
     let link = link.as_ref();
     std :: os :: windows :: fs :: symlink_file(original, link)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: os :: windows :: fs :: symlink_file", original, link))
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::windows::fs::symlink_file", original, link))
 }

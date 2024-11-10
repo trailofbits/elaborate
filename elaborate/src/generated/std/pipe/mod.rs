@@ -33,5 +33,5 @@ fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Resu
 #[cfg(feature = "anonymous_pipe")]
 pub fn pipe_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( std :: pipe :: PipeReader , std :: pipe :: PipeWriter ) > ) {
     std :: pipe :: pipe()
-        .with_context(|| crate::call_failed!(None::<()>, "std :: pipe :: pipe"))
+        .with_context(|| crate::call_failed!(None::<()>, "std::pipe::pipe"))
 }

@@ -11,5 +11,5 @@ use anyhow::Context;
 #[cfg(feature = "panic_backtrace_config")]
 pub fn get_backtrace_style_wc ( ) -> crate :: rewrite_output_type ! ( core :: option :: Option < std :: panic :: BacktraceStyle > ) {
     std :: panic :: get_backtrace_style()
-        .with_context(|| crate::call_failed!(None::<()>, "std :: panic :: get_backtrace_style"))
+        .with_context(|| crate::call_failed!(None::<()>, "std::panic::get_backtrace_style"))
 }

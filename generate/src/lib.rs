@@ -445,8 +445,10 @@ impl Generator {
             writeln!(
                 file,
                 r#"    {{ path = "{}", reason = "use `elaborate::{}`"}},"#,
-                disallowable_qualified_fn.to_string_unchecked(),
-                disallowable_qualified_fn_wrapper.to_string_unchecked()
+                disallowable_qualified_fn.to_string_compact().unwrap(),
+                disallowable_qualified_fn_wrapper
+                    .to_string_compact()
+                    .unwrap()
             )?;
         }
         writeln!(file, "]")?;
@@ -592,6 +594,28 @@ fn fn_body(
     )
 }
 
+// smoelius: The one case for which the `unwrap_or_else` is needed in `call_and_call_failed`.
+static SOCKET_ADDR_EXT_FROM_ABSTRACT_NAME: Lazy<Vec<Token>> = Lazy::new(|| {
+    vec![
+        Token::symbol("<"),
+        Token::generic("Self"),
+        Token::keyword("as"),
+        Token::symbol("::"),
+        Token::identifier("std"),
+        Token::symbol("::"),
+        Token::identifier("os"),
+        Token::symbol("::"),
+        Token::identifier("linux"),
+        Token::symbol("::"),
+        Token::identifier("net"),
+        Token::symbol("::"),
+        Token::type_("SocketAddrExt"),
+        Token::symbol(">"),
+        Token::symbol("::"),
+        Token::function("from_abstract_name"),
+    ]
+});
+
 fn call_and_call_failed(
     function: &Function,
     qualified_trait: &[Token],
@@ -606,8 +630,8 @@ fn call_and_call_failed(
         .and_then(|(name, ty)| simplified_self(name, ty))
         .map(|tokens| {
             // smoelius: Because the tokens come directly from `public-api`, it is safe to use
-            // `to_string_unchecked` here.
-            tokens.to_string_unchecked()
+            // `to_string_compact_unchecked` here.
+            tokens.to_string_compact_unchecked()
         });
 
     let mut call = format!("{}(", callable_qualified_fn.to_string());
@@ -629,7 +653,12 @@ fn call_and_call_failed(
     } else {
         call_failed.push_str(&format!(
             r#"None::<()>, "{}""#,
-            callable_qualified_fn.to_string()
+            callable_qualified_fn
+                .to_string_compact()
+                .unwrap_or_else(|| {
+                    assert_eq!(*SOCKET_ADDR_EXT_FROM_ABSTRACT_NAME, callable_qualified_fn);
+                    callable_qualified_fn.to_string()
+                })
         ));
     }
 
@@ -670,11 +699,10 @@ fn call_and_call_failed(
 
 fn self_type_name(qualified_trait: &[Token], qualified_struct: &[Token]) -> String {
     assert!(qualified_trait.is_empty() || qualified_struct.is_empty());
-    // smoelius: These strings are used only for debug messages.
     if qualified_trait.is_empty() {
-        qualified_struct.to_string_unchecked()
+        qualified_struct.to_string_compact().unwrap()
     } else {
-        format!("impl {}", qualified_trait.to_string_unchecked())
+        format!("impl {}", qualified_trait.to_string_compact().unwrap())
     }
 }
 

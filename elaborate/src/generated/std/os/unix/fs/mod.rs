@@ -44,30 +44,30 @@ impl<T> FileExtContext for T where T: std :: os :: unix :: fs :: FileExt {}
 pub fn chown_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( dir : P , uid : core :: option :: Option < u32 > , gid : core :: option :: Option < u32 > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let dir = dir.as_ref();
     std :: os :: unix :: fs :: chown(dir, uid, gid)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: os :: unix :: fs :: chown", dir, uid, gid))
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::fs::chown", dir, uid, gid))
 }
 #[cfg(unix)]
 pub fn chroot_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( dir : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let dir = dir.as_ref();
     std :: os :: unix :: fs :: chroot(dir)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: os :: unix :: fs :: chroot", dir))
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::fs::chroot", dir))
 }
 #[cfg(unix)]
 pub fn fchown_wc < F : std :: os :: fd :: AsFd > ( fd : F , uid : core :: option :: Option < u32 > , gid : core :: option :: Option < u32 > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let fd = fd.as_fd();
     std :: os :: unix :: fs :: fchown(fd, uid, gid)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: os :: unix :: fs :: fchown", fd, uid, gid))
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::fs::fchown", fd, uid, gid))
 }
 #[cfg(unix)]
 pub fn lchown_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( dir : P , uid : core :: option :: Option < u32 > , gid : core :: option :: Option < u32 > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let dir = dir.as_ref();
     std :: os :: unix :: fs :: lchown(dir, uid, gid)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: os :: unix :: fs :: lchown", dir, uid, gid))
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::fs::lchown", dir, uid, gid))
 }
 #[cfg(unix)]
 pub fn symlink_wc < P : core :: convert :: AsRef < std :: path :: Path > , Q : core :: convert :: AsRef < std :: path :: Path > > ( original : P , link : Q ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let original = original.as_ref();
     let link = link.as_ref();
     std :: os :: unix :: fs :: symlink(original, link)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: os :: unix :: fs :: symlink", original, link))
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::fs::symlink", original, link))
 }

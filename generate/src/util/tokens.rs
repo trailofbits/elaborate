@@ -58,11 +58,20 @@ pub trait TokensExt {
     fn replace(&self, from: &[Token], to: &[Token]) -> (Vec<Token>, usize);
     fn position(&self, needle: &[Token]) -> Option<usize>;
 
+    /// Returns the tokens interspersed with whitespace characters
     fn to_string(&self) -> String;
 
-    /// WARNING: This method converts the tokens to a string without putting spaces between the
-    /// tokens. The resulting code could be uncompileable.
-    fn to_string_unchecked(&self) -> String;
+    /// Tries to convert the tokens to a string without putting spaces between them.
+    ///
+    /// Returns `None` if two adjacent tokens end and begin with (respectively) identifier
+    /// characters (`[0-9A-Za-z_]`).
+    fn to_string_compact(&self) -> Option<String>;
+
+    /// Converts the tokens to a string without putting spaces between them and **performs no
+    /// checks**.
+    ///
+    /// WARNING: As code, the resulting string could be uncompileable.
+    fn to_string_compact_unchecked(&self) -> String;
 }
 
 impl TokensExt for [Token] {
@@ -324,7 +333,22 @@ impl TokensExt for [Token] {
         tokens_to_string(&intersperse(self.iter().cloned(), Token::Whitespace).collect::<Vec<_>>())
     }
 
-    fn to_string_unchecked(&self) -> String {
+    fn to_string_compact(&self) -> Option<String> {
+        fn ident_char(c: char) -> bool {
+            c.is_alphanumeric() || c == '_'
+        }
+
+        if self
+            .windows(2)
+            .any(|w| w[0].text().ends_with(ident_char) && w[1].text().starts_with(ident_char))
+        {
+            return None;
+        }
+
+        Some(self.to_string_compact_unchecked())
+    }
+
+    fn to_string_compact_unchecked(&self) -> String {
         tokens_to_string(self)
     }
 }
