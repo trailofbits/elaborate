@@ -19,7 +19,7 @@ Error message:
 
 ```
 Error: call failed:
-    std :: fs :: create_dir(
+    std::fs::create_dir(
         "/dir",
     )
 

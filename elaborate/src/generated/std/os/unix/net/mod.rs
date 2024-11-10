@@ -20,7 +20,7 @@ fn as_pathname_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option 
 fn from_pathname_wc < P > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) where P : core :: convert :: AsRef < std :: path :: Path > {
     let path = path.as_ref();
     std :: os :: unix :: net :: SocketAddr :: from_pathname(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: os :: unix :: net :: SocketAddr :: from_pathname", path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::net::SocketAddr::from_pathname", path))
 }
 }
 #[cfg(unix)]
@@ -101,12 +101,12 @@ fn peek_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( s
 }
 fn bind_addr_wc ( socket_addr : & std :: os :: unix :: net :: SocketAddr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     std :: os :: unix :: net :: UnixDatagram :: bind_addr(socket_addr)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: os :: unix :: net :: UnixDatagram :: bind_addr", socket_addr))
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::net::UnixDatagram::bind_addr", socket_addr))
 }
 fn bind_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     let path = path.as_ref();
     std :: os :: unix :: net :: UnixDatagram :: bind(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: os :: unix :: net :: UnixDatagram :: bind", path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::net::UnixDatagram::bind", path))
 }
 fn connect_addr_wc ( & self , socket_addr : & std :: os :: unix :: net :: SocketAddr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     std :: os :: unix :: net :: UnixDatagram :: connect_addr(self, socket_addr)
@@ -123,7 +123,7 @@ fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Res
 }
 fn pair_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( Self , Self ) > ) {
     std :: os :: unix :: net :: UnixDatagram :: pair()
-        .with_context(|| crate::call_failed!(None::<()>, "std :: os :: unix :: net :: UnixDatagram :: pair"))
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::net::UnixDatagram::pair"))
 }
 fn peer_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: SocketAddr > ) {
     std :: os :: unix :: net :: UnixDatagram :: peer_addr(self)
@@ -180,7 +180,7 @@ fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Resu
 }
 fn unbound_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     std :: os :: unix :: net :: UnixDatagram :: unbound()
-        .with_context(|| crate::call_failed!(None::<()>, "std :: os :: unix :: net :: UnixDatagram :: unbound"))
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::net::UnixDatagram::unbound"))
 }
 fn write_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
     std :: os :: unix :: net :: UnixDatagram :: write_timeout(self)
@@ -205,12 +205,12 @@ fn accept_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result 
 }
 fn bind_addr_wc ( socket_addr : & std :: os :: unix :: net :: SocketAddr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     std :: os :: unix :: net :: UnixListener :: bind_addr(socket_addr)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: os :: unix :: net :: UnixListener :: bind_addr", socket_addr))
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::net::UnixListener::bind_addr", socket_addr))
 }
 fn bind_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     let path = path.as_ref();
     std :: os :: unix :: net :: UnixListener :: bind(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: os :: unix :: net :: UnixListener :: bind", path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::net::UnixListener::bind", path))
 }
 fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: SocketAddr > ) {
     std :: os :: unix :: net :: UnixListener :: local_addr(self)
@@ -284,12 +284,12 @@ fn peek_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( s
 }
 fn connect_addr_wc ( socket_addr : & std :: os :: unix :: net :: SocketAddr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     std :: os :: unix :: net :: UnixStream :: connect_addr(socket_addr)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: os :: unix :: net :: UnixStream :: connect_addr", socket_addr))
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::net::UnixStream::connect_addr", socket_addr))
 }
 fn connect_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     let path = path.as_ref();
     std :: os :: unix :: net :: UnixStream :: connect(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: os :: unix :: net :: UnixStream :: connect", path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::net::UnixStream::connect", path))
 }
 fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: SocketAddr > ) {
     std :: os :: unix :: net :: UnixStream :: local_addr(self)
@@ -297,7 +297,7 @@ fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Res
 }
 fn pair_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( Self , Self ) > ) {
     std :: os :: unix :: net :: UnixStream :: pair()
-        .with_context(|| crate::call_failed!(None::<()>, "std :: os :: unix :: net :: UnixStream :: pair"))
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::net::UnixStream::pair"))
 }
 fn peer_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: SocketAddr > ) {
     std :: os :: unix :: net :: UnixStream :: peer_addr(self)

@@ -33,7 +33,7 @@ fn accept_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result 
 }
 fn bind_wc < A : std :: net :: ToSocketAddrs > ( addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     std :: net :: TcpListener :: bind(addr)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: net :: TcpListener :: bind", crate::CustomDebugMessage("value of type impl ToSocketAddrs")))
+        .with_context(|| crate::call_failed!(None::<()>, "std::net::TcpListener::bind", crate::CustomDebugMessage("value of type impl ToSocketAddrs")))
 }
 fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > ) {
     std :: net :: TcpListener :: local_addr(self)
@@ -94,11 +94,11 @@ fn set_linger_wc ( & self , linger : core :: option :: Option < core :: time :: 
 impl TcpStreamContext for std :: net :: TcpStream {
 fn connect_timeout_wc ( addr : & core :: net :: SocketAddr , timeout : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     std :: net :: TcpStream :: connect_timeout(addr, timeout)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: net :: TcpStream :: connect_timeout", addr, timeout))
+        .with_context(|| crate::call_failed!(None::<()>, "std::net::TcpStream::connect_timeout", addr, timeout))
 }
 fn connect_wc < A : std :: net :: ToSocketAddrs > ( addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     std :: net :: TcpStream :: connect(addr)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: net :: TcpStream :: connect", crate::CustomDebugMessage("value of type impl ToSocketAddrs")))
+        .with_context(|| crate::call_failed!(None::<()>, "std::net::TcpStream::connect", crate::CustomDebugMessage("value of type impl ToSocketAddrs")))
 }
 fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > ) {
     std :: net :: TcpStream :: local_addr(self)
@@ -207,7 +207,7 @@ fn write_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: 
 impl UdpSocketContext for std :: net :: UdpSocket {
 fn bind_wc < A : std :: net :: ToSocketAddrs > ( addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     std :: net :: UdpSocket :: bind(addr)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: net :: UdpSocket :: bind", crate::CustomDebugMessage("value of type impl ToSocketAddrs")))
+        .with_context(|| crate::call_failed!(None::<()>, "std::net::UdpSocket::bind", crate::CustomDebugMessage("value of type impl ToSocketAddrs")))
 }
 fn broadcast_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
     std :: net :: UdpSocket :: broadcast(self)

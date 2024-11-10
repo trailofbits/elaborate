@@ -40,5 +40,5 @@ fn name_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Opti
 
 pub fn available_parallelism_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: num :: NonZero < usize > > ) {
     std :: thread :: available_parallelism()
-        .with_context(|| crate::call_failed!(None::<()>, "std :: thread :: available_parallelism"))
+        .with_context(|| crate::call_failed!(None::<()>, "std::thread::available_parallelism"))
 }

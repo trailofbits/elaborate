@@ -20,7 +20,7 @@ fn call_failed_with_elaborate() {
     assert_eq!(
         "\
 call failed:
-    std :: fs :: create_dir(
+    std::fs::create_dir(
         \"/dir\",
     )
 

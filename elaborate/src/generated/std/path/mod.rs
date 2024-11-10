@@ -97,5 +97,5 @@ fn file_prefix_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option 
 pub fn absolute_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
     let path = path.as_ref();
     std :: path :: absolute(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: path :: absolute", path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::path::absolute", path))
 }

@@ -51,12 +51,12 @@ impl FileContext for std :: fs :: File {
 fn create_new_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     let path = path.as_ref();
     std :: fs :: File :: create_new(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: File :: create_new", path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::File::create_new", path))
 }
 fn create_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     let path = path.as_ref();
     std :: fs :: File :: create(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: File :: create", path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::File::create", path))
 }
 fn metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
     std :: fs :: File :: metadata(self)
@@ -65,7 +65,7 @@ fn metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Resul
 fn open_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     let path = path.as_ref();
     std :: fs :: File :: open(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: File :: open", path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::File::open", path))
 }
 fn set_len_wc ( & self , size : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     std :: fs :: File :: set_len(self, size)
@@ -99,13 +99,13 @@ fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Resu
 fn create_buffered_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: io :: BufWriter < Self > > ) {
     let path = path.as_ref();
     std :: fs :: File :: create_buffered(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: File :: create_buffered", path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::File::create_buffered", path))
 }
 #[cfg(feature = "file_buffered")]
 fn open_buffered_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: io :: BufReader < Self > > ) {
     let path = path.as_ref();
     std :: fs :: File :: open_buffered(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: File :: open_buffered", path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::File::open_buffered", path))
 }
 }
 pub trait MetadataContext {
@@ -142,100 +142,100 @@ fn open_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , p
 pub fn canonicalize_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
     let path = path.as_ref();
     std :: fs :: canonicalize(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: canonicalize", path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::canonicalize", path))
 }
 pub fn copy_wc < P : core :: convert :: AsRef < std :: path :: Path > , Q : core :: convert :: AsRef < std :: path :: Path > > ( from : P , to : Q ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u64 > ) {
     let from = from.as_ref();
     let to = to.as_ref();
     std :: fs :: copy(from, to)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: copy", from, to))
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::copy", from, to))
 }
 pub fn create_dir_all_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let path = path.as_ref();
     std :: fs :: create_dir_all(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: create_dir_all", path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::create_dir_all", path))
 }
 pub fn create_dir_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let path = path.as_ref();
     std :: fs :: create_dir(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: create_dir", path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::create_dir", path))
 }
 pub fn exists_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
     let path = path.as_ref();
     std :: fs :: exists(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: exists", path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::exists", path))
 }
 pub fn hard_link_wc < P : core :: convert :: AsRef < std :: path :: Path > , Q : core :: convert :: AsRef < std :: path :: Path > > ( original : P , link : Q ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let original = original.as_ref();
     let link = link.as_ref();
     std :: fs :: hard_link(original, link)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: hard_link", original, link))
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::hard_link", original, link))
 }
 pub fn metadata_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
     let path = path.as_ref();
     std :: fs :: metadata(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: metadata", path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::metadata", path))
 }
 pub fn read_dir_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: ReadDir > ) {
     let path = path.as_ref();
     std :: fs :: read_dir(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: read_dir", path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::read_dir", path))
 }
 pub fn read_link_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
     let path = path.as_ref();
     std :: fs :: read_link(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: read_link", path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::read_link", path))
 }
 pub fn read_to_string_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: string :: String > ) {
     let path = path.as_ref();
     std :: fs :: read_to_string(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: read_to_string", path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::read_to_string", path))
 }
 pub fn read_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: vec :: Vec < u8 > > ) {
     let path = path.as_ref();
     std :: fs :: read(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: read", path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::read", path))
 }
 pub fn remove_dir_all_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let path = path.as_ref();
     std :: fs :: remove_dir_all(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: remove_dir_all", path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::remove_dir_all", path))
 }
 pub fn remove_dir_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let path = path.as_ref();
     std :: fs :: remove_dir(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: remove_dir", path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::remove_dir", path))
 }
 pub fn remove_file_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let path = path.as_ref();
     std :: fs :: remove_file(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: remove_file", path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::remove_file", path))
 }
 pub fn rename_wc < P : core :: convert :: AsRef < std :: path :: Path > , Q : core :: convert :: AsRef < std :: path :: Path > > ( from : P , to : Q ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let from = from.as_ref();
     let to = to.as_ref();
     std :: fs :: rename(from, to)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: rename", from, to))
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::rename", from, to))
 }
 pub fn set_permissions_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P , perm : std :: fs :: Permissions ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let path = path.as_ref();
     std :: fs :: set_permissions(path, perm.clone())
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: set_permissions", path, perm))
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::set_permissions", path, perm))
 }
 pub fn soft_link_wc < P : core :: convert :: AsRef < std :: path :: Path > , Q : core :: convert :: AsRef < std :: path :: Path > > ( original : P , link : Q ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let original = original.as_ref();
     let link = link.as_ref();
     std :: fs :: soft_link(original, link)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: soft_link", original, link))
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::soft_link", original, link))
 }
 pub fn symlink_metadata_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
     let path = path.as_ref();
     std :: fs :: symlink_metadata(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: symlink_metadata", path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::symlink_metadata", path))
 }
 pub fn write_wc < P : core :: convert :: AsRef < std :: path :: Path > , C : core :: convert :: AsRef < [ u8 ] > > ( path : P , contents : C ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let path = path.as_ref();
     let contents = contents.as_ref();
     std :: fs :: write(path, contents)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: fs :: write", path, contents))
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::write", path, contents))
 }

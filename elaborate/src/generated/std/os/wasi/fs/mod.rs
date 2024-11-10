@@ -104,7 +104,7 @@ pub fn link_wc < P : core :: convert :: AsRef < std :: path :: Path > , U : core
     let old_path = old_path.as_ref();
     let new_path = new_path.as_ref();
     std :: os :: wasi :: fs :: link(old_fd, old_flags, old_path, new_fd, new_path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: os :: wasi :: fs :: link", old_fd, old_flags, old_path, new_fd, new_path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::wasi::fs::link", old_fd, old_flags, old_path, new_fd, new_path))
 }
 #[cfg(feature = "wasi_ext")]
 #[cfg(target_os = "wasi")]
@@ -112,7 +112,7 @@ pub fn rename_wc < P : core :: convert :: AsRef < std :: path :: Path > , U : co
     let old_path = old_path.as_ref();
     let new_path = new_path.as_ref();
     std :: os :: wasi :: fs :: rename(old_fd, old_path, new_fd, new_path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: os :: wasi :: fs :: rename", old_fd, old_path, new_fd, new_path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::wasi::fs::rename", old_fd, old_path, new_fd, new_path))
 }
 #[cfg(feature = "wasi_ext")]
 #[cfg(target_os = "wasi")]
@@ -120,7 +120,7 @@ pub fn symlink_path_wc < P : core :: convert :: AsRef < std :: path :: Path > , 
     let old_path = old_path.as_ref();
     let new_path = new_path.as_ref();
     std :: os :: wasi :: fs :: symlink_path(old_path, new_path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: os :: wasi :: fs :: symlink_path", old_path, new_path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::wasi::fs::symlink_path", old_path, new_path))
 }
 #[cfg(feature = "wasi_ext")]
 #[cfg(target_os = "wasi")]
@@ -128,5 +128,5 @@ pub fn symlink_wc < P : core :: convert :: AsRef < std :: path :: Path > , U : c
     let old_path = old_path.as_ref();
     let new_path = new_path.as_ref();
     std :: os :: wasi :: fs :: symlink(old_path, fd, new_path)
-        .with_context(|| crate::call_failed!(None::<()>, "std :: os :: wasi :: fs :: symlink", old_path, fd, new_path))
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::wasi::fs::symlink", old_path, fd, new_path))
 }
