@@ -1,4 +1,5 @@
 [workspace]
+exclude = ["fixtures"]
 members = ["elaborate", "generate"]
 resolver = "2"
 

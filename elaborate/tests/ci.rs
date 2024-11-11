@@ -28,6 +28,30 @@ fn clippy() {
 }
 
 #[test]
+fn clippy_toml() {
+    let output = Command::new("cargo")
+        .args(["clippy", "--quiet"])
+        .env("CLIPPY_CONF_DIR", "../../clippy_conf")
+        .current_dir("fixtures/create_dir")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert_eq!("\
+warning: use of a disallowed method `std::fs::create_dir`
+ --> src/main.rs:4:5
+  |
+4 |     create_dir(\"/dir\")?;
+  |     ^^^^^^^^^^
+  |
+  = note: use `elaborate::std::fs::create_dir_wc`
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#disallowed_methods
+  = note: `#[warn(clippy::disallowed_methods)]` on by default
+
+", stderr);
+}
+
+#[test]
 fn dylint() {
     Command::new("cargo")
         .args(["dylint", "--all", "--", "--all-targets"])
