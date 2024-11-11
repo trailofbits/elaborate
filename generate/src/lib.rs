@@ -432,7 +432,7 @@ impl Generator {
         let disallowed = self.disallowed.borrow();
 
         #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
-        let path = Path::new::<str>(env!("CARGO_MANIFEST_DIR")).join("../clippy_example.toml");
+        let path = Path::new::<str>(env!("CARGO_MANIFEST_DIR")).join("../clippy_conf/clippy.toml");
 
         let mut file = OpenOptions::new()
             .create(true)
