@@ -4,18 +4,7 @@ Wrappers for standard library functions and types to produce more elaborate erro
 
 ## Example
 
-```rust
-// Use `elaborate`'s wrapped version of `std::fs::create_dir`.
-// `wc` is mnemonic for "with context".
-use elaborate::std::fs::create_dir_wc;
-
-fn main() -> anyhow::Result<()> {
-    create_dir_wc("/dir")?;
-    Ok(())
-}
-```
-
-Error message:
+Error message produced by `create_dir_wc`, `elaborate`'s wrapper for `create_dir`:
 
 ```
 Error: call failed:
@@ -27,11 +16,35 @@ Caused by:
     Permission denied (os error 13)
 ```
 
-Compare this to the standard error message, which does not include the call that failed or the path involved:
+Compare this to `create_dir`'s error message, which does not mention the call that failed or the path involved:
 
 ```
-Os { code: 13, kind: PermissionDenied, message: "Permission denied" }
+Error: Permission denied (os error 13)
 ```
+
+<details>
+
+<summary>Rust programs used to produce the above (note that <tt>wc</tt> is mnemonic for "with context")</summary>
+
+```rust
+use elaborate::std::fs::create_dir_wc;
+
+fn main() -> anyhow::Result<()> {
+    create_dir_wc("/dir")?;
+    Ok(())
+}
+```
+
+```rust
+use std::fs::create_dir;
+
+fn main() -> anyhow::Result<()> {
+    create_dir("/dir")?;
+    Ok(())
+}
+```
+
+</details>
 
 ## Clippy
 
