@@ -1,7 +1,7 @@
 use super::TokenExt;
 use itertools::intersperse;
 use once_cell::sync::Lazy;
-use public_api::tokens::{tokens_to_string, Token};
+use public_api::tokens::Token;
 
 static GATED_PATHS: Lazy<Vec<(Vec<Token>, &str)>> = Lazy::new(|| {
     const GATED_OS_PATHS: &[(&[&str], &str)] = &[
@@ -374,4 +374,10 @@ pub fn path_prefix(prefix: &[&str]) -> Vec<Token> {
         .iter()
         .flat_map(|&s| [Token::identifier(s), Token::symbol("::")])
         .collect()
+}
+
+// smoelius: `tokens_to_string` was copied from:
+// https://github.com/cargo-public-api/cargo-public-api/blob/0046aa505a09e68a225fb568df392c2c95076e83/public-api/src/tokens.rs#L108-L110
+pub(crate) fn tokens_to_string(tokens: &[Token]) -> String {
+    tokens.iter().map(Token::text).collect()
 }
