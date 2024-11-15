@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  merge_group:
+  pull_request:
+  schedule:
+    - cron: "0 3 * * mon"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  maybe-expedite:
+    outputs:
+      value: ${{ steps.expedite.outputs.value }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Log github refs
+        run: |
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo 'github.ref: ${{ github.ref }}' >> "$GITHUB_STEP_SUMMARY"
+          echo 'github.sha: ${{ github.sha }}' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if merging an up-to-date branch
+        if: ${{ github.event_name == 'merge_group' }}
+        id: expedite
+        run: |
+          N="$(expr "${{ github.ref }}" : '.*-\([0-9]\+\)-[^-]*$')"
+          BASE_SHA="$(gh api /repos/${{ github.repository }}/pulls/"$N" | jq -r '.base.sha')"
+          if git diff --quiet ${{ github.event.merge_group.base_sha }} "$BASE_SHA"; then
+            echo "value=1" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  test:
+    needs: [maybe-expedite]
+
+    if: ${{ ! needs.maybe-expedite.outputs.value }}
+
+    strategy:
+      fail-fast: ${{ github.event_name == 'merge_group' }}
+      matrix:
+        environment: [ubuntu-latest, macos-latest, windows-latest]
+
+    runs-on: ${{ matrix.environment }}
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      RUST_BACKTRACE: 1
+      GROUP_RUNNER: target.'cfg(all())'.runner = 'group-runner'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # smoelius: The `~/.cargo/` entries are from:
+      # https://github.com/actions/cache/blob/main/examples.md#rust---cargo
+      # The three entries after that are to cache Dylint artifacts.
+      # The `generate/checkouts` entry is to avoid cloning the Rust repository from scratch.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            ~/.dylint_drivers/
+            ~/.rustup/toolchains/
+            target/dylint/
+            generate/checkouts
+          key: ${{ runner.os }}-cargo-${{ hashFiles('.github/workflows/ci.yml', '*/tests/ci.rs') }}
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit, cargo-hack, cargo-sort, cargo-udeps
+
+      - name: Install tools
+        run: |
+          rustup update          --no-self-update
+          rustup install nightly --no-self-update
+          rustup component add clippy  --toolchain nightly
+          rustup component add rustfmt --toolchain nightly
+          export CARGO_TARGET_DIR="$(mktemp -d)"
+          cargo install cargo-dylint dylint-link || true
+          cargo install cargo-license            || true
+          cargo install group-runner             || true
+
+      - name: Build
+        run: cargo test --no-run
+
+      - name: Test
+        run: cargo test --config "$GROUP_RUNNER" -- --nocapture
+
+  all-checks:
+    needs: [test]
+
+    # smoelius: From "Defining prerequisite jobs"
+    # (https://docs.github.com/en/actions/using-jobs/using-jobs-in-a-workflow#defining-prerequisite-jobs):
+    # > If you would like a job to run even if a job it is dependent on did not succeed, use the
+    # > `always()` conditional expression in `jobs.<job_id>.if`.
+    if: ${{ always() }}
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check results
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        run: exit 1
