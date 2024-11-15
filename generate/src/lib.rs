@@ -24,8 +24,8 @@ use util::{
     FunctionExt, GenericBoundsExt, TokenExt, TokensExt,
 };
 
-pub const TOOLCHAIN: &str = "nightly-2024-10-13";
-pub const COMMIT: &str = "6b9676b45431a1e531b9c5f7bd289fc36a312749";
+pub const TOOLCHAIN: &str = "nightly-2024-10-22";
+pub const COMMIT: &str = "4392847410ddd67f6734dd9845f9742ff9e85c83";
 
 #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
 static STD_JSON: Lazy<PathBuf> =
