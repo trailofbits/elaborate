@@ -1,10 +1,10 @@
-# elaborate
+# Elaborate
 
 Wrappers for standard library functions and types to produce more elaborate error messages
 
 ## Example
 
-Error message produced by `create_dir_wc`, `elaborate`'s wrapper for `create_dir`:
+Error message produced by `create_dir_wc`, Elaborate's wrapper for `create_dir`:
 
 ```
 Error: call failed:
@@ -74,7 +74,7 @@ warning: use of a disallowed method `std::fs::create_dir`
 
 ## Credits
 
-`elaborate` uses [`public-api`] and [`rustdoc-types`] to generate wrappers, and [`anyhow`] to generate error messages.
+Elaborate uses [`public-api`] and [`rustdoc-types`] to generate wrappers, and [`anyhow`] to generate error messages.
 
 [Clippy configuration file]: https://doc.rust-lang.org/clippy/configuration.html
 [`anyhow::Context::with_context`]: https://docs.rs/anyhow/latest/anyhow/trait.Context.html#tymethod.with_context
