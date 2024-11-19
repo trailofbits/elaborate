@@ -13,25 +13,40 @@ fn initialize() {
 #[test]
 fn call_failed_without_elaborate() {
     let error = std::fs::create_dir("/dir").unwrap_err();
-    assert_eq!(
-        "\
+    if cfg!(target_os = "macos") {
+        assert_eq!(
+            "\
+Os { code: 30, kind: ReadOnlyFilesystem, message: \"Read-only file system\" }",
+            format!("{error:?}")
+        );
+    } else {
+        assert_eq!(
+            "\
 Os { code: 13, kind: PermissionDenied, message: \"Permission denied\" }",
-        format!("{error:?}")
-    );
+            format!("{error:?}")
+        );
+    }
 }
 
 #[test]
 fn call_failed_with_elaborate() {
+    const MSG: &str = if cfg!(target_os = "macos") {
+        "Read-only file system (os error 30)"
+    } else {
+        "Permission denied (os error 13)"
+    };
     let error = elaborate::std::fs::create_dir_wc("/dir").unwrap_err();
     assert_eq!(
-        "\
+        format!(
+            "\
 call failed:
     std::fs::create_dir(
         \"/dir\",
     )
 
 Caused by:
-    Permission denied (os error 13)",
+    {MSG}"
+        ),
         format!("{error:?}")
     );
 }
