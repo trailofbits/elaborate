@@ -46,6 +46,49 @@ fn main() -> anyhow::Result<()> {
 
 </details>
 
+## Traits and structs
+
+Elaborate provides wrapper traits for standard library traits and structs. The name of each wrapper trait is the name of the wrapped trait or struct with `Context` appended. Like for normal functions, the name of each wrapper trait function is the name of the wrapped function with `_wc` appended.
+
+The following example uses the wrapped versions of the `Write` trait and the `OpenOptions` struct.
+
+```rust
+use elaborate::std::{fs::OpenOptionsContext, io::WriteContext};
+use std::fs::OpenOptions;
+
+fn main() -> anyhow::Result<()> {
+    let mut file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .open_wc("greeting.txt")?;
+    file.write_all_wc(b"Hello, world!")?;
+    Ok(())
+}
+```
+
+Running the above example in a read-only directory produces the following error message:
+
+```
+Error: call failed:
+    OpenOptions(
+        OpenOptions {
+            read: false,
+            write: true,
+            append: false,
+            truncate: false,
+            create: true,
+            create_new: false,
+            custom_flags: 0,
+            mode: 0o000666,
+        },
+    ).open(
+        "greeting.txt",
+    )
+
+Caused by:
+    Permission denied (os error 13)
+```
+
 ## Clippy
 
 This repository provides a [Clippy configuration file] to identify functions that could be replaced with wrapped ones. To use the file, clone this repository and run Clippy with the following command:
