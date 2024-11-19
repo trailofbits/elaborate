@@ -4,6 +4,12 @@
     allow(crate_wide_allow, non_thread_safe_call_in_test)
 )]
 
+#[ctor::ctor]
+fn initialize() {
+    // smoelius: `RUST_BACKTRACE` adds to the error messages and interferes with the tests.
+    std::env::remove_var("RUST_BACKTRACE");
+}
+
 #[test]
 fn call_failed_without_elaborate() {
     let error = std::fs::create_dir("/dir").unwrap_err();
