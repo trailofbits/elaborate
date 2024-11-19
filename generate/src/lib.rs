@@ -943,6 +943,6 @@ mod test {
     }
 
     pub fn enabled(key: &str) -> bool {
-        var(key).map_or(false, |value| value != "0")
+        var(key).is_ok_and(|value| value != "0")
     }
 }
