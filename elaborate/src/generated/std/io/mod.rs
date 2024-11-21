@@ -123,6 +123,7 @@ impl<T> WriteContext for T where T: std :: io :: Write {}
 pub trait ErrorContext {
 fn get_mut_wc ( & mut self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & mut ( dyn core :: error :: Error + core :: marker :: Send + core :: marker :: Sync + 'static ) > );
 fn get_ref_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & ( dyn core :: error :: Error + core :: marker :: Send + core :: marker :: Sync + 'static ) > );
+fn into_inner_wc ( self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < std :: boxed :: Box < ( dyn core :: error :: Error + core :: marker :: Send + core :: marker :: Sync ) > > );
 #[cfg(feature = "raw_os_error_ty")]
 fn raw_os_error_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < std :: io :: RawOsError > );
 }
@@ -134,6 +135,10 @@ fn get_mut_wc ( & mut self ) -> crate :: rewrite_output_type ! ( core :: option 
 fn get_ref_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & ( dyn core :: error :: Error + core :: marker :: Send + core :: marker :: Sync + 'static ) > ) {
     std :: io :: Error :: get_ref(self)
         .with_context(|| crate::call_failed!(Some(self), "get_ref"))
+}
+fn into_inner_wc ( self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < std :: boxed :: Box < ( dyn core :: error :: Error + core :: marker :: Send + core :: marker :: Sync ) > > ) {
+    std :: io :: Error :: into_inner(self)
+        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type std::io::Error")), "into_inner"))
 }
 #[cfg(feature = "raw_os_error_ty")]
 fn raw_os_error_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < std :: io :: RawOsError > ) {

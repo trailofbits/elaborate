@@ -164,9 +164,6 @@ impl Generator {
                 {
                     return Some("ignored_path");
                 }
-                if tokens.iter().any(|token| matches!(token, Token::Function(s) if s == "into_inner" || s == "to_inner")) {
-                    return Some("overridden_function");
-                }
                 None
             })?;
         Ok(generator)

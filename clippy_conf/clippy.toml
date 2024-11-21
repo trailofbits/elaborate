@@ -57,6 +57,7 @@ disallowed-methods = [
     { path = "std::io::BufRead::skip_until", reason = "use `elaborate::std::io::BufReadContext::skip_until_wc`"},
     { path = "std::io::Error::get_mut", reason = "use `elaborate::std::io::ErrorContext::get_mut_wc`"},
     { path = "std::io::Error::get_ref", reason = "use `elaborate::std::io::ErrorContext::get_ref_wc`"},
+    { path = "std::io::Error::into_inner", reason = "use `elaborate::std::io::ErrorContext::into_inner_wc`"},
     { path = "std::io::Error::raw_os_error", reason = "use `elaborate::std::io::ErrorContext::raw_os_error_wc`"},
     { path = "std::io::Read::read", reason = "use `elaborate::std::io::ReadContext::read_wc`"},
     { path = "std::io::Read::read_buf", reason = "use `elaborate::std::io::ReadContext::read_buf_wc`"},
