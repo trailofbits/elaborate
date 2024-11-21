@@ -70,6 +70,8 @@ static GENERIC_STRUCTS: Lazy<Vec<Vec<Token>>> = Lazy::new(|| {
         (&["std", "collections", "hash_map"], "RawEntryBuilder"),
         (&["std", "collections", "hash_set"], "HashSet"),
         (&["std", "io"], "BufReader"),
+        (&["std", "io"], "BufWriter"),
+        (&["std", "io"], "LineWriter"),
         (&["std", "panic"], "PanicHookInfo"),
         (&["std", "sync"], "LazyLock"),
         (&["std", "sync"], "MappedMutexGuard"),
