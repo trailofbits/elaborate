@@ -184,10 +184,13 @@ impl Generator {
     fn generate(&self, root: impl AsRef<Path>) -> Result<()> {
         let mut module = Module::default();
 
-        let parents_of_wrappable_functions = self.parents_of_wrappable_functions();
+        let parents_of_wrappable_functions =
+            Self::parents_of_wrappable_functions(&self.krate, &self.public_item_map);
 
         for (&id, public_items) in self.public_item_map.iter() {
-            let Some((function, true, _) | (function, _, true)) = self.is_function(id) else {
+            let Some((function, true, _) | (function, _, true)) =
+                Self::is_function(&self.krate, id)
+            else {
                 continue;
             };
 
@@ -261,7 +264,12 @@ impl Generator {
             // smoelius: Fetch the parent's attributes first. If the function does not belong to a
             // trait or struct, they will append to the function's attributes so that they are not
             // lost.
-            let parent_attrs = self.item_attrs(parent_id, true, &parent_tokens);
+            let parent_attrs = Self::item_attrs(
+                &self.krate,
+                parent_id,
+                Some(&self.public_item_map),
+                &parent_tokens,
+            );
 
             let attrs = match parent_item.inner {
                 ItemEnum::Trait(_) => {
@@ -275,7 +283,7 @@ impl Generator {
                         &[path_prefix(&trait_path), trait_wrapper_tokens.clone()].concat(),
                         qualified_trait,
                     );
-                    self.item_attrs(id, false, &tokens)
+                    Self::item_attrs(&self.krate, id, None, &tokens)
                 }
                 ItemEnum::Impl(_) => {
                     assert!(qualified_trait.is_empty());
@@ -289,12 +297,12 @@ impl Generator {
                         qualified_struct,
                         tokens.output_contains_non_ref_self(),
                     );
-                    self.item_attrs(id, false, &tokens)
+                    Self::item_attrs(&self.krate, id, None, &tokens)
                 }
                 ItemEnum::Module(_) => {
                     assert!(qualified_trait.is_empty());
                     assert!(qualified_struct.is_empty());
-                    let mut attrs = self.item_attrs(id, false, &tokens);
+                    let mut attrs = Self::item_attrs(&self.krate, id, None, &tokens);
                     attrs.extend(parent_attrs);
                     attrs
                 }
@@ -335,14 +343,17 @@ impl Generator {
         Ok(())
     }
 
-    fn parents_of_wrappable_functions(&self) -> HashSet<Id> {
+    fn parents_of_wrappable_functions(
+        krate: &Crate,
+        public_item_map: &PublicItemMap,
+    ) -> HashSet<Id> {
         let mut parent_ids = HashSet::new();
-        for (&id, public_items) in self.public_item_map.iter() {
+        for (&id, public_items) in public_item_map.iter() {
             for (parent_id, _) in public_items {
                 let &Some(parent_id) = parent_id else {
                     continue;
                 };
-                if let Some((_, true, _) | (_, _, true)) = self.is_function(id) {
+                if let Some((_, true, _) | (_, _, true)) = Self::is_function(krate, id) {
                     parent_ids.insert(parent_id);
                 }
             }
@@ -350,8 +361,8 @@ impl Generator {
         parent_ids
     }
 
-    fn is_function(&self, id: Id) -> Option<(&Function, bool, bool)> {
-        let function = self.is_function_inner(id)?;
+    fn is_function(krate: &Crate, id: Id) -> Option<(&Function, bool, bool)> {
+        let function = Self::is_function_inner(krate, id)?;
 
         let has_result_output = if_chain! {
             if let Some(Type::ResolvedPath(path)) = &function.sig.output;
@@ -383,9 +394,9 @@ impl Generator {
         Some((function, has_result_output, has_option_output))
     }
 
-    fn is_function_inner(&self, id: Id) -> Option<&Function> {
+    fn is_function_inner(krate: &Crate, id: Id) -> Option<&Function> {
         if_chain! {
-            if let Some(item) = self.krate.index.get(&id);
+            if let Some(item) = krate.index.get(&id);
             if let ItemEnum::Function(function) = &item.inner;
             then {
                 Some(function)
@@ -397,21 +408,32 @@ impl Generator {
 
     /// Gets a [`rustdoc_types::Item`]'s attributes, including its [`TokensExt::required_gates`] as
     /// determined by the `tokens` argument
-    fn item_attrs(&self, id: Id, walk_parents: bool, tokens: &[Token]) -> Vec<String> {
-        let mut attrs = self.item_attrs_inner(id, walk_parents);
+    fn item_attrs(
+        krate: &Crate,
+        id: Id,
+        public_item_map: Option<&PublicItemMap>,
+        tokens: &[Token],
+    ) -> Vec<String> {
+        let mut attrs = Self::item_attrs_inner(krate, id, public_item_map);
         attrs.extend(tokens.required_gates());
         attrs
     }
 
-    fn item_attrs_inner(&self, id: Id, walk_parents: bool) -> Vec<String> {
-        let item = self.krate.index.get(&id).unwrap();
+    fn item_attrs_inner(
+        krate: &Crate,
+        id: Id,
+        public_item_map: Option<&PublicItemMap>,
+    ) -> Vec<String> {
+        let item = krate.index.get(&id).unwrap();
         let mut attrs = rewrite_attrs(&item.attrs);
-        if walk_parents {
-            let mut iter = self.public_item_map.parent_ids(id);
+        if let Some(public_item_map) = public_item_map {
+            let mut iter = public_item_map.parent_ids(id);
             if let Some(parent_id) = iter.next() {
-                let mut parent_attrs = self.item_attrs_inner(parent_id, walk_parents);
+                let mut parent_attrs =
+                    Self::item_attrs_inner(krate, parent_id, Some(public_item_map));
                 for parent_id in iter {
-                    let other_attrs = self.item_attrs_inner(parent_id, walk_parents);
+                    let other_attrs =
+                        Self::item_attrs_inner(krate, parent_id, Some(public_item_map));
                     parent_attrs.retain(|x| other_attrs.iter().any(|y| x == y));
                 }
                 attrs.extend(parent_attrs);
