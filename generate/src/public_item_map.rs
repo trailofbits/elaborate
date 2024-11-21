@@ -24,15 +24,9 @@
 use public_api::PublicItem;
 
 use crate::util::{PublicItemExt, TokensExt};
-use anyhow::Result;
 use public_api::{tokens::Token, PublicApi};
 use rustdoc_types::Id;
-use std::{
-    collections::{BTreeMap, HashMap, HashSet},
-    fs::{create_dir_all, OpenOptions},
-    io::Write,
-    path::Path,
-};
+use std::collections::{HashMap, HashSet};
 
 type Inner = HashMap<Id, HashSet<(Option<Id>, Vec<Token>)>>;
 
@@ -77,14 +71,12 @@ impl PublicItemMap {
     pub fn populate_from_public_api(
         &mut self,
         public_api: PublicApi,
-        discard: impl Fn(&[Token]) -> Option<&str>,
-    ) -> Result<()> {
-        let mut discarded = BTreeMap::<String, Vec<Vec<Token>>>::new();
+        discard: impl Fn(&[Token]) -> bool,
+    ) {
         for public_item in public_api.into_items() {
             let id = public_item.id();
             let tokens = public_item.printable_tokens();
-            if let Some(reason) = discard(&tokens) {
-                discarded.entry(reason.to_owned()).or_default().push(tokens);
+            if discard(&tokens) {
                 continue;
             }
             self.inner
@@ -92,28 +84,7 @@ impl PublicItemMap {
                 .or_default()
                 .insert((public_item.parent_id(), tokens));
         }
-        write_discarded(&discarded)?;
-        Ok(())
     }
-}
-
-fn write_discarded(discarded: &BTreeMap<String, Vec<Vec<Token>>>) -> Result<()> {
-    #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
-    let debug_output = Path::new(env!("CARGO_MANIFEST_DIR")).join("debug_output");
-
-    create_dir_all(&debug_output).unwrap_or_default();
-
-    for (reason, tokens) in discarded {
-        let mut open_options = OpenOptions::new();
-        open_options.create(true).truncate(true).write(true);
-        let mut file = open_options.open(debug_output.join(reason).with_extension("txt"))?;
-
-        for tokens in tokens {
-            writeln!(file, "{tokens:?}")?;
-        }
-    }
-
-    Ok(())
 }
 
 fn debug_tokens(iter: impl IntoIterator<Item = impl AsRef<[Token]>>) -> Vec<String> {

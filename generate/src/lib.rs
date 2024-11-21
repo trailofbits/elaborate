@@ -7,7 +7,7 @@ use rustdoc_types::{Crate, Function, Id, ItemEnum, Type};
 use std::{
     cell::RefCell,
     collections::{BTreeMap, HashSet},
-    fs::{File, OpenOptions},
+    fs::{create_dir_all, File, OpenOptions},
     io::Write,
     path::{Path, PathBuf},
 };
@@ -135,6 +135,8 @@ pub fn generate(root: impl AsRef<Path>) -> Result<()> {
 
     generator.write_clippy_toml()?;
 
+    generator.write_discarded()?;
+
     Ok(())
 }
 
@@ -142,6 +144,7 @@ struct Generator {
     krate: Crate,
     public_item_map: PublicItemMap,
     disallowed: RefCell<BTreeMap<Vec<Token>, Vec<Token>>>,
+    discarded: RefCell<BTreeMap<String, Vec<Vec<Token>>>>,
 }
 
 impl Generator {
@@ -154,6 +157,7 @@ impl Generator {
             krate,
             public_item_map: PublicItemMap::default(),
             disallowed: RefCell::new(BTreeMap::new()),
+            discarded: RefCell::new(BTreeMap::new()),
         };
         generator
             .public_item_map
@@ -162,10 +166,15 @@ impl Generator {
                     .iter()
                     .any(|path| tokens.position(path).is_some())
                 {
-                    return Some("ignored_path");
+                    let mut discarded = generator.discarded.borrow_mut();
+                    discarded
+                        .entry(String::from("ignored_path"))
+                        .or_default()
+                        .push(tokens.to_vec());
+                    return true;
                 }
-                None
-            })?;
+                false
+            });
         Ok(generator)
     }
 
@@ -449,6 +458,27 @@ impl Generator {
             )?;
         }
         writeln!(file, "]")?;
+
+        Ok(())
+    }
+
+    fn write_discarded(&self) -> Result<()> {
+        let discarded = self.discarded.borrow();
+
+        #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
+        let debug_output = Path::new(env!("CARGO_MANIFEST_DIR")).join("debug_output");
+
+        create_dir_all(&debug_output).unwrap_or_default();
+
+        for (reason, tokens) in &*discarded {
+            let mut open_options = OpenOptions::new();
+            open_options.create(true).truncate(true).write(true);
+            let mut file = open_options.open(debug_output.join(reason).with_extension("txt"))?;
+
+            for tokens in tokens {
+                writeln!(file, "{tokens:?}")?;
+            }
+        }
 
         Ok(())
     }
