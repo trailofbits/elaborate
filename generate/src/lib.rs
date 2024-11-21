@@ -174,7 +174,7 @@ impl Generator {
 
     #[allow(clippy::too_many_lines)]
     fn generate(&self, root: impl AsRef<Path>) -> Result<()> {
-        let mut module = Module::new(&self.public_item_map);
+        let mut module = Module::default();
 
         let parents_of_wrappable_functions = self.parents_of_wrappable_functions();
 
