@@ -1,4 +1,4 @@
-use crate::{PublicItemMap, TokensExt};
+use crate::TokensExt;
 use anyhow::Result;
 use public_api::tokens::Token;
 use std::{
@@ -25,26 +25,16 @@ struct Fn {
     body: String,
 }
 
-pub struct Module<'map> {
-    public_item_map: &'map PublicItemMap,
-    submodules: BTreeMap<String, Module<'map>>,
+#[derive(Default)]
+pub struct Module {
+    submodules: BTreeMap<String, Module>,
     trait_wrappers: BTreeMap<Vec<Token>, TraitWrapper>,
     struct_wrappers: BTreeMap<Vec<Token>, StructWrapper>,
     // smoelius: The keys in this `BTreeMap` are qualified trait or struct wrappers.
     fns: BTreeMap<Vec<Token>, BTreeSet<Fn>>,
 }
 
-impl<'map> Module<'map> {
-    pub fn new(public_item_map: &'map PublicItemMap) -> Self {
-        Self {
-            public_item_map,
-            submodules: BTreeMap::default(),
-            trait_wrappers: BTreeMap::default(),
-            struct_wrappers: BTreeMap::default(),
-            fns: BTreeMap::default(),
-        }
-    }
-
+impl Module {
     pub fn add_trait_wrapper(
         &mut self,
         path: &[&str],
@@ -111,14 +101,10 @@ impl<'map> Module<'map> {
             });
     }
 
-    fn module_by_path(&mut self, path: &[&str]) -> &mut Module<'map> {
-        let public_item_map = self.public_item_map;
+    fn module_by_path(&mut self, path: &[&str]) -> &mut Module {
         let mut module = self;
         for &name in path {
-            module = module
-                .submodules
-                .entry(name.to_owned())
-                .or_insert_with(|| Module::new(public_item_map));
+            module = module.submodules.entry(name.to_owned()).or_default();
         }
         module
     }
