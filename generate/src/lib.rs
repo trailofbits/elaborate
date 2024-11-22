@@ -872,7 +872,10 @@ mod test {
             .output()
             .unwrap();
         let stdout = std::str::from_utf8(&output.stdout).unwrap();
-        assert!(stdout.contains(&pat));
+        assert!(
+            stdout.contains(&pat),
+            "stdout does not contain `{pat}`: ```\n{stdout}```"
+        );
     }
 
     #[cfg(target_os = "linux")]
