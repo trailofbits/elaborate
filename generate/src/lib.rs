@@ -5,7 +5,6 @@ use public_api::tokens::Token;
 use regex::Regex;
 use rustdoc_types::{Crate, Function, Id, ItemEnum, Type};
 use std::{
-    cell::RefCell,
     collections::{BTreeMap, HashSet},
     fs::{create_dir_all, File, OpenOptions},
     io::Write,
@@ -131,65 +130,60 @@ static REWRITABLE_PATHS: Lazy<Vec<(Vec<Token>, Vec<Token>)>> = Lazy::new(|| {
 });
 
 pub fn generate(root: impl AsRef<Path>) -> Result<()> {
-    let generator = Generator::new()?;
+    let mut generator = Generator::default();
 
-    generator.generate(root)?;
+    generator.import_path(&STD_JSON)?;
 
     generator.write_clippy_toml()?;
 
     generator.write_discarded()?;
 
+    generator.generate(root)?;
+
     Ok(())
 }
 
+#[derive(Default)]
 struct Generator {
-    krate: Crate,
-    public_item_map: PublicItemMap,
-    disallowed: RefCell<BTreeMap<Vec<Token>, Vec<Token>>>,
-    discarded: RefCell<BTreeMap<String, Vec<Vec<Token>>>>,
+    module: Module,
+    disallowed: BTreeMap<Vec<Token>, Vec<Token>>,
+    discarded: BTreeMap<&'static str, Vec<Vec<Token>>>,
 }
 
 impl Generator {
-    fn new() -> Result<Self> {
-        let file = File::open(&*STD_JSON)?;
-
+    fn import_path(&mut self, path: &Path) -> Result<()> {
+        let file = File::open(path)?;
         let krate = serde_json::from_reader::<_, Crate>(file)?;
-        let public_api = public_api::Builder::from_rustdoc_json(&*STD_JSON).build()?;
-        let mut generator = Self {
-            krate,
-            public_item_map: PublicItemMap::default(),
-            disallowed: RefCell::new(BTreeMap::new()),
-            discarded: RefCell::new(BTreeMap::new()),
-        };
-        generator
-            .public_item_map
-            .populate_from_public_api(public_api, |tokens| {
-                if IGNORED_PATHS
-                    .iter()
-                    .any(|path| tokens.position(path).is_some())
-                {
-                    let mut discarded = generator.discarded.borrow_mut();
-                    discarded
-                        .entry(String::from("ignored_path"))
-                        .or_default()
-                        .push(tokens.to_vec());
-                    return true;
-                }
-                false
-            });
-        Ok(generator)
+
+        let public_api = public_api::Builder::from_rustdoc_json(path).build()?;
+
+        self.import(&krate, public_api);
+
+        Ok(())
     }
 
-    #[allow(clippy::too_many_lines)]
-    fn generate(&self, root: impl AsRef<Path>) -> Result<()> {
-        let mut module = Module::default();
+    fn import(&mut self, krate: &Crate, public_api: public_api::PublicApi) {
+        let mut public_item_map = PublicItemMap::default();
+
+        public_item_map.populate_from_public_api(public_api, |tokens| {
+            if IGNORED_PATHS
+                .iter()
+                .any(|path| tokens.position(path).is_some())
+            {
+                self.discarded
+                    .entry("ignored_path")
+                    .or_default()
+                    .push(tokens.to_vec());
+                return true;
+            }
+            false
+        });
 
         let parents_of_wrappable_functions =
-            Self::parents_of_wrappable_functions(&self.krate, &self.public_item_map);
+            Self::parents_of_wrappable_functions(krate, &public_item_map);
 
-        for (&id, public_items) in self.public_item_map.iter() {
-            let Some((function, true, _) | (function, _, true)) =
-                Self::is_function(&self.krate, id)
+        for (&id, public_items) in public_item_map.iter() {
+            let Some((function, true, _) | (function, _, true)) = Self::is_function(krate, id)
             else {
                 continue;
             };
@@ -204,143 +198,147 @@ impl Generator {
                 continue;
             };
 
-            let parent_id = self.public_item_map.parent_id(id).unwrap();
+            self.import_function(krate, &public_item_map, id, function);
+        }
+    }
 
-            let parent_item = self.krate.index.get(&parent_id).unwrap();
+    #[allow(clippy::too_many_lines)]
+    fn import_function(
+        &mut self,
+        krate: &Crate,
+        public_item_map: &PublicItemMap,
+        id: Id,
+        function: &Function,
+    ) {
+        let parent_id = public_item_map.parent_id(id).unwrap();
 
-            let has_sealed_trait_bound = match &parent_item.inner {
-                ItemEnum::Trait(trait_) => trait_.bounds.has_trait_bound_with_name("Sealed"),
-                ItemEnum::Impl(impl_) => {
-                    // smoelius: Ignore impls for primitive types.
-                    if matches!(impl_.for_, Type::Primitive(_)) {
-                        continue;
-                    }
-                    // smoelius: Ignore `impl Trait for Struct` constructs.
-                    if impl_.trait_.is_some() {
-                        continue;
-                    }
-                    false
+        let parent_item = krate.index.get(&parent_id).unwrap();
+
+        let has_sealed_trait_bound = match &parent_item.inner {
+            ItemEnum::Trait(trait_) => trait_.bounds.has_trait_bound_with_name("Sealed"),
+            ItemEnum::Impl(impl_) => {
+                // smoelius: Ignore impls for primitive types.
+                if matches!(impl_.for_, Type::Primitive(_)) {
+                    return;
                 }
-                ItemEnum::Module(_) => false,
-                _ => panic!(),
-            };
-
-            // smoelius: Fetch the parent's tokens first so that if they contain a
-            // `qualified_struct`, that `qualified_struct` can be passed to `patch_tokens`.
-            let (parent_tokens, false) = patch_tokens(
-                self.public_item_map.tokens(parent_id),
-                &[],
-                has_sealed_trait_bound,
-                false,
-            ) else {
-                panic!();
-            };
-
-            let qualified_trait = parent_tokens.extract_trait();
-            let qualified_struct = parent_tokens.extract_struct();
-
-            // smoelius: Structs with generic params are currently unsupported.
-            let (generic_params, qualified_struct) =
-                qualified_struct.extract_initial_generic_params();
-            if !generic_params.is_empty() {
-                assert!(
-                    GENERIC_STRUCTS
-                        .iter()
-                        .any(|path| qualified_struct.starts_with(path)),
-                    "{qualified_struct:?}"
-                );
-                continue;
+                // smoelius: Ignore `impl Trait for Struct` constructs.
+                if impl_.trait_.is_some() {
+                    return;
+                }
+                false
             }
+            ItemEnum::Module(_) => false,
+            _ => panic!(),
+        };
 
-            let (tokens, false) = patch_tokens(
-                self.public_item_map.tokens(id),
-                qualified_struct,
-                false,
-                true,
-            ) else {
-                continue;
-            };
+        // smoelius: Fetch the parent's tokens first so that if they contain a
+        // `qualified_struct`, that `qualified_struct` can be passed to `patch_tokens`.
+        let (parent_tokens, false) = patch_tokens(
+            public_item_map.tokens(parent_id),
+            &[],
+            has_sealed_trait_bound,
+            false,
+        ) else {
+            panic!();
+        };
 
-            // smoelius: Fetch the parent's attributes first. If the function does not belong to a
-            // trait or struct, they will append to the function's attributes so that they are not
-            // lost.
-            let parent_attrs = Self::item_attrs(
-                &self.krate,
-                parent_id,
-                Some(&self.public_item_map),
-                &parent_tokens,
+        let qualified_trait = parent_tokens.extract_trait();
+        let qualified_struct = parent_tokens.extract_struct();
+
+        // smoelius: Structs with generic params are currently unsupported.
+        let (generic_params, qualified_struct) = qualified_struct.extract_initial_generic_params();
+        if !generic_params.is_empty() {
+            assert!(
+                GENERIC_STRUCTS
+                    .iter()
+                    .any(|path| qualified_struct.starts_with(path)),
+                "{qualified_struct:?}"
             );
-
-            let attrs = match parent_item.inner {
-                ItemEnum::Trait(_) => {
-                    assert!(!qualified_trait.is_empty());
-                    assert!(qualified_struct.is_empty());
-                    let (trait_path, trait_tokens) = qualified_trait.extract_initial_path();
-                    let trait_wrapper_tokens = type_wrapper_tokens(trait_tokens);
-                    module.add_trait_wrapper(
-                        &trait_path,
-                        &parent_attrs,
-                        &[path_prefix(&trait_path), trait_wrapper_tokens.clone()].concat(),
-                        qualified_trait,
-                    );
-                    Self::item_attrs(&self.krate, id, None, &tokens)
-                }
-                ItemEnum::Impl(_) => {
-                    assert!(qualified_trait.is_empty());
-                    assert!(!qualified_struct.is_empty());
-                    let (struct_path, struct_tokens) = qualified_struct.extract_initial_path();
-                    let struct_wrapper_tokens = type_wrapper_tokens(struct_tokens);
-                    module.add_struct_wrapper(
-                        &struct_path,
-                        &parent_attrs,
-                        &[path_prefix(&struct_path), struct_wrapper_tokens.clone()].concat(),
-                        qualified_struct,
-                        tokens.output_contains_non_ref_self(),
-                    );
-                    Self::item_attrs(&self.krate, id, None, &tokens)
-                }
-                ItemEnum::Module(_) => {
-                    assert!(qualified_trait.is_empty());
-                    assert!(qualified_struct.is_empty());
-                    let mut attrs = Self::item_attrs(&self.krate, id, None, &tokens);
-                    attrs.extend(parent_attrs);
-                    attrs
-                }
-                _ => panic!(),
-            };
-
-            // smoelius: At most one of `qualified_trait` and `qualified_struct` is non-empty.
-            // Concatenating them has the effect of select the non-empty one.
-            let qualified_type = [qualified_trait, qualified_struct].concat();
-
-            let qualified_type_wrapper = qualified_type_wrapper_tokens(&qualified_type);
-
-            let fn_tokens = tokens.strip_leading_qualifiers_and_fn();
-
-            let (fn_path, fn_tokens) = fn_tokens.extract_initial_path();
-
-            let (_, fn_tokens) = fn_tokens.extract_initial_type();
-
-            let fn_wrapper_tokens = fn_wrapper_tokens(fn_tokens);
-
-            let sig = fn_sig(function, &qualified_type, &fn_wrapper_tokens);
-
-            let body = fn_body(
-                function,
-                qualified_trait,
-                qualified_struct,
-                &fn_path,
-                fn_tokens,
-            );
-
-            module.add_fn(&fn_path, &qualified_type_wrapper, &attrs, &sig, &body);
-
-            self.disallow(&qualified_type, &fn_path, fn_tokens);
+            return;
         }
 
-        module.write(root)?;
+        let (tokens, false) =
+            patch_tokens(public_item_map.tokens(id), qualified_struct, false, true)
+        else {
+            return;
+        };
 
-        Ok(())
+        // smoelius: Fetch the parent's attributes first. If the function does not belong to a
+        // trait or struct, they will append to the function's attributes so that they are not
+        // lost.
+        let parent_attrs =
+            Self::item_attrs(krate, parent_id, Some(public_item_map), &parent_tokens);
+
+        let attrs = match parent_item.inner {
+            ItemEnum::Trait(_) => {
+                assert!(!qualified_trait.is_empty());
+                assert!(qualified_struct.is_empty());
+                let (trait_path, trait_tokens) = qualified_trait.extract_initial_path();
+                let trait_wrapper_tokens = type_wrapper_tokens(trait_tokens);
+                self.module.add_trait_wrapper(
+                    &trait_path,
+                    &parent_attrs,
+                    &[path_prefix(&trait_path), trait_wrapper_tokens.clone()].concat(),
+                    qualified_trait,
+                );
+                Self::item_attrs(krate, id, None, &tokens)
+            }
+            ItemEnum::Impl(_) => {
+                assert!(qualified_trait.is_empty());
+                assert!(!qualified_struct.is_empty());
+                let (struct_path, struct_tokens) = qualified_struct.extract_initial_path();
+                let struct_wrapper_tokens = type_wrapper_tokens(struct_tokens);
+                self.module.add_struct_wrapper(
+                    &struct_path,
+                    &parent_attrs,
+                    &[path_prefix(&struct_path), struct_wrapper_tokens.clone()].concat(),
+                    qualified_struct,
+                    tokens.output_contains_non_ref_self(),
+                );
+                Self::item_attrs(krate, id, None, &tokens)
+            }
+            ItemEnum::Module(_) => {
+                assert!(qualified_trait.is_empty());
+                assert!(qualified_struct.is_empty());
+                let mut attrs = Self::item_attrs(krate, id, None, &tokens);
+                attrs.extend(parent_attrs);
+                attrs
+            }
+            _ => panic!(),
+        };
+
+        // smoelius: At most one of `qualified_trait` and `qualified_struct` is non-empty.
+        // Concatenating them has the effect of select the non-empty one.
+        let qualified_type = [qualified_trait, qualified_struct].concat();
+
+        let qualified_type_wrapper = qualified_type_wrapper_tokens(&qualified_type);
+
+        let fn_tokens = tokens.strip_leading_qualifiers_and_fn();
+
+        let (fn_path, fn_tokens) = fn_tokens.extract_initial_path();
+
+        let (_, fn_tokens) = fn_tokens.extract_initial_type();
+
+        let fn_wrapper_tokens = fn_wrapper_tokens(fn_tokens);
+
+        let sig = fn_sig(function, &qualified_type, &fn_wrapper_tokens);
+
+        let body = fn_body(
+            function,
+            qualified_trait,
+            qualified_struct,
+            &fn_path,
+            fn_tokens,
+        );
+
+        self.module
+            .add_fn(&fn_path, &qualified_type_wrapper, &attrs, &sig, &body);
+
+        self.disallow(&qualified_type, &fn_path, fn_tokens);
+    }
+
+    pub fn generate(self, root: impl AsRef<Path>) -> Result<()> {
+        self.module.write(root)
     }
 
     fn parents_of_wrappable_functions(
@@ -442,9 +440,7 @@ impl Generator {
         attrs
     }
 
-    fn disallow(&self, qualified_type: &[Token], fn_path: &[&str], fn_tokens: &[Token]) {
-        let mut disallowed = self.disallowed.borrow_mut();
-
+    fn disallow(&mut self, qualified_type: &[Token], fn_path: &[&str], fn_tokens: &[Token]) {
         let (disallowable_qualified_fn, disallowable_qualified_fn_wrapper) =
             disallowable_qualified_fn(qualified_type, fn_path, fn_tokens);
 
@@ -455,12 +451,11 @@ impl Generator {
             return;
         }
 
-        disallowed.insert(disallowable_qualified_fn, disallowable_qualified_fn_wrapper);
+        self.disallowed
+            .insert(disallowable_qualified_fn, disallowable_qualified_fn_wrapper);
     }
 
     fn write_clippy_toml(&self) -> Result<()> {
-        let disallowed = self.disallowed.borrow();
-
         #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
         let path = Path::new::<str>(env!("CARGO_MANIFEST_DIR")).join("../clippy_conf/clippy.toml");
 
@@ -471,7 +466,7 @@ impl Generator {
             .open(path)?;
 
         writeln!(file, "disallowed-methods = [")?;
-        for (disallowable_qualified_fn, disallowable_qualified_fn_wrapper) in disallowed.iter() {
+        for (disallowable_qualified_fn, disallowable_qualified_fn_wrapper) in &self.disallowed {
             writeln!(
                 file,
                 r#"    {{ path = "{}", reason = "use `elaborate::{}`"}},"#,
@@ -487,14 +482,12 @@ impl Generator {
     }
 
     fn write_discarded(&self) -> Result<()> {
-        let discarded = self.discarded.borrow();
-
         #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
         let debug_output = Path::new(env!("CARGO_MANIFEST_DIR")).join("debug_output");
 
         create_dir_all(&debug_output).unwrap_or_default();
 
-        for (reason, tokens) in &*discarded {
+        for (reason, tokens) in &self.discarded {
             let mut open_options = OpenOptions::new();
             open_options.create(true).truncate(true).write(true);
             let mut file = open_options.open(debug_output.join(reason).with_extension("txt"))?;

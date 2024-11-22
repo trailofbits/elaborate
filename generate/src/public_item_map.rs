@@ -71,7 +71,7 @@ impl PublicItemMap {
     pub fn populate_from_public_api(
         &mut self,
         public_api: PublicApi,
-        discard: impl Fn(&[Token]) -> bool,
+        mut discard: impl FnMut(&[Token]) -> bool,
     ) {
         for public_item in public_api.into_items() {
             let id = public_item.id();
