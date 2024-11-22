@@ -828,6 +828,7 @@ mod test {
     const RUST_URL: &str = "https://github.com/rust-lang/rust";
     const RUST_DIR: &str = "checkouts/rust";
     const SUBMODULES: &[&str] = &["library/backtrace", "library/stdarch"];
+    const TARGET: &str = "x86_64-unknown-linux-gnu";
 
     #[test]
     fn generated_is_current() {
@@ -890,6 +891,8 @@ mod test {
             .args([
                 &format!("+{TOOLCHAIN}"),
                 "rustdoc",
+                "--target",
+                TARGET,
                 "--",
                 "-Z",
                 "unstable-options",
@@ -900,7 +903,10 @@ mod test {
             .unwrap();
         assert!(status.success());
 
-        let path = Path::new(RUST_DIR).join("library/target/doc/std.json");
+        let path = Path::new(RUST_DIR)
+            .join("library/target")
+            .join(TARGET)
+            .join("doc/std.json");
 
         let json_generated = read_to_string(&path).unwrap();
 
