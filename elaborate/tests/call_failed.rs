@@ -53,13 +53,20 @@ Caused by:
 
 #[test]
 fn struct_call_failed_without_elaborate() {
+    const MSG: &str = if cfg!(target_os = "windows") {
+        "The system cannot find the file specified."
+    } else {
+        "No such file or directory"
+    };
     let error = std::fs::OpenOptions::new()
         .read(true)
         .open("/nonexistent_file")
         .unwrap_err();
     assert_eq!(
-        "\
-Os { code: 2, kind: NotFound, message: \"No such file or directory\" }",
+        format!(
+            "\
+Os {{ code: 2, kind: NotFound, message: \"{MSG}\" }}"
+        ),
         format!("{error:?}")
     );
 }
@@ -71,8 +78,36 @@ fn struct_call_failed_with_elaborate() {
         .read(true)
         .open_wc("/nonexistent_file")
         .unwrap_err();
-    assert_eq!(
-        "\
+    if cfg!(target_os = "windows") {
+        assert_eq!(
+            "\
+call failed:
+    OpenOptions(
+        OpenOptions {
+            read: true,
+            write: false,
+            append: false,
+            truncate: false,
+            create: false,
+            create_new: false,
+            custom_flags: 0,
+            access_mode: None,
+            attributes: 0,
+            share_mode: 7,
+            security_qos_flags: 0,
+            security_attributes: 0x0000000000000000,
+        },
+    ).open(
+        \"/nonexistent_file\",
+    )
+
+Caused by:
+    The system cannot find the file specified. (os error 2)",
+            format!("{error:?}")
+        );
+    } else {
+        assert_eq!(
+            "\
 call failed:
     OpenOptions(
         OpenOptions {
@@ -91,8 +126,9 @@ call failed:
 
 Caused by:
     No such file or directory (os error 2)",
-        format!("{error:?}")
-    );
+            format!("{error:?}")
+        );
+    }
 }
 
 #[cfg(unix)]
