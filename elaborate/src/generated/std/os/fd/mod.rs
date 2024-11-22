@@ -6,18 +6,22 @@ use anyhow::Context;
 
 
 
+#[cfg(unix)]
 pub trait BorrowedFdContext {
 fn try_clone_to_owned_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: fd :: OwnedFd > );
 }
+#[cfg(unix)]
 impl BorrowedFdContext for std :: os :: fd :: BorrowedFd < '_ > {
 fn try_clone_to_owned_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: fd :: OwnedFd > ) {
     std :: os :: fd :: BorrowedFd :: < '_ > :: try_clone_to_owned(self)
         .with_context(|| crate::call_failed!(Some(self), "try_clone_to_owned"))
 }
 }
+#[cfg(unix)]
 pub trait OwnedFdContext: Sized {
 fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
 }
+#[cfg(unix)]
 impl OwnedFdContext for std :: os :: fd :: OwnedFd {
 fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     std :: os :: fd :: OwnedFd :: try_clone(self)
