@@ -815,11 +815,12 @@ fn disallowable_qualified_fn(
 
 #[cfg(test)]
 mod test {
-    use super::*;
+    use once_cell::sync::Lazy;
     use similar_asserts::SimpleDiff;
     use std::{
         env::var,
         fs::{exists, read_to_string, write},
+        io::Write,
         path::Path,
         process::Command,
         str::FromStr,
@@ -829,6 +830,15 @@ mod test {
     const RUST_DIR: &str = "checkouts/rust";
     const SUBMODULES: &[&str] = &["library/backtrace", "library/stdarch"];
     const TARGET: &str = "x86_64-unknown-linux-gnu";
+
+    static TOOLCHAIN: Lazy<&str> = Lazy::new(|| {
+        let status = Command::new("rustup")
+            .args(["toolchain", "install", super::TOOLCHAIN, "--no-self-update"])
+            .status()
+            .unwrap();
+        assert!(status.success());
+        super::TOOLCHAIN
+    });
 
     #[test]
     fn generated_is_current() {
@@ -850,11 +860,11 @@ mod test {
 
     #[test]
     fn version_commit() {
-        let short_commit = &COMMIT[..9];
+        let short_commit = &super::COMMIT[..9];
         let pat = format!("({short_commit} ");
         let output = Command::new("rustc")
             .arg("--version")
-            .env("RUSTUP_TOOLCHAIN", TOOLCHAIN)
+            .env("RUSTUP_TOOLCHAIN", *TOOLCHAIN)
             .output()
             .unwrap();
         let stdout = std::str::from_utf8(&output.stdout).unwrap();
@@ -882,7 +892,7 @@ mod test {
         clone_or_update_rust();
 
         let status = Command::new("git")
-            .args(["checkout", COMMIT])
+            .args(["checkout", super::COMMIT])
             .current_dir(RUST_DIR)
             .status()
             .unwrap();
@@ -904,7 +914,6 @@ mod test {
         // ```
         let status = Command::new("cargo")
             .args([
-                &format!("+{TOOLCHAIN}"),
                 "rustdoc",
                 "--target",
                 TARGET,
@@ -913,6 +922,7 @@ mod test {
                 "unstable-options",
                 "--output-format=json",
             ])
+            .env("RUSTUP_TOOLCHAIN", *TOOLCHAIN)
             .current_dir(Path::new(RUST_DIR).join("library/std"))
             .status()
             .unwrap();
