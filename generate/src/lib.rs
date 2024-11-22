@@ -861,6 +861,21 @@ mod test {
         assert!(stdout.contains(&pat));
     }
 
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn target() {
+        if var("CI").is_err() {
+            return;
+        }
+        let output = Command::new("rustc").arg("-vV").output().unwrap();
+        let stdout = std::str::from_utf8(&output.stdout).unwrap();
+        let needle = format!("host: {TARGET}");
+        assert!(
+            stdout.lines().any(|line| line == needle),
+            "stdout does not contain `{needle}`: ```\n{stdout}```"
+        );
+    }
+
     #[cfg_attr(dylint_lib = "general", allow(non_thread_safe_call_in_test))]
     #[test]
     fn std_json() {
