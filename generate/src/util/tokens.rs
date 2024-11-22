@@ -5,6 +5,7 @@ use public_api::tokens::Token;
 
 static GATED_PATHS: Lazy<Vec<(Vec<Token>, &str)>> = Lazy::new(|| {
     const GATED_OS_PATHS: &[(&[&str], &str)] = &[
+        (&["std", "os", "fd"], "unix"),
         (&["std", "os", "linux"], r#"target_os = "linux""#),
         (&["std", "os", "unix"], "unix"),
         (&["std", "os", "wasi"], r#"target_os = "wasi""#),
