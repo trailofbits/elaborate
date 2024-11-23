@@ -11,47 +11,6 @@ fn initialize() {
 }
 
 #[test]
-fn call_failed_without_elaborate() {
-    let error = std::fs::create_dir("/dir").unwrap_err();
-    if cfg!(target_os = "macos") {
-        assert_eq!(
-            "\
-Os { code: 30, kind: ReadOnlyFilesystem, message: \"Read-only file system\" }",
-            format!("{error:?}")
-        );
-    } else {
-        assert_eq!(
-            "\
-Os { code: 13, kind: PermissionDenied, message: \"Permission denied\" }",
-            format!("{error:?}")
-        );
-    }
-}
-
-#[test]
-fn call_failed_with_elaborate() {
-    const MSG: &str = if cfg!(target_os = "macos") {
-        "Read-only file system (os error 30)"
-    } else {
-        "Permission denied (os error 13)"
-    };
-    let error = elaborate::std::fs::create_dir_wc("/dir").unwrap_err();
-    assert_eq!(
-        format!(
-            "\
-call failed:
-    std::fs::create_dir(
-        \"/dir\",
-    )
-
-Caused by:
-    {MSG}"
-        ),
-        format!("{error:?}")
-    );
-}
-
-#[test]
 fn struct_call_failed_without_elaborate() {
     const MSG: &str = if cfg!(target_os = "windows") {
         "The system cannot find the file specified."
@@ -133,12 +92,49 @@ Caused by:
 
 #[cfg(unix)]
 mod unix {
-    use std::{
-        fs::{set_permissions, File, OpenOptions},
-        io::Result,
-        os::unix::fs::PermissionsExt,
-    };
+    use std::{io::Result, os::unix::fs::PermissionsExt};
     use tempfile::NamedTempFile;
+
+    #[test]
+    fn call_failed_without_elaborate() {
+        let error = std::fs::create_dir("/dir").unwrap_err();
+        if cfg!(target_os = "macos") {
+            assert_eq!(
+                "\
+Os { code: 30, kind: ReadOnlyFilesystem, message: \"Read-only file system\" }",
+                format!("{error:?}")
+            );
+        } else {
+            assert_eq!(
+                "\
+Os { code: 13, kind: PermissionDenied, message: \"Permission denied\" }",
+                format!("{error:?}")
+            );
+        }
+    }
+
+    #[test]
+    fn call_failed_with_elaborate() {
+        const MSG: &str = if cfg!(target_os = "macos") {
+            "Read-only file system (os error 30)"
+        } else {
+            "Permission denied (os error 13)"
+        };
+        let error = elaborate::std::fs::create_dir_wc("/dir").unwrap_err();
+        assert_eq!(
+            format!(
+                "\
+call failed:
+    std::fs::create_dir(
+        \"/dir\",
+    )
+
+Caused by:
+    {MSG}"
+            ),
+            format!("{error:?}")
+        );
+    }
 
     #[test]
     fn trait_call_failed_without_elaborate() {
@@ -171,10 +167,10 @@ Caused by:
         );
     }
 
-    fn readonly_tempfile() -> Result<File> {
+    fn readonly_tempfile() -> Result<std::fs::File> {
         let tempfile = NamedTempFile::new()?;
         let temp_path = tempfile.into_temp_path();
-        set_permissions(&temp_path, PermissionsExt::from_mode(0o444))?;
-        OpenOptions::new().read(true).open(&temp_path)
+        std::fs::set_permissions(&temp_path, PermissionsExt::from_mode(0o444))?;
+        std::fs::OpenOptions::new().read(true).open(&temp_path)
     }
 }
