@@ -26,14 +26,19 @@ fn from_pathname_wc < P > ( path : P ) -> crate :: rewrite_output_type ! ( std :
 #[cfg(unix)]
 pub trait UnixDatagramContext: Sized {
 #[cfg(feature = "unix_set_mark")]
+#[cfg(target_os = "linux")]
 fn set_mark_wc ( & self , mark : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
 #[cfg(feature = "unix_socket_ancillary_data")]
+#[cfg(target_os = "linux")]
 fn recv_vectored_with_ancillary_from_wc ( & self , bufs : & mut [ std :: io :: IoSliceMut < '_ > ] , ancillary : & mut std :: os :: unix :: net :: SocketAncillary < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , bool , std :: os :: unix :: net :: SocketAddr ) > );
 #[cfg(feature = "unix_socket_ancillary_data")]
+#[cfg(target_os = "linux")]
 fn recv_vectored_with_ancillary_wc ( & self , bufs : & mut [ std :: io :: IoSliceMut < '_ > ] , ancillary : & mut std :: os :: unix :: net :: SocketAncillary < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , bool ) > );
 #[cfg(feature = "unix_socket_ancillary_data")]
+#[cfg(target_os = "linux")]
 fn send_vectored_with_ancillary_to_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , bufs : & [ std :: io :: IoSlice < '_ > ] , ancillary : & mut std :: os :: unix :: net :: SocketAncillary < '_ > , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
 #[cfg(feature = "unix_socket_ancillary_data")]
+#[cfg(target_os = "linux")]
 fn send_vectored_with_ancillary_wc ( & self , bufs : & [ std :: io :: IoSlice < '_ > ] , ancillary : & mut std :: os :: unix :: net :: SocketAncillary < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
 #[cfg(feature = "unix_socket_peek")]
 fn peek_from_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , std :: os :: unix :: net :: SocketAddr ) > );
@@ -64,27 +69,32 @@ fn write_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: 
 #[cfg(unix)]
 impl UnixDatagramContext for std :: os :: unix :: net :: UnixDatagram {
 #[cfg(feature = "unix_set_mark")]
+#[cfg(target_os = "linux")]
 fn set_mark_wc ( & self , mark : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     std :: os :: unix :: net :: UnixDatagram :: set_mark(self, mark)
         .with_context(|| crate::call_failed!(Some(self), "set_mark", mark))
 }
 #[cfg(feature = "unix_socket_ancillary_data")]
+#[cfg(target_os = "linux")]
 fn recv_vectored_with_ancillary_from_wc ( & self , bufs : & mut [ std :: io :: IoSliceMut < '_ > ] , ancillary : & mut std :: os :: unix :: net :: SocketAncillary < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , bool , std :: os :: unix :: net :: SocketAddr ) > ) {
     std :: os :: unix :: net :: UnixDatagram :: recv_vectored_with_ancillary_from(self, bufs, ancillary)
         .with_context(|| crate::call_failed!(Some(self), "recv_vectored_with_ancillary_from", bufs, ancillary))
 }
 #[cfg(feature = "unix_socket_ancillary_data")]
+#[cfg(target_os = "linux")]
 fn recv_vectored_with_ancillary_wc ( & self , bufs : & mut [ std :: io :: IoSliceMut < '_ > ] , ancillary : & mut std :: os :: unix :: net :: SocketAncillary < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , bool ) > ) {
     std :: os :: unix :: net :: UnixDatagram :: recv_vectored_with_ancillary(self, bufs, ancillary)
         .with_context(|| crate::call_failed!(Some(self), "recv_vectored_with_ancillary", bufs, ancillary))
 }
 #[cfg(feature = "unix_socket_ancillary_data")]
+#[cfg(target_os = "linux")]
 fn send_vectored_with_ancillary_to_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , bufs : & [ std :: io :: IoSlice < '_ > ] , ancillary : & mut std :: os :: unix :: net :: SocketAncillary < '_ > , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     let path = path.as_ref();
     std :: os :: unix :: net :: UnixDatagram :: send_vectored_with_ancillary_to(self, bufs, ancillary, path)
         .with_context(|| crate::call_failed!(Some(self), "send_vectored_with_ancillary_to", bufs, ancillary, path))
 }
 #[cfg(feature = "unix_socket_ancillary_data")]
+#[cfg(target_os = "linux")]
 fn send_vectored_with_ancillary_wc ( & self , bufs : & [ std :: io :: IoSlice < '_ > ] , ancillary : & mut std :: os :: unix :: net :: SocketAncillary < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     std :: os :: unix :: net :: UnixDatagram :: send_vectored_with_ancillary(self, bufs, ancillary)
         .with_context(|| crate::call_failed!(Some(self), "send_vectored_with_ancillary", bufs, ancillary))
@@ -234,10 +244,13 @@ pub trait UnixStreamContext: Sized {
 #[cfg(feature = "peer_credentials_unix_socket")]
 fn peer_cred_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: UCred > );
 #[cfg(feature = "unix_set_mark")]
+#[cfg(target_os = "linux")]
 fn set_mark_wc ( & self , mark : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
 #[cfg(feature = "unix_socket_ancillary_data")]
+#[cfg(target_os = "linux")]
 fn recv_vectored_with_ancillary_wc ( & self , bufs : & mut [ std :: io :: IoSliceMut < '_ > ] , ancillary : & mut std :: os :: unix :: net :: SocketAncillary < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
 #[cfg(feature = "unix_socket_ancillary_data")]
+#[cfg(target_os = "linux")]
 fn send_vectored_with_ancillary_wc ( & self , bufs : & [ std :: io :: IoSlice < '_ > ] , ancillary : & mut std :: os :: unix :: net :: SocketAncillary < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
 #[cfg(feature = "unix_socket_peek")]
 fn peek_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
@@ -263,16 +276,19 @@ fn peer_cred_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Resu
         .with_context(|| crate::call_failed!(Some(self), "peer_cred"))
 }
 #[cfg(feature = "unix_set_mark")]
+#[cfg(target_os = "linux")]
 fn set_mark_wc ( & self , mark : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     std :: os :: unix :: net :: UnixStream :: set_mark(self, mark)
         .with_context(|| crate::call_failed!(Some(self), "set_mark", mark))
 }
 #[cfg(feature = "unix_socket_ancillary_data")]
+#[cfg(target_os = "linux")]
 fn recv_vectored_with_ancillary_wc ( & self , bufs : & mut [ std :: io :: IoSliceMut < '_ > ] , ancillary : & mut std :: os :: unix :: net :: SocketAncillary < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     std :: os :: unix :: net :: UnixStream :: recv_vectored_with_ancillary(self, bufs, ancillary)
         .with_context(|| crate::call_failed!(Some(self), "recv_vectored_with_ancillary", bufs, ancillary))
 }
 #[cfg(feature = "unix_socket_ancillary_data")]
+#[cfg(target_os = "linux")]
 fn send_vectored_with_ancillary_wc ( & self , bufs : & [ std :: io :: IoSlice < '_ > ] , ancillary : & mut std :: os :: unix :: net :: SocketAncillary < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     std :: os :: unix :: net :: UnixStream :: send_vectored_with_ancillary(self, bufs, ancillary)
         .with_context(|| crate::call_failed!(Some(self), "send_vectored_with_ancillary", bufs, ancillary))
