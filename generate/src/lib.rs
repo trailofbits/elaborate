@@ -100,6 +100,7 @@ static GENERIC_STRUCTS: Lazy<Vec<Vec<Token>>> = Lazy::new(|| {
 
 static REWRITABLE_PATHS: Lazy<Vec<(Vec<Token>, Vec<Token>)>> = Lazy::new(|| {
     const SHORTENABLE_PATHS: &[&[&str]] = &[
+        &["core", "io", "borrowed_buf"],
         &["core", "net", "ip_addr"],
         &["core", "net", "socket_addr"],
         &["core", "num", "nonzero"],
@@ -294,6 +295,9 @@ impl Generator {
                     &[path_prefix(&struct_path), struct_wrapper_tokens.clone()].concat(),
                     qualified_struct,
                     tokens.output_contains_non_ref_self(),
+                    // smoelius: `BufWriter` requires that its argument implement `Write`:
+                    // https://doc.rust-lang.org/nightly/std/fs/struct.File.html#method.create_buffered
+                    struct_tokens == [Token::type_("File")],
                 );
                 Self::item_attrs(krate, id, None, &tokens)
             }
@@ -726,9 +730,9 @@ fn call_and_call_failed(
         call_failed.push_str(", ");
         if function.input_is_redeclarable(i).is_some() {
             call_failed.push_str(input_name);
-        } else if let Some(trait_name) = function.input_is_uncloneble(i) {
+        } else if let Some(ty) = function.input_is_uncloneble(i) {
             call_failed.push_str(&format!(
-                r#"crate::CustomDebugMessage("value of type impl {trait_name}")"#
+                r#"crate::CustomDebugMessage("value of type {ty}")"#
             ));
         } else {
             call_failed.push_str(input_name);

@@ -16,6 +16,7 @@ struct StructWrapper {
     attrs: Vec<String>,
     qualified_wrapped_struct: Vec<Token>,
     must_be_sized: bool,
+    must_be_write: bool,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
@@ -59,6 +60,7 @@ impl Module {
         qualified_struct_wrapper: &[Token],
         qualified_wrapped_struct: &[Token],
         must_be_sized: bool,
+        must_be_write: bool,
     ) {
         let module = self.module_by_path(path);
         if !module
@@ -71,14 +73,16 @@ impl Module {
                     attrs: attrs.to_owned(),
                     qualified_wrapped_struct: qualified_wrapped_struct.to_owned(),
                     must_be_sized: false,
+                    must_be_write: false,
                 },
             );
         }
-        module
+        let struct_wrapper = module
             .struct_wrappers
             .get_mut(qualified_struct_wrapper)
-            .unwrap()
-            .must_be_sized |= must_be_sized;
+            .unwrap();
+        struct_wrapper.must_be_sized |= must_be_sized;
+        struct_wrapper.must_be_write |= must_be_write;
     }
 
     pub fn add_fn(
@@ -181,16 +185,28 @@ impl Module {
                 attrs,
                 qualified_wrapped_struct,
                 must_be_sized,
+                must_be_write,
             },
         ) in &self.struct_wrappers
         {
             let common_attrs = self.common_attrs(qualified_struct_wrapper);
             let attrs = join_attrs(attrs.iter().chain(&common_attrs));
             let (_, struct_wrapper) = qualified_struct_wrapper.extract_initial_path();
-            let supertrait = if *must_be_sized { ": Sized" } else { "" };
+            let mut supertraits = String::new();
+            if *must_be_sized {
+                push_supertrait(&mut supertraits, "Sized");
+            }
+            if *must_be_write {
+                push_supertrait(&mut supertraits, "std::io::Write");
+            }
+            let supertraits = if supertraits.is_empty() {
+                String::new()
+            } else {
+                format!(": {supertraits}")
+            };
             writeln!(
                 file,
-                "{attrs}pub trait {}{supertrait} {{",
+                "{attrs}pub trait {}{supertraits} {{",
                 struct_wrapper.to_string(),
             )?;
             if let Some(fns) = self.fns.get(qualified_struct_wrapper) {
@@ -295,4 +311,11 @@ fn remove_common_attrs(attrs: Vec<String>, common_attrs: &[String]) -> Vec<Strin
         .into_iter()
         .filter(|attr| !common_attrs.contains(attr))
         .collect()
+}
+
+fn push_supertrait(supertraits: &mut String, supertrait: &str) {
+    if !supertraits.is_empty() {
+        *supertraits += " + ";
+    }
+    *supertraits += supertrait;
 }
