@@ -12,6 +12,14 @@ static GATED_PATHS: Lazy<Vec<(Vec<Token>, &str)>> = Lazy::new(|| {
         (&["std", "os", "windows"], "windows"),
     ];
 
+    const LINUX_ONLY_NET_FUNCTIONS: &[&str] = &[
+        "recv_vectored_with_ancillary",
+        "recv_vectored_with_ancillary_from",
+        "send_vectored_with_ancillary",
+        "send_vectored_with_ancillary_to",
+        "set_mark",
+    ];
+
     std::iter::once((
         qualified_type_function(&["std", "io"], "BufRead", "skip_until"),
         r#"feature = "bufread_skip_until""#,
@@ -33,6 +41,20 @@ static GATED_PATHS: Lazy<Vec<(Vec<Token>, &str)>> = Lazy::new(|| {
             .iter()
             .map(|&(prefix, gate)| (path_prefix(prefix), gate)),
     )
+    .chain(LINUX_ONLY_NET_FUNCTIONS.iter().map(|name| {
+        (
+            qualified_type_function(&["std", "os", "unix", "net"], "UnixDatagram", name),
+            r#"target_os = "linux""#,
+        )
+    }))
+    .chain(LINUX_ONLY_NET_FUNCTIONS.iter().map(|name| {
+        (
+            // smoelius: Technically, the `UnixStream::recv_vectored_with_ancillary_from` and
+            // `UnixStream::send_vectored_with_ancillary_to` paths do not exist.
+            qualified_type_function(&["std", "os", "unix", "net"], "UnixStream", name),
+            r#"target_os = "linux""#,
+        )
+    }))
     .collect()
 });
 
