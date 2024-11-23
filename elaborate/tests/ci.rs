@@ -14,6 +14,15 @@ fn initialize() {
 }
 
 #[test]
+fn check_all_features() {
+    Command::new("cargo")
+        .args(["+nightly", "check", "--all-features"])
+        .env("RUSTFLAGS", "--deny=warnings")
+        .assert()
+        .success();
+}
+
+#[test]
 fn clippy() {
     Command::new("cargo")
         .args([
