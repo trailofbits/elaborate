@@ -30,7 +30,7 @@ fn metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Resul
         .with_context(|| crate::call_failed!(Some(self), "metadata"))
 }
 }
-pub trait FileContext: Sized {
+pub trait FileContext: Sized + std::io::Write {
 fn create_new_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
 fn create_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
 fn metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > );
@@ -43,9 +43,10 @@ fn sync_all_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Resul
 fn sync_data_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
 fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
 #[cfg(feature = "file_buffered")]
-fn create_buffered_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: io :: BufWriter < Self > > );
-#[cfg(feature = "file_buffered")]
 fn open_buffered_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: io :: BufReader < Self > > );
+#[cfg(feature = "core_io_borrowed_buf")]
+#[cfg(feature = "file_buffered")]
+fn create_buffered_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: io :: BufWriter < Self > > );
 }
 impl FileContext for std :: fs :: File {
 fn create_new_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
@@ -96,16 +97,17 @@ fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Resu
         .with_context(|| crate::call_failed!(Some(self), "try_clone"))
 }
 #[cfg(feature = "file_buffered")]
-fn create_buffered_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: io :: BufWriter < Self > > ) {
-    let path = path.as_ref();
-    std :: fs :: File :: create_buffered(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std::fs::File::create_buffered", path))
-}
-#[cfg(feature = "file_buffered")]
 fn open_buffered_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: io :: BufReader < Self > > ) {
     let path = path.as_ref();
     std :: fs :: File :: open_buffered(path)
         .with_context(|| crate::call_failed!(None::<()>, "std::fs::File::open_buffered", path))
+}
+#[cfg(feature = "core_io_borrowed_buf")]
+#[cfg(feature = "file_buffered")]
+fn create_buffered_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: io :: BufWriter < Self > > ) {
+    let path = path.as_ref();
+    std :: fs :: File :: create_buffered(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::File::create_buffered", path))
 }
 }
 pub trait MetadataContext {

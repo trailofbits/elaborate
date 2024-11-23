@@ -3,7 +3,7 @@ use rustdoc_types::{Function, GenericBound, GenericParamDefKind, Type, WherePred
 
 pub trait FunctionExt {
     fn input_is_redeclarable(&self, i: usize) -> Option<&str>;
-    fn input_is_uncloneble(&self, i: usize) -> Option<&str>;
+    fn input_is_uncloneble(&self, i: usize) -> Option<String>;
     fn input_is_trait_bound(&self, i: usize, trait_name: &str) -> bool;
     fn input_requires_clone(&self, i: usize) -> bool;
 }
@@ -22,11 +22,22 @@ impl FunctionExt for Function {
         None
     }
 
-    fn input_is_uncloneble(&self, i: usize) -> Option<&str> {
-        UNCLONEABLE_TRAITS
-            .iter()
-            .copied()
-            .find(|trait_name| self.input_is_trait_bound(i, trait_name))
+    fn input_is_uncloneble(&self, i: usize) -> Option<String> {
+        if_chain! {
+            if let Type::ResolvedPath(path) = &self.sig.inputs[i].1;
+            if path.name == "BorrowedCursor";
+            then {
+                return Some(String::from("BorrowedCursor"));
+            }
+        }
+
+        UNCLONEABLE_TRAITS.iter().copied().find_map(|trait_name| {
+            if self.input_is_trait_bound(i, trait_name) {
+                Some(format!("impl {trait_name}"))
+            } else {
+                None
+            }
+        })
     }
 
     fn input_is_trait_bound(&self, i: usize, trait_name: &str) -> bool {

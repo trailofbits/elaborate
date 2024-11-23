@@ -53,14 +53,14 @@ fn read_wc ( & mut self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type !
         .with_context(|| crate::call_failed!(Some(self), "read", buf))
 }
 #[cfg(feature = "read_buf")]
-fn read_buf_exact_wc ( & mut self , cursor : core :: io :: borrowed_buf :: BorrowedCursor < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+fn read_buf_exact_wc ( & mut self , cursor : core :: io :: BorrowedCursor < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: io :: Read > :: read_buf_exact(self, cursor)
-        .with_context(|| crate::call_failed!(Some(self), "read_buf_exact", cursor))
+        .with_context(|| crate::call_failed!(Some(self), "read_buf_exact", crate::CustomDebugMessage("value of type BorrowedCursor")))
 }
 #[cfg(feature = "read_buf")]
-fn read_buf_wc ( & mut self , buf : core :: io :: borrowed_buf :: BorrowedCursor < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+fn read_buf_wc ( & mut self , buf : core :: io :: BorrowedCursor < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: io :: Read > :: read_buf(self, buf)
-        .with_context(|| crate::call_failed!(Some(self), "read_buf", buf))
+        .with_context(|| crate::call_failed!(Some(self), "read_buf", crate::CustomDebugMessage("value of type BorrowedCursor")))
 }
 }
 

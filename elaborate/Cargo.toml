@@ -19,6 +19,7 @@ toml = "0.8"
 anonymous_pipe = []
 buf_read_has_data_left = []
 bufread_skip_until = []
+core_io_borrowed_buf = []
 exit_status_error = []
 file_buffered = []
 junction_point = []
