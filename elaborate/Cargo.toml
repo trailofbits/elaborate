@@ -38,6 +38,8 @@ unix_set_mark = []
 unix_socket_ancillary_data = []
 unix_socket_peek = []
 wasi_ext = []
+windows_by_handle = []
+windows_change_time = []
 write_all_vectored = []
 
 [lints]
