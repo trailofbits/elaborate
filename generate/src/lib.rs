@@ -28,7 +28,7 @@ pub const COMMIT: &str = "4392847410ddd67f6734dd9845f9742ff9e85c83";
 
 #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
 static STD_JSON: Lazy<PathBuf> =
-    Lazy::new(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/std.json"));
+    Lazy::new(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../assets/std.json"));
 
 static IGNORED_PATHS: Lazy<Vec<Vec<Token>>> = Lazy::new(|| {
     const IGNORED_PATH_PREFIXES: &[&[&str]] = &[
@@ -946,9 +946,9 @@ mod test {
         let json_normalized = serde_json::to_string_pretty(&value).unwrap();
 
         if enabled("BLESS") {
-            write("assets/std.json", json_normalized).unwrap();
+            write(&*super::STD_JSON, json_normalized).unwrap();
         } else {
-            let json_assets = read_to_string("assets/std.json").unwrap();
+            let json_assets = read_to_string(&*super::STD_JSON).unwrap();
 
             assert!(
                 json_assets == json_normalized,
