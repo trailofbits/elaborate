@@ -2,9 +2,11 @@ use assert_cmd::Command;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::{
-    collections::BTreeSet, env::remove_var, env::set_current_dir, fs::read_to_string, path::Path,
+    collections::BTreeSet,
+    env::{remove_var, set_current_dir},
+    fs::read_to_string,
+    path::Path,
 };
-use tempfile::tempdir;
 use walkdir::WalkDir;
 
 #[ctor::ctor]
@@ -113,9 +115,10 @@ fn collect_features_used() -> BTreeSet<String> {
     features
 }
 
+#[cfg(unix)]
 #[test]
 fn markdown_link_check() {
-    let tempdir = tempdir().unwrap();
+    let tempdir = tempfile::tempdir().unwrap();
 
     // smoelius: Pin `markdown-link-check` to version 3.11 until the following issue is resolved:
     // https://github.com/tcort/markdown-link-check/issues/304
