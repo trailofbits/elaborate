@@ -473,7 +473,7 @@ impl Generator {
         for (disallowable_qualified_fn, disallowable_qualified_fn_wrapper) in &self.disallowed {
             writeln!(
                 file,
-                r#"    {{ path = "{}", reason = "use `elaborate::{}`"}},"#,
+                r#"    {{ path = "{}", reason = "use `elaborate::{}`" }},"#,
                 disallowable_qualified_fn.to_string_compact().unwrap(),
                 disallowable_qualified_fn_wrapper
                     .to_string_compact()
