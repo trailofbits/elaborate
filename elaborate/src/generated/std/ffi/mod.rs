@@ -7,6 +7,18 @@ use anyhow::Context;
 
 
 pub trait OsStrContext {
+/// Yields a <code>&[str]</code> slice if the `OsStr` is valid Unicode.
+/// 
+/// This conversion may entail doing a check for UTF-8 validity.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::ffi::OsStr;
+/// 
+/// let os_str = OsStr::new("foo");
+/// assert_eq!(os_str.to_str(), Some("foo"));
+/// ```
 fn to_str_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & str > );
 }
 impl OsStrContext for std :: ffi :: OsStr {
@@ -16,17 +28,88 @@ fn to_str_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Op
 }
 }
 pub trait OsStringContext {
-fn try_reserve_exact_wc ( & mut self , additional : usize ) -> crate :: rewrite_output_type ! ( core :: result :: Result < ( ) , std :: collections :: TryReserveError > );
+/// Tries to reserve capacity for at least `additional` more length units
+/// in the given `OsString`. The string may reserve more space to speculatively avoid
+/// frequent reallocations. After calling `try_reserve`, capacity will be
+/// greater than or equal to `self.len() + additional` if it returns `Ok(())`.
+/// Does nothing if capacity is already sufficient. This method preserves
+/// the contents even if an error occurs.
+/// 
+/// See the main `OsString` documentation information about encoding and capacity units.
+/// 
+/// # Errors
+/// 
+/// If the capacity overflows, or the allocator reports a failure, then an error
+/// is returned.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::ffi::{OsStr, OsString};
+/// use std::collections::TryReserveError;
+/// 
+/// fn process_data(data: &str) -> Result<OsString, TryReserveError> {
+///     let mut s = OsString::new();
+/// 
+///     // Pre-reserve the memory, exiting if we can't
+///     s.try_reserve(OsStr::new(data).len())?;
+/// 
+///     // Now we know this can't OOM in the middle of our complex work
+///     s.push(data);
+/// 
+///     Ok(s)
+/// }
+/// # process_data("123").expect("why is the test harness OOMing on 3 bytes?");
+/// ```
 fn try_reserve_wc ( & mut self , additional : usize ) -> crate :: rewrite_output_type ! ( core :: result :: Result < ( ) , std :: collections :: TryReserveError > );
+/// Tries to reserve the minimum capacity for at least `additional`
+/// more length units in the given `OsString`. After calling
+/// `try_reserve_exact`, capacity will be greater than or equal to
+/// `self.len() + additional` if it returns `Ok(())`.
+/// Does nothing if the capacity is already sufficient.
+/// 
+/// Note that the allocator may give the `OsString` more space than it
+/// requests. Therefore, capacity can not be relied upon to be precisely
+/// minimal. Prefer [`try_reserve`] if future insertions are expected.
+/// 
+/// [`try_reserve`]: OsString::try_reserve
+/// 
+/// See the main `OsString` documentation information about encoding and capacity units.
+/// 
+/// # Errors
+/// 
+/// If the capacity overflows, or the allocator reports a failure, then an error
+/// is returned.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::ffi::{OsStr, OsString};
+/// use std::collections::TryReserveError;
+/// 
+/// fn process_data(data: &str) -> Result<OsString, TryReserveError> {
+///     let mut s = OsString::new();
+/// 
+///     // Pre-reserve the memory, exiting if we can't
+///     s.try_reserve_exact(OsStr::new(data).len())?;
+/// 
+///     // Now we know this can't OOM in the middle of our complex work
+///     s.push(data);
+/// 
+///     Ok(s)
+/// }
+/// # process_data("123").expect("why is the test harness OOMing on 3 bytes?");
+/// ```
+fn try_reserve_exact_wc ( & mut self , additional : usize ) -> crate :: rewrite_output_type ! ( core :: result :: Result < ( ) , std :: collections :: TryReserveError > );
 }
 impl OsStringContext for std :: ffi :: OsString {
-fn try_reserve_exact_wc ( & mut self , additional : usize ) -> crate :: rewrite_output_type ! ( core :: result :: Result < ( ) , std :: collections :: TryReserveError > ) {
-    std :: ffi :: OsString :: try_reserve_exact(self, additional)
-        .with_context(|| crate::call_failed!(Some(self), "try_reserve_exact", additional))
-}
 fn try_reserve_wc ( & mut self , additional : usize ) -> crate :: rewrite_output_type ! ( core :: result :: Result < ( ) , std :: collections :: TryReserveError > ) {
     std :: ffi :: OsString :: try_reserve(self, additional)
         .with_context(|| crate::call_failed!(Some(self), "try_reserve", additional))
+}
+fn try_reserve_exact_wc ( & mut self , additional : usize ) -> crate :: rewrite_output_type ! ( core :: result :: Result < ( ) , std :: collections :: TryReserveError > ) {
+    std :: ffi :: OsString :: try_reserve_exact(self, additional)
+        .with_context(|| crate::call_failed!(Some(self), "try_reserve_exact", additional))
 }
 }
 

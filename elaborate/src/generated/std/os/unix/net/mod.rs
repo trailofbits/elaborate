@@ -8,71 +8,766 @@ use anyhow::Context;
 
 #[cfg(unix)]
 pub trait SocketAddrContext: Sized {
-fn as_pathname_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: path :: Path > );
+/// Constructs a `SockAddr` with the family `AF_UNIX` and the provided path.
+/// 
+/// # Errors
+/// 
+/// Returns an error if the path is longer than `SUN_LEN` or if it contains
+/// NULL bytes.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::os::unix::net::SocketAddr;
+/// use std::path::Path;
+/// 
+/// # fn main() -> std::io::Result<()> {
+/// let address = SocketAddr::from_pathname("/path/to/socket")?;
+/// assert_eq!(address.as_pathname(), Some(Path::new("/path/to/socket")));
+/// # Ok(())
+/// # }
+/// ```
+/// 
+/// Creating a `SocketAddr` with a NULL byte results in an error.
+/// 
+/// ```
+/// use std::os::unix::net::SocketAddr;
+/// 
+/// assert!(SocketAddr::from_pathname("/path/with/\0/bytes").is_err());
+/// ```
 fn from_pathname_wc < P > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) where P : core :: convert :: AsRef < std :: path :: Path >;
+/// Returns the contents of this address if it is a `pathname` address.
+/// 
+/// # Examples
+/// 
+/// With a pathname:
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixListener;
+/// use std::path::Path;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let socket = UnixListener::bind("/tmp/sock")?;
+///     let addr = socket.local_addr().expect("Couldn't get local address");
+///     assert_eq!(addr.as_pathname(), Some(Path::new("/tmp/sock")));
+///     Ok(())
+/// }
+/// ```
+/// 
+/// Without a pathname:
+/// 
+/// ```
+/// use std::os::unix::net::UnixDatagram;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let socket = UnixDatagram::unbound()?;
+///     let addr = socket.local_addr().expect("Couldn't get local address");
+///     assert_eq!(addr.as_pathname(), None);
+///     Ok(())
+/// }
+/// ```
+fn as_pathname_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: path :: Path > );
 }
 #[cfg(unix)]
 impl SocketAddrContext for std :: os :: unix :: net :: SocketAddr {
-fn as_pathname_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: path :: Path > ) {
-    std :: os :: unix :: net :: SocketAddr :: as_pathname(self)
-        .with_context(|| crate::call_failed!(Some(self), "as_pathname"))
-}
 fn from_pathname_wc < P > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) where P : core :: convert :: AsRef < std :: path :: Path > {
     let path = path.as_ref();
     std :: os :: unix :: net :: SocketAddr :: from_pathname(path)
         .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::net::SocketAddr::from_pathname", path))
 }
+fn as_pathname_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: path :: Path > ) {
+    std :: os :: unix :: net :: SocketAddr :: as_pathname(self)
+        .with_context(|| crate::call_failed!(Some(self), "as_pathname"))
+}
 }
 #[cfg(unix)]
 pub trait UnixDatagramContext: Sized {
-#[cfg(feature = "unix_set_mark")]
-#[cfg(target_os = "linux")]
-fn set_mark_wc ( & self , mark : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-#[cfg(feature = "unix_socket_ancillary_data")]
-#[cfg(target_os = "linux")]
-fn recv_vectored_with_ancillary_from_wc ( & self , bufs : & mut [ std :: io :: IoSliceMut < '_ > ] , ancillary : & mut std :: os :: unix :: net :: SocketAncillary < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , bool , std :: os :: unix :: net :: SocketAddr ) > );
+/// Connects the socket to an address.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::{UnixDatagram};
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let bound = UnixDatagram::bind("/path/to/socket")?;
+///     let addr = bound.local_addr()?;
+/// 
+///     let sock = UnixDatagram::unbound()?;
+///     match sock.connect_addr(&addr) {
+///         Ok(sock) => sock,
+///         Err(e) => {
+///             println!("Couldn't connect: {e:?}");
+///             return Err(e)
+///         }
+///     };
+///     Ok(())
+/// }
+/// ```
+fn connect_addr_wc ( & self , socket_addr : & std :: os :: unix :: net :: SocketAddr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Connects the socket to the specified path address.
+/// 
+/// The [`send`] method may be used to send data to the specified address.
+/// [`recv`] and [`recv_from`] will only receive data from that address.
+/// 
+/// [`send`]: UnixDatagram::send
+/// [`recv`]: UnixDatagram::recv
+/// [`recv_from`]: UnixDatagram::recv_from
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixDatagram;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let sock = UnixDatagram::unbound()?;
+///     match sock.connect("/path/to/the/socket") {
+///         Ok(sock) => sock,
+///         Err(e) => {
+///             println!("Couldn't connect: {e:?}");
+///             return Err(e)
+///         }
+///     };
+///     Ok(())
+/// }
+/// ```
+fn connect_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Creates a Unix Datagram socket which is not bound to any address.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixDatagram;
+/// 
+/// let sock = match UnixDatagram::unbound() {
+///     Ok(sock) => sock,
+///     Err(e) => {
+///         println!("Couldn't unbound: {e:?}");
+///         return
+///     }
+/// };
+/// ```
+fn unbound_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+/// Creates a Unix datagram socket bound to an address.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::{UnixDatagram};
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let sock1 = UnixDatagram::bind("path/to/socket")?;
+///     let addr = sock1.local_addr()?;
+/// 
+///     let sock2 = match UnixDatagram::bind_addr(&addr) {
+///         Ok(sock) => sock,
+///         Err(err) => {
+///             println!("Couldn't bind: {err:?}");
+///             return Err(err);
+///         }
+///     };
+///     Ok(())
+/// }
+/// ```
+fn bind_addr_wc ( socket_addr : & std :: os :: unix :: net :: SocketAddr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+/// Creates a Unix datagram socket bound to the given path.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixDatagram;
+/// 
+/// let sock = match UnixDatagram::bind("/path/to/the/socket") {
+///     Ok(sock) => sock,
+///     Err(e) => {
+///         println!("Couldn't bind: {e:?}");
+///         return
+///     }
+/// };
+/// ```
+fn bind_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+/// Creates a new independently owned handle to the underlying socket.
+/// 
+/// The returned `UnixDatagram` is a reference to the same socket that this
+/// object references. Both handles can be used to accept incoming
+/// connections and options set on one side will affect the other.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixDatagram;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let sock = UnixDatagram::bind("/path/to/the/socket")?;
+///     let sock_copy = sock.try_clone().expect("try_clone failed");
+///     Ok(())
+/// }
+/// ```
+fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+/// Creates an unnamed pair of connected sockets.
+/// 
+/// Returns two `UnixDatagrams`s which are connected to each other.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixDatagram;
+/// 
+/// let (sock1, sock2) = match UnixDatagram::pair() {
+///     Ok((sock1, sock2)) => (sock1, sock2),
+///     Err(e) => {
+///         println!("Couldn't unbound: {e:?}");
+///         return
+///     }
+/// };
+/// ```
+fn pair_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( Self , Self ) > );
+/// Moves the socket into or out of nonblocking mode.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::os::unix::net::UnixDatagram;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let sock = UnixDatagram::unbound()?;
+///     sock.set_nonblocking(true).expect("set_nonblocking function failed");
+///     Ok(())
+/// }
+/// ```
+fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Receives a single datagram message on the socket, without removing it from the
+/// queue. On success, returns the number of bytes read and the origin.
+/// 
+/// The function must be called with valid byte array `buf` of sufficient size to
+/// hold the message bytes. If a message is too long to fit in the supplied buffer,
+/// excess bytes may be discarded.
+/// 
+/// Successive calls return the same data. This is accomplished by passing
+/// `MSG_PEEK` as a flag to the underlying `recvfrom` system call.
+/// 
+/// Do not use this function to implement busy waiting, instead use `libc::poll` to
+/// synchronize IO events on one or more sockets.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(unix_socket_peek)]
+/// 
+/// use std::os::unix::net::UnixDatagram;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let socket = UnixDatagram::bind("/tmp/sock")?;
+///     let mut buf = [0; 10];
+///     let (len, addr) = socket.peek_from(&mut buf).expect("peek failed");
+///     Ok(())
+/// }
+/// ```
+#[cfg(feature = "unix_socket_peek")]
+fn peek_from_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , std :: os :: unix :: net :: SocketAddr ) > );
+/// Receives data and ancillary data from socket.
+/// 
+/// On success, returns the number of bytes read and if the data was truncated.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(unix_socket_ancillary_data)]
+/// use std::os::unix::net::{UnixDatagram, SocketAncillary, AncillaryData};
+/// use std::io::IoSliceMut;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let sock = UnixDatagram::unbound()?;
+///     let mut buf1 = [1; 8];
+///     let mut buf2 = [2; 16];
+///     let mut buf3 = [3; 8];
+///     let mut bufs = &mut [
+///         IoSliceMut::new(&mut buf1),
+///         IoSliceMut::new(&mut buf2),
+///         IoSliceMut::new(&mut buf3),
+///     ][..];
+///     let mut fds = [0; 8];
+///     let mut ancillary_buffer = [0; 128];
+///     let mut ancillary = SocketAncillary::new(&mut ancillary_buffer[..]);
+///     let (size, _truncated) = sock.recv_vectored_with_ancillary(bufs, &mut ancillary)?;
+///     println!("received {size}");
+///     for ancillary_result in ancillary.messages() {
+///         if let AncillaryData::ScmRights(scm_rights) = ancillary_result.unwrap() {
+///             for fd in scm_rights {
+///                 println!("receive file descriptor: {fd}");
+///             }
+///         }
+///     }
+///     Ok(())
+/// }
+/// ```
 #[cfg(feature = "unix_socket_ancillary_data")]
 #[cfg(target_os = "linux")]
 fn recv_vectored_with_ancillary_wc ( & self , bufs : & mut [ std :: io :: IoSliceMut < '_ > ] , ancillary : & mut std :: os :: unix :: net :: SocketAncillary < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , bool ) > );
+/// Receives data and ancillary data from socket.
+/// 
+/// On success, returns the number of bytes read, if the data was truncated and the address from whence the msg came.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(unix_socket_ancillary_data)]
+/// use std::os::unix::net::{UnixDatagram, SocketAncillary, AncillaryData};
+/// use std::io::IoSliceMut;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let sock = UnixDatagram::unbound()?;
+///     let mut buf1 = [1; 8];
+///     let mut buf2 = [2; 16];
+///     let mut buf3 = [3; 8];
+///     let mut bufs = &mut [
+///         IoSliceMut::new(&mut buf1),
+///         IoSliceMut::new(&mut buf2),
+///         IoSliceMut::new(&mut buf3),
+///     ][..];
+///     let mut fds = [0; 8];
+///     let mut ancillary_buffer = [0; 128];
+///     let mut ancillary = SocketAncillary::new(&mut ancillary_buffer[..]);
+///     let (size, _truncated, sender) = sock.recv_vectored_with_ancillary_from(bufs, &mut ancillary)?;
+///     println!("received {size}");
+///     for ancillary_result in ancillary.messages() {
+///         if let AncillaryData::ScmRights(scm_rights) = ancillary_result.unwrap() {
+///             for fd in scm_rights {
+///                 println!("receive file descriptor: {fd}");
+///             }
+///         }
+///     }
+///     Ok(())
+/// }
+/// ```
+#[cfg(feature = "unix_socket_ancillary_data")]
+#[cfg(target_os = "linux")]
+fn recv_vectored_with_ancillary_from_wc ( & self , bufs : & mut [ std :: io :: IoSliceMut < '_ > ] , ancillary : & mut std :: os :: unix :: net :: SocketAncillary < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , bool , std :: os :: unix :: net :: SocketAddr ) > );
+/// Receives data from the socket.
+/// 
+/// On success, returns the number of bytes read and the address from
+/// whence the data came.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixDatagram;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let sock = UnixDatagram::unbound()?;
+///     let mut buf = vec![0; 10];
+///     let (size, sender) = sock.recv_from(buf.as_mut_slice())?;
+///     println!("received {size} bytes from {sender:?}");
+///     Ok(())
+/// }
+/// ```
+fn recv_from_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , std :: os :: unix :: net :: SocketAddr ) > );
+/// Receives data from the socket.
+/// 
+/// On success, returns the number of bytes read.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixDatagram;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let sock = UnixDatagram::bind("/path/to/the/socket")?;
+///     let mut buf = vec![0; 10];
+///     sock.recv(buf.as_mut_slice()).expect("recv function failed");
+///     Ok(())
+/// }
+/// ```
+fn recv_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
+/// Receives data on the socket from the remote address to which it is
+/// connected, without removing that data from the queue. On success,
+/// returns the number of bytes peeked.
+/// 
+/// Successive calls return the same data. This is accomplished by passing
+/// `MSG_PEEK` as a flag to the underlying `recv` system call.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(unix_socket_peek)]
+/// 
+/// use std::os::unix::net::UnixDatagram;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let socket = UnixDatagram::bind("/tmp/sock")?;
+///     let mut buf = [0; 10];
+///     let len = socket.peek(&mut buf).expect("peek failed");
+///     Ok(())
+/// }
+/// ```
+#[cfg(feature = "unix_socket_peek")]
+fn peek_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
+/// Returns the address of this socket's peer.
+/// 
+/// The [`connect`] method will connect the socket to a peer.
+/// 
+/// [`connect`]: UnixDatagram::connect
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixDatagram;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let sock = UnixDatagram::unbound()?;
+///     sock.connect("/path/to/the/socket")?;
+/// 
+///     let addr = sock.peer_addr().expect("Couldn't get peer address");
+///     Ok(())
+/// }
+/// ```
+fn peer_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: SocketAddr > );
+/// Returns the address of this socket.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixDatagram;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let sock = UnixDatagram::bind("/path/to/the/socket")?;
+///     let addr = sock.local_addr().expect("Couldn't get local address");
+///     Ok(())
+/// }
+/// ```
+fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: SocketAddr > );
+/// Returns the read timeout of this socket.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::os::unix::net::UnixDatagram;
+/// use std::time::Duration;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let sock = UnixDatagram::unbound()?;
+///     sock.set_read_timeout(Some(Duration::new(1, 0)))
+///         .expect("set_read_timeout function failed");
+///     assert_eq!(sock.read_timeout()?, Some(Duration::new(1, 0)));
+///     Ok(())
+/// }
+/// ```
+fn read_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > );
+/// Returns the value of the `SO_ERROR` option.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixDatagram;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let sock = UnixDatagram::unbound()?;
+///     if let Ok(Some(err)) = sock.take_error() {
+///         println!("Got error: {err:?}");
+///     }
+///     Ok(())
+/// }
+/// ```
+fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > );
+/// Returns the write timeout of this socket.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::os::unix::net::UnixDatagram;
+/// use std::time::Duration;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let sock = UnixDatagram::unbound()?;
+///     sock.set_write_timeout(Some(Duration::new(1, 0)))
+///         .expect("set_write_timeout function failed");
+///     assert_eq!(sock.write_timeout()?, Some(Duration::new(1, 0)));
+///     Ok(())
+/// }
+/// ```
+fn write_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > );
+/// Sends data and ancillary data on the socket to the specified address.
+/// 
+/// On success, returns the number of bytes written.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(unix_socket_ancillary_data)]
+/// use std::os::unix::net::{UnixDatagram, SocketAncillary};
+/// use std::io::IoSlice;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let sock = UnixDatagram::unbound()?;
+///     let buf1 = [1; 8];
+///     let buf2 = [2; 16];
+///     let buf3 = [3; 8];
+///     let bufs = &[
+///         IoSlice::new(&buf1),
+///         IoSlice::new(&buf2),
+///         IoSlice::new(&buf3),
+///     ][..];
+///     let fds = [0, 1, 2];
+///     let mut ancillary_buffer = [0; 128];
+///     let mut ancillary = SocketAncillary::new(&mut ancillary_buffer[..]);
+///     ancillary.add_fds(&fds[..]);
+///     sock.send_vectored_with_ancillary_to(bufs, &mut ancillary, "/some/sock")
+///         .expect("send_vectored_with_ancillary_to function failed");
+///     Ok(())
+/// }
+/// ```
 #[cfg(feature = "unix_socket_ancillary_data")]
 #[cfg(target_os = "linux")]
 fn send_vectored_with_ancillary_to_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , bufs : & [ std :: io :: IoSlice < '_ > ] , ancillary : & mut std :: os :: unix :: net :: SocketAncillary < '_ > , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
+/// Sends data and ancillary data on the socket.
+/// 
+/// On success, returns the number of bytes written.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(unix_socket_ancillary_data)]
+/// use std::os::unix::net::{UnixDatagram, SocketAncillary};
+/// use std::io::IoSlice;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let sock = UnixDatagram::unbound()?;
+///     let buf1 = [1; 8];
+///     let buf2 = [2; 16];
+///     let buf3 = [3; 8];
+///     let bufs = &[
+///         IoSlice::new(&buf1),
+///         IoSlice::new(&buf2),
+///         IoSlice::new(&buf3),
+///     ][..];
+///     let fds = [0, 1, 2];
+///     let mut ancillary_buffer = [0; 128];
+///     let mut ancillary = SocketAncillary::new(&mut ancillary_buffer[..]);
+///     ancillary.add_fds(&fds[..]);
+///     sock.send_vectored_with_ancillary(bufs, &mut ancillary)
+///         .expect("send_vectored_with_ancillary function failed");
+///     Ok(())
+/// }
+/// ```
 #[cfg(feature = "unix_socket_ancillary_data")]
 #[cfg(target_os = "linux")]
 fn send_vectored_with_ancillary_wc ( & self , bufs : & [ std :: io :: IoSlice < '_ > ] , ancillary : & mut std :: os :: unix :: net :: SocketAncillary < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
-#[cfg(feature = "unix_socket_peek")]
-fn peek_from_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , std :: os :: unix :: net :: SocketAddr ) > );
-#[cfg(feature = "unix_socket_peek")]
-fn peek_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
-fn bind_addr_wc ( socket_addr : & std :: os :: unix :: net :: SocketAddr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
-fn bind_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
-fn connect_addr_wc ( & self , socket_addr : & std :: os :: unix :: net :: SocketAddr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn connect_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: SocketAddr > );
-fn pair_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( Self , Self ) > );
-fn peer_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: SocketAddr > );
-fn read_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > );
-fn recv_from_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , std :: os :: unix :: net :: SocketAddr ) > );
-fn recv_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
-fn send_to_addr_wc ( & self , buf : & [ u8 ] , socket_addr : & std :: os :: unix :: net :: SocketAddr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
-fn send_to_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , buf : & [ u8 ] , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
+/// Sends data on the socket to the socket's peer.
+/// 
+/// The peer address may be set by the `connect` method, and this method
+/// will return an error if the socket has not already been connected.
+/// 
+/// On success, returns the number of bytes written.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixDatagram;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let sock = UnixDatagram::unbound()?;
+///     sock.connect("/some/sock").expect("Couldn't connect");
+///     sock.send(b"omelette au fromage").expect("send_to function failed");
+///     Ok(())
+/// }
+/// ```
 fn send_wc ( & self , buf : & [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
-fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Sends data on the socket to the specified [SocketAddr].
+/// 
+/// On success, returns the number of bytes written.
+/// 
+/// [SocketAddr]: crate::os::unix::net::SocketAddr
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::{UnixDatagram};
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let bound = UnixDatagram::bind("/path/to/socket")?;
+///     let addr = bound.local_addr()?;
+/// 
+///     let sock = UnixDatagram::unbound()?;
+///     sock.send_to_addr(b"bacon egg and cheese", &addr).expect("send_to_addr function failed");
+///     Ok(())
+/// }
+/// ```
+fn send_to_addr_wc ( & self , buf : & [ u8 ] , socket_addr : & std :: os :: unix :: net :: SocketAddr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
+/// Sends data on the socket to the specified address.
+/// 
+/// On success, returns the number of bytes written.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixDatagram;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let sock = UnixDatagram::unbound()?;
+///     sock.send_to(b"omelette au fromage", "/some/sock").expect("send_to function failed");
+///     Ok(())
+/// }
+/// ```
+fn send_to_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , buf : & [ u8 ] , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
+/// Set the id of the socket for network filtering purpose
+/// 
+/// ```no_run
+/// #![feature(unix_set_mark)]
+/// use std::os::unix::net::UnixDatagram;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let sock = UnixDatagram::unbound()?;
+///     sock.set_mark(32)?;
+///     Ok(())
+/// }
+/// ```
+#[cfg(feature = "unix_set_mark")]
+#[cfg(target_os = "linux")]
+fn set_mark_wc ( & self , mark : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Sets the read timeout for the socket.
+/// 
+/// If the provided value is [`None`], then [`recv`] and [`recv_from`] calls will
+/// block indefinitely. An [`Err`] is returned if the zero [`Duration`]
+/// is passed to this method.
+/// 
+/// [`recv`]: UnixDatagram::recv
+/// [`recv_from`]: UnixDatagram::recv_from
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::os::unix::net::UnixDatagram;
+/// use std::time::Duration;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let sock = UnixDatagram::unbound()?;
+///     sock.set_read_timeout(Some(Duration::new(1, 0)))
+///         .expect("set_read_timeout function failed");
+///     Ok(())
+/// }
+/// ```
+/// 
+/// An [`Err`] is returned if the zero [`Duration`] is passed to this
+/// method:
+/// 
+/// ```no_run
+/// use std::io;
+/// use std::os::unix::net::UnixDatagram;
+/// use std::time::Duration;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let socket = UnixDatagram::unbound()?;
+///     let result = socket.set_read_timeout(Some(Duration::new(0, 0)));
+///     let err = result.unwrap_err();
+///     assert_eq!(err.kind(), io::ErrorKind::InvalidInput);
+///     Ok(())
+/// }
+/// ```
 fn set_read_timeout_wc ( & self , timeout : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Sets the write timeout for the socket.
+/// 
+/// If the provided value is [`None`], then [`send`] and [`send_to`] calls will
+/// block indefinitely. An [`Err`] is returned if the zero [`Duration`] is passed to this
+/// method.
+/// 
+/// [`send`]: UnixDatagram::send
+/// [`send_to`]: UnixDatagram::send_to
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::os::unix::net::UnixDatagram;
+/// use std::time::Duration;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let sock = UnixDatagram::unbound()?;
+///     sock.set_write_timeout(Some(Duration::new(1, 0)))
+///         .expect("set_write_timeout function failed");
+///     Ok(())
+/// }
+/// ```
+/// 
+/// An [`Err`] is returned if the zero [`Duration`] is passed to this
+/// method:
+/// 
+/// ```no_run
+/// use std::io;
+/// use std::os::unix::net::UnixDatagram;
+/// use std::time::Duration;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let socket = UnixDatagram::unbound()?;
+///     let result = socket.set_write_timeout(Some(Duration::new(0, 0)));
+///     let err = result.unwrap_err();
+///     assert_eq!(err.kind(), io::ErrorKind::InvalidInput);
+///     Ok(())
+/// }
+/// ```
 fn set_write_timeout_wc ( & self , timeout : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Shut down the read, write, or both halves of this connection.
+/// 
+/// This function will cause all pending and future I/O calls on the
+/// specified portions to immediately return with an appropriate value
+/// (see the documentation of [`Shutdown`]).
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixDatagram;
+/// use std::net::Shutdown;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let sock = UnixDatagram::unbound()?;
+///     sock.shutdown(Shutdown::Both).expect("shutdown function failed");
+///     Ok(())
+/// }
+/// ```
 fn shutdown_wc ( & self , how : std :: net :: Shutdown ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > );
-fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
-fn unbound_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
-fn write_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > );
 }
 #[cfg(unix)]
 impl UnixDatagramContext for std :: os :: unix :: net :: UnixDatagram {
-#[cfg(feature = "unix_set_mark")]
+fn connect_addr_wc ( & self , socket_addr : & std :: os :: unix :: net :: SocketAddr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: os :: unix :: net :: UnixDatagram :: connect_addr(self, socket_addr)
+        .with_context(|| crate::call_failed!(Some(self), "connect_addr", socket_addr))
+}
+fn connect_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    let path = path.as_ref();
+    std :: os :: unix :: net :: UnixDatagram :: connect(self, path)
+        .with_context(|| crate::call_failed!(Some(self), "connect", path))
+}
+fn unbound_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
+    std :: os :: unix :: net :: UnixDatagram :: unbound()
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::net::UnixDatagram::unbound"))
+}
+fn bind_addr_wc ( socket_addr : & std :: os :: unix :: net :: SocketAddr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
+    std :: os :: unix :: net :: UnixDatagram :: bind_addr(socket_addr)
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::net::UnixDatagram::bind_addr", socket_addr))
+}
+fn bind_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
+    let path = path.as_ref();
+    std :: os :: unix :: net :: UnixDatagram :: bind(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::net::UnixDatagram::bind", path))
+}
+fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
+    std :: os :: unix :: net :: UnixDatagram :: try_clone(self)
+        .with_context(|| crate::call_failed!(Some(self), "try_clone"))
+}
+fn pair_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( Self , Self ) > ) {
+    std :: os :: unix :: net :: UnixDatagram :: pair()
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::net::UnixDatagram::pair"))
+}
+fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: os :: unix :: net :: UnixDatagram :: set_nonblocking(self, nonblocking)
+        .with_context(|| crate::call_failed!(Some(self), "set_nonblocking", nonblocking))
+}
+#[cfg(feature = "unix_socket_peek")]
+fn peek_from_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , std :: os :: unix :: net :: SocketAddr ) > ) {
+    std :: os :: unix :: net :: UnixDatagram :: peek_from(self, buf)
+        .with_context(|| crate::call_failed!(Some(self), "peek_from", buf))
+}
+#[cfg(feature = "unix_socket_ancillary_data")]
 #[cfg(target_os = "linux")]
-fn set_mark_wc ( & self , mark : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    std :: os :: unix :: net :: UnixDatagram :: set_mark(self, mark)
-        .with_context(|| crate::call_failed!(Some(self), "set_mark", mark))
+fn recv_vectored_with_ancillary_wc ( & self , bufs : & mut [ std :: io :: IoSliceMut < '_ > ] , ancillary : & mut std :: os :: unix :: net :: SocketAncillary < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , bool ) > ) {
+    std :: os :: unix :: net :: UnixDatagram :: recv_vectored_with_ancillary(self, bufs, ancillary)
+        .with_context(|| crate::call_failed!(Some(self), "recv_vectored_with_ancillary", bufs, ancillary))
 }
 #[cfg(feature = "unix_socket_ancillary_data")]
 #[cfg(target_os = "linux")]
@@ -80,11 +775,38 @@ fn recv_vectored_with_ancillary_from_wc ( & self , bufs : & mut [ std :: io :: I
     std :: os :: unix :: net :: UnixDatagram :: recv_vectored_with_ancillary_from(self, bufs, ancillary)
         .with_context(|| crate::call_failed!(Some(self), "recv_vectored_with_ancillary_from", bufs, ancillary))
 }
-#[cfg(feature = "unix_socket_ancillary_data")]
-#[cfg(target_os = "linux")]
-fn recv_vectored_with_ancillary_wc ( & self , bufs : & mut [ std :: io :: IoSliceMut < '_ > ] , ancillary : & mut std :: os :: unix :: net :: SocketAncillary < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , bool ) > ) {
-    std :: os :: unix :: net :: UnixDatagram :: recv_vectored_with_ancillary(self, bufs, ancillary)
-        .with_context(|| crate::call_failed!(Some(self), "recv_vectored_with_ancillary", bufs, ancillary))
+fn recv_from_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , std :: os :: unix :: net :: SocketAddr ) > ) {
+    std :: os :: unix :: net :: UnixDatagram :: recv_from(self, buf)
+        .with_context(|| crate::call_failed!(Some(self), "recv_from", buf))
+}
+fn recv_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
+    std :: os :: unix :: net :: UnixDatagram :: recv(self, buf)
+        .with_context(|| crate::call_failed!(Some(self), "recv", buf))
+}
+#[cfg(feature = "unix_socket_peek")]
+fn peek_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
+    std :: os :: unix :: net :: UnixDatagram :: peek(self, buf)
+        .with_context(|| crate::call_failed!(Some(self), "peek", buf))
+}
+fn peer_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: SocketAddr > ) {
+    std :: os :: unix :: net :: UnixDatagram :: peer_addr(self)
+        .with_context(|| crate::call_failed!(Some(self), "peer_addr"))
+}
+fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: SocketAddr > ) {
+    std :: os :: unix :: net :: UnixDatagram :: local_addr(self)
+        .with_context(|| crate::call_failed!(Some(self), "local_addr"))
+}
+fn read_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
+    std :: os :: unix :: net :: UnixDatagram :: read_timeout(self)
+        .with_context(|| crate::call_failed!(Some(self), "read_timeout"))
+}
+fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > ) {
+    std :: os :: unix :: net :: UnixDatagram :: take_error(self)
+        .with_context(|| crate::call_failed!(Some(self), "take_error"))
+}
+fn write_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
+    std :: os :: unix :: net :: UnixDatagram :: write_timeout(self)
+        .with_context(|| crate::call_failed!(Some(self), "write_timeout"))
 }
 #[cfg(feature = "unix_socket_ancillary_data")]
 #[cfg(target_os = "linux")]
@@ -99,57 +821,9 @@ fn send_vectored_with_ancillary_wc ( & self , bufs : & [ std :: io :: IoSlice < 
     std :: os :: unix :: net :: UnixDatagram :: send_vectored_with_ancillary(self, bufs, ancillary)
         .with_context(|| crate::call_failed!(Some(self), "send_vectored_with_ancillary", bufs, ancillary))
 }
-#[cfg(feature = "unix_socket_peek")]
-fn peek_from_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , std :: os :: unix :: net :: SocketAddr ) > ) {
-    std :: os :: unix :: net :: UnixDatagram :: peek_from(self, buf)
-        .with_context(|| crate::call_failed!(Some(self), "peek_from", buf))
-}
-#[cfg(feature = "unix_socket_peek")]
-fn peek_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-    std :: os :: unix :: net :: UnixDatagram :: peek(self, buf)
-        .with_context(|| crate::call_failed!(Some(self), "peek", buf))
-}
-fn bind_addr_wc ( socket_addr : & std :: os :: unix :: net :: SocketAddr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
-    std :: os :: unix :: net :: UnixDatagram :: bind_addr(socket_addr)
-        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::net::UnixDatagram::bind_addr", socket_addr))
-}
-fn bind_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
-    let path = path.as_ref();
-    std :: os :: unix :: net :: UnixDatagram :: bind(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::net::UnixDatagram::bind", path))
-}
-fn connect_addr_wc ( & self , socket_addr : & std :: os :: unix :: net :: SocketAddr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    std :: os :: unix :: net :: UnixDatagram :: connect_addr(self, socket_addr)
-        .with_context(|| crate::call_failed!(Some(self), "connect_addr", socket_addr))
-}
-fn connect_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let path = path.as_ref();
-    std :: os :: unix :: net :: UnixDatagram :: connect(self, path)
-        .with_context(|| crate::call_failed!(Some(self), "connect", path))
-}
-fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: SocketAddr > ) {
-    std :: os :: unix :: net :: UnixDatagram :: local_addr(self)
-        .with_context(|| crate::call_failed!(Some(self), "local_addr"))
-}
-fn pair_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( Self , Self ) > ) {
-    std :: os :: unix :: net :: UnixDatagram :: pair()
-        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::net::UnixDatagram::pair"))
-}
-fn peer_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: SocketAddr > ) {
-    std :: os :: unix :: net :: UnixDatagram :: peer_addr(self)
-        .with_context(|| crate::call_failed!(Some(self), "peer_addr"))
-}
-fn read_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
-    std :: os :: unix :: net :: UnixDatagram :: read_timeout(self)
-        .with_context(|| crate::call_failed!(Some(self), "read_timeout"))
-}
-fn recv_from_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , std :: os :: unix :: net :: SocketAddr ) > ) {
-    std :: os :: unix :: net :: UnixDatagram :: recv_from(self, buf)
-        .with_context(|| crate::call_failed!(Some(self), "recv_from", buf))
-}
-fn recv_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-    std :: os :: unix :: net :: UnixDatagram :: recv(self, buf)
-        .with_context(|| crate::call_failed!(Some(self), "recv", buf))
+fn send_wc ( & self , buf : & [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
+    std :: os :: unix :: net :: UnixDatagram :: send(self, buf)
+        .with_context(|| crate::call_failed!(Some(self), "send", buf))
 }
 fn send_to_addr_wc ( & self , buf : & [ u8 ] , socket_addr : & std :: os :: unix :: net :: SocketAddr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     std :: os :: unix :: net :: UnixDatagram :: send_to_addr(self, buf, socket_addr)
@@ -160,13 +834,11 @@ fn send_to_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self 
     std :: os :: unix :: net :: UnixDatagram :: send_to(self, buf, path)
         .with_context(|| crate::call_failed!(Some(self), "send_to", buf, path))
 }
-fn send_wc ( & self , buf : & [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-    std :: os :: unix :: net :: UnixDatagram :: send(self, buf)
-        .with_context(|| crate::call_failed!(Some(self), "send", buf))
-}
-fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    std :: os :: unix :: net :: UnixDatagram :: set_nonblocking(self, nonblocking)
-        .with_context(|| crate::call_failed!(Some(self), "set_nonblocking", nonblocking))
+#[cfg(feature = "unix_set_mark")]
+#[cfg(target_os = "linux")]
+fn set_mark_wc ( & self , mark : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: os :: unix :: net :: UnixDatagram :: set_mark(self, mark)
+        .with_context(|| crate::call_failed!(Some(self), "set_mark", mark))
 }
 fn set_read_timeout_wc ( & self , timeout : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     std :: os :: unix :: net :: UnixDatagram :: set_read_timeout(self, timeout)
@@ -180,32 +852,145 @@ fn shutdown_wc ( & self , how : std :: net :: Shutdown ) -> crate :: rewrite_out
     std :: os :: unix :: net :: UnixDatagram :: shutdown(self, how)
         .with_context(|| crate::call_failed!(Some(self), "shutdown", how))
 }
-fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > ) {
-    std :: os :: unix :: net :: UnixDatagram :: take_error(self)
-        .with_context(|| crate::call_failed!(Some(self), "take_error"))
-}
-fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
-    std :: os :: unix :: net :: UnixDatagram :: try_clone(self)
-        .with_context(|| crate::call_failed!(Some(self), "try_clone"))
-}
-fn unbound_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
-    std :: os :: unix :: net :: UnixDatagram :: unbound()
-        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::net::UnixDatagram::unbound"))
-}
-fn write_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
-    std :: os :: unix :: net :: UnixDatagram :: write_timeout(self)
-        .with_context(|| crate::call_failed!(Some(self), "write_timeout"))
-}
 }
 #[cfg(unix)]
 pub trait UnixListenerContext: Sized {
+/// Accepts a new incoming connection to this listener.
+/// 
+/// This function will block the calling thread until a new Unix connection
+/// is established. When established, the corresponding [`UnixStream`] and
+/// the remote peer's address will be returned.
+/// 
+/// [`UnixStream`]: crate::os::unix::net::UnixStream
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixListener;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let listener = UnixListener::bind("/path/to/the/socket")?;
+/// 
+///     match listener.accept() {
+///         Ok((socket, addr)) => println!("Got a client: {addr:?}"),
+///         Err(e) => println!("accept function failed: {e:?}"),
+///     }
+///     Ok(())
+/// }
+/// ```
 fn accept_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( std :: os :: unix :: net :: UnixStream , std :: os :: unix :: net :: SocketAddr ) > );
+/// Creates a new `UnixListener` bound to the specified [`socket address`].
+/// 
+/// [`socket address`]: crate::os::unix::net::SocketAddr
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::{UnixListener};
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let listener1 = UnixListener::bind("path/to/socket")?;
+///     let addr = listener1.local_addr()?;
+/// 
+///     let listener2 = match UnixListener::bind_addr(&addr) {
+///         Ok(sock) => sock,
+///         Err(err) => {
+///             println!("Couldn't bind: {err:?}");
+///             return Err(err);
+///         }
+///     };
+///     Ok(())
+/// }
+/// ```
 fn bind_addr_wc ( socket_addr : & std :: os :: unix :: net :: SocketAddr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+/// Creates a new `UnixListener` bound to the specified socket.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixListener;
+/// 
+/// let listener = match UnixListener::bind("/path/to/the/socket") {
+///     Ok(sock) => sock,
+///     Err(e) => {
+///         println!("Couldn't connect: {e:?}");
+///         return
+///     }
+/// };
+/// ```
 fn bind_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
-fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: SocketAddr > );
-fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > );
+/// Creates a new independently owned handle to the underlying socket.
+/// 
+/// The returned `UnixListener` is a reference to the same socket that this
+/// object references. Both handles can be used to accept incoming
+/// connections and options set on one listener will affect the other.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixListener;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let listener = UnixListener::bind("/path/to/the/socket")?;
+///     let listener_copy = listener.try_clone().expect("try_clone failed");
+///     Ok(())
+/// }
+/// ```
 fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+/// Moves the socket into or out of nonblocking mode.
+/// 
+/// This will result in the `accept` operation becoming nonblocking,
+/// i.e., immediately returning from their calls. If the IO operation is
+/// successful, `Ok` is returned and no further action is required. If the
+/// IO operation could not be completed and needs to be retried, an error
+/// with kind [`io::ErrorKind::WouldBlock`] is returned.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixListener;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let listener = UnixListener::bind("/path/to/the/socket")?;
+///     listener.set_nonblocking(true).expect("Couldn't set non blocking");
+///     Ok(())
+/// }
+/// ```
+fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Returns the local socket address of this listener.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixListener;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let listener = UnixListener::bind("/path/to/the/socket")?;
+///     let addr = listener.local_addr().expect("Couldn't get local address");
+///     Ok(())
+/// }
+/// ```
+fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: SocketAddr > );
+/// Returns the value of the `SO_ERROR` option.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixListener;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let listener = UnixListener::bind("/tmp/sock")?;
+/// 
+///     if let Ok(Some(err)) = listener.take_error() {
+///         println!("Got error: {err:?}");
+///     }
+///     Ok(())
+/// }
+/// ```
+/// 
+/// # Platform specific
+/// On Redox this always returns `None`.
+fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > );
 }
 #[cfg(unix)]
 impl UnixListenerContext for std :: os :: unix :: net :: UnixListener {
@@ -222,64 +1007,446 @@ fn bind_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P )
     std :: os :: unix :: net :: UnixListener :: bind(path)
         .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::net::UnixListener::bind", path))
 }
-fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: SocketAddr > ) {
-    std :: os :: unix :: net :: UnixListener :: local_addr(self)
-        .with_context(|| crate::call_failed!(Some(self), "local_addr"))
+fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
+    std :: os :: unix :: net :: UnixListener :: try_clone(self)
+        .with_context(|| crate::call_failed!(Some(self), "try_clone"))
 }
 fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     std :: os :: unix :: net :: UnixListener :: set_nonblocking(self, nonblocking)
         .with_context(|| crate::call_failed!(Some(self), "set_nonblocking", nonblocking))
 }
+fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: SocketAddr > ) {
+    std :: os :: unix :: net :: UnixListener :: local_addr(self)
+        .with_context(|| crate::call_failed!(Some(self), "local_addr"))
+}
 fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > ) {
     std :: os :: unix :: net :: UnixListener :: take_error(self)
         .with_context(|| crate::call_failed!(Some(self), "take_error"))
 }
-fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
-    std :: os :: unix :: net :: UnixListener :: try_clone(self)
-        .with_context(|| crate::call_failed!(Some(self), "try_clone"))
-}
 }
 #[cfg(unix)]
 pub trait UnixStreamContext: Sized {
+/// Connects to the socket named by `path`.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixStream;
+/// 
+/// let socket = match UnixStream::connect("/tmp/sock") {
+///     Ok(sock) => sock,
+///     Err(e) => {
+///         println!("Couldn't connect: {e:?}");
+///         return
+///     }
+/// };
+/// ```
+fn connect_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+/// Connects to the socket specified by [`address`].
+/// 
+/// [`address`]: crate::os::unix::net::SocketAddr
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::{UnixListener, UnixStream};
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let listener = UnixListener::bind("/path/to/the/socket")?;
+///     let addr = listener.local_addr()?;
+/// 
+///     let sock = match UnixStream::connect_addr(&addr) {
+///         Ok(sock) => sock,
+///         Err(e) => {
+///             println!("Couldn't connect: {e:?}");
+///             return Err(e)
+///         }
+///     };
+///     Ok(())
+/// }
+/// ````
+fn connect_addr_wc ( socket_addr : & std :: os :: unix :: net :: SocketAddr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+/// Creates a new independently owned handle to the underlying socket.
+/// 
+/// The returned `UnixStream` is a reference to the same stream that this
+/// object references. Both handles will read and write the same stream of
+/// data, and options set on one stream will be propagated to the other
+/// stream.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixStream;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let socket = UnixStream::connect("/tmp/sock")?;
+///     let sock_copy = socket.try_clone().expect("Couldn't clone socket");
+///     Ok(())
+/// }
+/// ```
+fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+/// Creates an unnamed pair of connected sockets.
+/// 
+/// Returns two `UnixStream`s which are connected to each other.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixStream;
+/// 
+/// let (sock1, sock2) = match UnixStream::pair() {
+///     Ok((sock1, sock2)) => (sock1, sock2),
+///     Err(e) => {
+///         println!("Couldn't create a pair of sockets: {e:?}");
+///         return
+///     }
+/// };
+/// ```
+fn pair_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( Self , Self ) > );
+/// Gets the peer credentials for this Unix domain socket.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(peer_credentials_unix_socket)]
+/// use std::os::unix::net::UnixStream;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let socket = UnixStream::connect("/tmp/sock")?;
+///     let peer_cred = socket.peer_cred().expect("Couldn't get peer credentials");
+///     Ok(())
+/// }
+/// ```
 #[cfg(feature = "peer_credentials_unix_socket")]
 fn peer_cred_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: UCred > );
-#[cfg(feature = "unix_set_mark")]
-#[cfg(target_os = "linux")]
-fn set_mark_wc ( & self , mark : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Moves the socket into or out of nonblocking mode.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixStream;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let socket = UnixStream::connect("/tmp/sock")?;
+///     socket.set_nonblocking(true).expect("Couldn't set nonblocking");
+///     Ok(())
+/// }
+/// ```
+fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Receives data and ancillary data from socket.
+/// 
+/// On success, returns the number of bytes read.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(unix_socket_ancillary_data)]
+/// use std::os::unix::net::{UnixStream, SocketAncillary, AncillaryData};
+/// use std::io::IoSliceMut;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let socket = UnixStream::connect("/tmp/sock")?;
+///     let mut buf1 = [1; 8];
+///     let mut buf2 = [2; 16];
+///     let mut buf3 = [3; 8];
+///     let mut bufs = &mut [
+///         IoSliceMut::new(&mut buf1),
+///         IoSliceMut::new(&mut buf2),
+///         IoSliceMut::new(&mut buf3),
+///     ][..];
+///     let mut fds = [0; 8];
+///     let mut ancillary_buffer = [0; 128];
+///     let mut ancillary = SocketAncillary::new(&mut ancillary_buffer[..]);
+///     let size = socket.recv_vectored_with_ancillary(bufs, &mut ancillary)?;
+///     println!("received {size}");
+///     for ancillary_result in ancillary.messages() {
+///         if let AncillaryData::ScmRights(scm_rights) = ancillary_result.unwrap() {
+///             for fd in scm_rights {
+///                 println!("receive file descriptor: {fd}");
+///             }
+///         }
+///     }
+///     Ok(())
+/// }
+/// ```
 #[cfg(feature = "unix_socket_ancillary_data")]
 #[cfg(target_os = "linux")]
 fn recv_vectored_with_ancillary_wc ( & self , bufs : & mut [ std :: io :: IoSliceMut < '_ > ] , ancillary : & mut std :: os :: unix :: net :: SocketAncillary < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
+/// Receives data on the socket from the remote address to which it is
+/// connected, without removing that data from the queue. On success,
+/// returns the number of bytes peeked.
+/// 
+/// Successive calls return the same data. This is accomplished by passing
+/// `MSG_PEEK` as a flag to the underlying `recv` system call.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(unix_socket_peek)]
+/// 
+/// use std::os::unix::net::UnixStream;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let socket = UnixStream::connect("/tmp/sock")?;
+///     let mut buf = [0; 10];
+///     let len = socket.peek(&mut buf).expect("peek failed");
+///     Ok(())
+/// }
+/// ```
+#[cfg(feature = "unix_socket_peek")]
+fn peek_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
+/// Returns the read timeout of this socket.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixStream;
+/// use std::time::Duration;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let socket = UnixStream::connect("/tmp/sock")?;
+///     socket.set_read_timeout(Some(Duration::new(1, 0))).expect("Couldn't set read timeout");
+///     assert_eq!(socket.read_timeout()?, Some(Duration::new(1, 0)));
+///     Ok(())
+/// }
+/// ```
+fn read_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > );
+/// Returns the socket address of the local half of this connection.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixStream;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let socket = UnixStream::connect("/tmp/sock")?;
+///     let addr = socket.local_addr().expect("Couldn't get local address");
+///     Ok(())
+/// }
+/// ```
+fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: SocketAddr > );
+/// Returns the socket address of the remote half of this connection.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixStream;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let socket = UnixStream::connect("/tmp/sock")?;
+///     let addr = socket.peer_addr().expect("Couldn't get peer address");
+///     Ok(())
+/// }
+/// ```
+fn peer_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: SocketAddr > );
+/// Returns the value of the `SO_ERROR` option.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixStream;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let socket = UnixStream::connect("/tmp/sock")?;
+///     if let Ok(Some(err)) = socket.take_error() {
+///         println!("Got error: {err:?}");
+///     }
+///     Ok(())
+/// }
+/// ```
+/// 
+/// # Platform specific
+/// On Redox this always returns `None`.
+fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > );
+/// Returns the write timeout of this socket.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixStream;
+/// use std::time::Duration;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let socket = UnixStream::connect("/tmp/sock")?;
+///     socket.set_write_timeout(Some(Duration::new(1, 0)))
+///         .expect("Couldn't set write timeout");
+///     assert_eq!(socket.write_timeout()?, Some(Duration::new(1, 0)));
+///     Ok(())
+/// }
+/// ```
+fn write_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > );
+/// Sends data and ancillary data on the socket.
+/// 
+/// On success, returns the number of bytes written.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(unix_socket_ancillary_data)]
+/// use std::os::unix::net::{UnixStream, SocketAncillary};
+/// use std::io::IoSlice;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let socket = UnixStream::connect("/tmp/sock")?;
+///     let buf1 = [1; 8];
+///     let buf2 = [2; 16];
+///     let buf3 = [3; 8];
+///     let bufs = &[
+///         IoSlice::new(&buf1),
+///         IoSlice::new(&buf2),
+///         IoSlice::new(&buf3),
+///     ][..];
+///     let fds = [0, 1, 2];
+///     let mut ancillary_buffer = [0; 128];
+///     let mut ancillary = SocketAncillary::new(&mut ancillary_buffer[..]);
+///     ancillary.add_fds(&fds[..]);
+///     socket.send_vectored_with_ancillary(bufs, &mut ancillary)
+///         .expect("send_vectored_with_ancillary function failed");
+///     Ok(())
+/// }
+/// ```
 #[cfg(feature = "unix_socket_ancillary_data")]
 #[cfg(target_os = "linux")]
 fn send_vectored_with_ancillary_wc ( & self , bufs : & [ std :: io :: IoSlice < '_ > ] , ancillary : & mut std :: os :: unix :: net :: SocketAncillary < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
-#[cfg(feature = "unix_socket_peek")]
-fn peek_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
-fn connect_addr_wc ( socket_addr : & std :: os :: unix :: net :: SocketAddr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
-fn connect_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
-fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: SocketAddr > );
-fn pair_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( Self , Self ) > );
-fn peer_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: SocketAddr > );
-fn read_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > );
-fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Set the id of the socket for network filtering purpose
+/// 
+/// ```no_run
+/// #![feature(unix_set_mark)]
+/// use std::os::unix::net::UnixStream;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let sock = UnixStream::connect("/tmp/sock")?;
+///     sock.set_mark(32)?;
+///     Ok(())
+/// }
+/// ```
+#[cfg(feature = "unix_set_mark")]
+#[cfg(target_os = "linux")]
+fn set_mark_wc ( & self , mark : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Sets the read timeout for the socket.
+/// 
+/// If the provided value is [`None`], then [`read`] calls will block
+/// indefinitely. An [`Err`] is returned if the zero [`Duration`] is passed to this
+/// method.
+/// 
+/// [`read`]: io::Read::read
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixStream;
+/// use std::time::Duration;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let socket = UnixStream::connect("/tmp/sock")?;
+///     socket.set_read_timeout(Some(Duration::new(1, 0))).expect("Couldn't set read timeout");
+///     Ok(())
+/// }
+/// ```
+/// 
+/// An [`Err`] is returned if the zero [`Duration`] is passed to this
+/// method:
+/// 
+/// ```no_run
+/// use std::io;
+/// use std::os::unix::net::UnixStream;
+/// use std::time::Duration;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let socket = UnixStream::connect("/tmp/sock")?;
+///     let result = socket.set_read_timeout(Some(Duration::new(0, 0)));
+///     let err = result.unwrap_err();
+///     assert_eq!(err.kind(), io::ErrorKind::InvalidInput);
+///     Ok(())
+/// }
+/// ```
 fn set_read_timeout_wc ( & self , timeout : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Sets the write timeout for the socket.
+/// 
+/// If the provided value is [`None`], then [`write`] calls will block
+/// indefinitely. An [`Err`] is returned if the zero [`Duration`] is
+/// passed to this method.
+/// 
+/// [`read`]: io::Read::read
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixStream;
+/// use std::time::Duration;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let socket = UnixStream::connect("/tmp/sock")?;
+///     socket.set_write_timeout(Some(Duration::new(1, 0)))
+///         .expect("Couldn't set write timeout");
+///     Ok(())
+/// }
+/// ```
+/// 
+/// An [`Err`] is returned if the zero [`Duration`] is passed to this
+/// method:
+/// 
+/// ```no_run
+/// use std::io;
+/// use std::net::UdpSocket;
+/// use std::time::Duration;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let socket = UdpSocket::bind("127.0.0.1:34254")?;
+///     let result = socket.set_write_timeout(Some(Duration::new(0, 0)));
+///     let err = result.unwrap_err();
+///     assert_eq!(err.kind(), io::ErrorKind::InvalidInput);
+///     Ok(())
+/// }
+/// ```
 fn set_write_timeout_wc ( & self , timeout : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Shuts down the read, write, or both halves of this connection.
+/// 
+/// This function will cause all pending and future I/O calls on the
+/// specified portions to immediately return with an appropriate value
+/// (see the documentation of [`Shutdown`]).
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::UnixStream;
+/// use std::net::Shutdown;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let socket = UnixStream::connect("/tmp/sock")?;
+///     socket.shutdown(Shutdown::Both).expect("shutdown function failed");
+///     Ok(())
+/// }
+/// ```
 fn shutdown_wc ( & self , how : std :: net :: Shutdown ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > );
-fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
-fn write_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > );
 }
 #[cfg(unix)]
 impl UnixStreamContext for std :: os :: unix :: net :: UnixStream {
+fn connect_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
+    let path = path.as_ref();
+    std :: os :: unix :: net :: UnixStream :: connect(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::net::UnixStream::connect", path))
+}
+fn connect_addr_wc ( socket_addr : & std :: os :: unix :: net :: SocketAddr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
+    std :: os :: unix :: net :: UnixStream :: connect_addr(socket_addr)
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::net::UnixStream::connect_addr", socket_addr))
+}
+fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
+    std :: os :: unix :: net :: UnixStream :: try_clone(self)
+        .with_context(|| crate::call_failed!(Some(self), "try_clone"))
+}
+fn pair_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( Self , Self ) > ) {
+    std :: os :: unix :: net :: UnixStream :: pair()
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::net::UnixStream::pair"))
+}
 #[cfg(feature = "peer_credentials_unix_socket")]
 fn peer_cred_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: UCred > ) {
     std :: os :: unix :: net :: UnixStream :: peer_cred(self)
         .with_context(|| crate::call_failed!(Some(self), "peer_cred"))
 }
-#[cfg(feature = "unix_set_mark")]
-#[cfg(target_os = "linux")]
-fn set_mark_wc ( & self , mark : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    std :: os :: unix :: net :: UnixStream :: set_mark(self, mark)
-        .with_context(|| crate::call_failed!(Some(self), "set_mark", mark))
+fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: os :: unix :: net :: UnixStream :: set_nonblocking(self, nonblocking)
+        .with_context(|| crate::call_failed!(Some(self), "set_nonblocking", nonblocking))
 }
 #[cfg(feature = "unix_socket_ancillary_data")]
 #[cfg(target_os = "linux")]
@@ -287,45 +1454,42 @@ fn recv_vectored_with_ancillary_wc ( & self , bufs : & mut [ std :: io :: IoSlic
     std :: os :: unix :: net :: UnixStream :: recv_vectored_with_ancillary(self, bufs, ancillary)
         .with_context(|| crate::call_failed!(Some(self), "recv_vectored_with_ancillary", bufs, ancillary))
 }
+#[cfg(feature = "unix_socket_peek")]
+fn peek_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
+    std :: os :: unix :: net :: UnixStream :: peek(self, buf)
+        .with_context(|| crate::call_failed!(Some(self), "peek", buf))
+}
+fn read_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
+    std :: os :: unix :: net :: UnixStream :: read_timeout(self)
+        .with_context(|| crate::call_failed!(Some(self), "read_timeout"))
+}
+fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: SocketAddr > ) {
+    std :: os :: unix :: net :: UnixStream :: local_addr(self)
+        .with_context(|| crate::call_failed!(Some(self), "local_addr"))
+}
+fn peer_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: SocketAddr > ) {
+    std :: os :: unix :: net :: UnixStream :: peer_addr(self)
+        .with_context(|| crate::call_failed!(Some(self), "peer_addr"))
+}
+fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > ) {
+    std :: os :: unix :: net :: UnixStream :: take_error(self)
+        .with_context(|| crate::call_failed!(Some(self), "take_error"))
+}
+fn write_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
+    std :: os :: unix :: net :: UnixStream :: write_timeout(self)
+        .with_context(|| crate::call_failed!(Some(self), "write_timeout"))
+}
 #[cfg(feature = "unix_socket_ancillary_data")]
 #[cfg(target_os = "linux")]
 fn send_vectored_with_ancillary_wc ( & self , bufs : & [ std :: io :: IoSlice < '_ > ] , ancillary : & mut std :: os :: unix :: net :: SocketAncillary < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     std :: os :: unix :: net :: UnixStream :: send_vectored_with_ancillary(self, bufs, ancillary)
         .with_context(|| crate::call_failed!(Some(self), "send_vectored_with_ancillary", bufs, ancillary))
 }
-#[cfg(feature = "unix_socket_peek")]
-fn peek_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-    std :: os :: unix :: net :: UnixStream :: peek(self, buf)
-        .with_context(|| crate::call_failed!(Some(self), "peek", buf))
-}
-fn connect_addr_wc ( socket_addr : & std :: os :: unix :: net :: SocketAddr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
-    std :: os :: unix :: net :: UnixStream :: connect_addr(socket_addr)
-        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::net::UnixStream::connect_addr", socket_addr))
-}
-fn connect_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
-    let path = path.as_ref();
-    std :: os :: unix :: net :: UnixStream :: connect(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::net::UnixStream::connect", path))
-}
-fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: SocketAddr > ) {
-    std :: os :: unix :: net :: UnixStream :: local_addr(self)
-        .with_context(|| crate::call_failed!(Some(self), "local_addr"))
-}
-fn pair_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( Self , Self ) > ) {
-    std :: os :: unix :: net :: UnixStream :: pair()
-        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::net::UnixStream::pair"))
-}
-fn peer_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: SocketAddr > ) {
-    std :: os :: unix :: net :: UnixStream :: peer_addr(self)
-        .with_context(|| crate::call_failed!(Some(self), "peer_addr"))
-}
-fn read_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
-    std :: os :: unix :: net :: UnixStream :: read_timeout(self)
-        .with_context(|| crate::call_failed!(Some(self), "read_timeout"))
-}
-fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    std :: os :: unix :: net :: UnixStream :: set_nonblocking(self, nonblocking)
-        .with_context(|| crate::call_failed!(Some(self), "set_nonblocking", nonblocking))
+#[cfg(feature = "unix_set_mark")]
+#[cfg(target_os = "linux")]
+fn set_mark_wc ( & self , mark : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: os :: unix :: net :: UnixStream :: set_mark(self, mark)
+        .with_context(|| crate::call_failed!(Some(self), "set_mark", mark))
 }
 fn set_read_timeout_wc ( & self , timeout : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     std :: os :: unix :: net :: UnixStream :: set_read_timeout(self, timeout)
@@ -338,18 +1502,6 @@ fn set_write_timeout_wc ( & self , timeout : core :: option :: Option < core :: 
 fn shutdown_wc ( & self , how : std :: net :: Shutdown ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     std :: os :: unix :: net :: UnixStream :: shutdown(self, how)
         .with_context(|| crate::call_failed!(Some(self), "shutdown", how))
-}
-fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > ) {
-    std :: os :: unix :: net :: UnixStream :: take_error(self)
-        .with_context(|| crate::call_failed!(Some(self), "take_error"))
-}
-fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
-    std :: os :: unix :: net :: UnixStream :: try_clone(self)
-        .with_context(|| crate::call_failed!(Some(self), "try_clone"))
-}
-fn write_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
-    std :: os :: unix :: net :: UnixStream :: write_timeout(self)
-        .with_context(|| crate::call_failed!(Some(self), "write_timeout"))
 }
 }
 

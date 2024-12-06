@@ -7,7 +7,13 @@ use anyhow::Context;
 
 
 pub trait PathBufContext {
+/// Invokes [`try_reserve_exact`] on the underlying instance of [`OsString`].
+/// 
+/// [`try_reserve_exact`]: OsString::try_reserve_exact
 fn try_reserve_exact_wc ( & mut self , additional : usize ) -> crate :: rewrite_output_type ! ( core :: result :: Result < ( ) , std :: collections :: TryReserveError > );
+/// Invokes [`try_reserve`] on the underlying instance of [`OsString`].
+/// 
+/// [`try_reserve`]: OsString::try_reserve
 fn try_reserve_wc ( & mut self , additional : usize ) -> crate :: rewrite_output_type ! ( core :: result :: Result < ( ) , std :: collections :: TryReserveError > );
 }
 impl PathBufContext for std :: path :: PathBuf {
@@ -21,33 +27,292 @@ fn try_reserve_wc ( & mut self , additional : usize ) -> crate :: rewrite_output
 }
 }
 pub trait PathContext {
-fn canonicalize_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > );
+/// Extracts the extension (without the leading dot) of [`self.file_name`], if possible.
+/// 
+/// The extension is:
+/// 
+/// * [`None`], if there is no file name;
+/// * [`None`], if there is no embedded `.`;
+/// * [`None`], if the file name begins with `.` and has no other `.`s within;
+/// * Otherwise, the portion of the file name after the final `.`
+/// 
+/// [`self.file_name`]: Path::file_name
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::path::Path;
+/// 
+/// assert_eq!("rs", Path::new("foo.rs").extension().unwrap());
+/// assert_eq!("gz", Path::new("foo.tar.gz").extension().unwrap());
+/// ```
 fn extension_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > );
-fn file_name_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > );
-fn file_stem_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > );
-fn metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > );
-fn parent_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & Self > );
-fn read_dir_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: ReadDir > );
-fn read_link_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > );
-fn strip_prefix_wc < P > ( & self , base : P ) -> crate :: rewrite_output_type ! ( core :: result :: Result < & Self , std :: path :: StripPrefixError > ) where P : core :: convert :: AsRef < std :: path :: Path >;
-fn symlink_metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > );
-fn to_str_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & str > );
-fn try_exists_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > );
+/// Extracts the prefix of [`self.file_name`].
+/// 
+/// The prefix is:
+/// 
+/// * [`None`], if there is no file name;
+/// * The entire file name if there is no embedded `.`;
+/// * The portion of the file name before the first non-beginning `.`;
+/// * The entire file name if the file name begins with `.` and has no other `.`s within;
+/// * The portion of the file name before the second `.` if the file name begins with `.`
+/// 
+/// [`self.file_name`]: Path::file_name
+/// 
+/// # Examples
+/// 
+/// ```
+/// # #![feature(path_file_prefix)]
+/// use std::path::Path;
+/// 
+/// assert_eq!("foo", Path::new("foo.rs").file_prefix().unwrap());
+/// assert_eq!("foo", Path::new("foo.tar.gz").file_prefix().unwrap());
+/// ```
+/// 
+/// # See Also
+/// This method is similar to [`Path::file_stem`], which extracts the portion of the file name
+/// before the *last* `.`
+/// 
+/// [`Path::file_stem`]: Path::file_stem
 #[cfg(feature = "path_file_prefix")]
 fn file_prefix_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > );
+/// Extracts the stem (non-extension) portion of [`self.file_name`].
+/// 
+/// [`self.file_name`]: Path::file_name
+/// 
+/// The stem is:
+/// 
+/// * [`None`], if there is no file name;
+/// * The entire file name if there is no embedded `.`;
+/// * The entire file name if the file name begins with `.` and has no other `.`s within;
+/// * Otherwise, the portion of the file name before the final `.`
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::path::Path;
+/// 
+/// assert_eq!("foo", Path::new("foo.rs").file_stem().unwrap());
+/// assert_eq!("foo.tar", Path::new("foo.tar.gz").file_stem().unwrap());
+/// ```
+/// 
+/// # See Also
+/// This method is similar to [`Path::file_prefix`], which extracts the portion of the file name
+/// before the *first* `.`
+/// 
+/// [`Path::file_prefix`]: Path::file_prefix
+fn file_stem_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > );
+/// Queries the file system to get information about a file, directory, etc.
+/// 
+/// This function will traverse symbolic links to query information about the
+/// destination file.
+/// 
+/// This is an alias to [`fs::metadata`].
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::path::Path;
+/// 
+/// let path = Path::new("/Minas/tirith");
+/// let metadata = path.metadata().expect("metadata call failed");
+/// println!("{:?}", metadata.file_type());
+/// ```
+fn metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > );
+/// Queries the metadata about a file without following symlinks.
+/// 
+/// This is an alias to [`fs::symlink_metadata`].
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::path::Path;
+/// 
+/// let path = Path::new("/Minas/tirith");
+/// let metadata = path.symlink_metadata().expect("symlink_metadata call failed");
+/// println!("{:?}", metadata.file_type());
+/// ```
+fn symlink_metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > );
+/// Reads a symbolic link, returning the file that the link points to.
+/// 
+/// This is an alias to [`fs::read_link`].
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::path::Path;
+/// 
+/// let path = Path::new("/laputa/sky_castle.rs");
+/// let path_link = path.read_link().expect("read_link call failed");
+/// ```
+fn read_link_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > );
+/// Returns `Ok(true)` if the path points at an existing entity.
+/// 
+/// This function will traverse symbolic links to query information about the
+/// destination file. In case of broken symbolic links this will return `Ok(false)`.
+/// 
+/// [`Path::exists()`] only checks whether or not a path was both found and readable. By
+/// contrast, `try_exists` will return `Ok(true)` or `Ok(false)`, respectively, if the path
+/// was _verified_ to exist or not exist. If its existence can neither be confirmed nor
+/// denied, it will propagate an `Err(_)` instead. This can be the case if e.g. listing
+/// permission is denied on one of the parent directories.
+/// 
+/// Note that while this avoids some pitfalls of the `exists()` method, it still can not
+/// prevent time-of-check to time-of-use (TOCTOU) bugs. You should only use it in scenarios
+/// where those bugs are not an issue.
+/// 
+/// This is an alias for [`std::fs::exists`](crate::fs::exists).
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::path::Path;
+/// assert!(!Path::new("does_not_exist.txt").try_exists().expect("Can't check existence of file does_not_exist.txt"));
+/// assert!(Path::new("/root/secret_file.txt").try_exists().is_err());
+/// ```
+/// 
+/// [`exists()`]: Self::exists
+fn try_exists_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > );
+/// Returns a path that, when joined onto `base`, yields `self`.
+/// 
+/// # Errors
+/// 
+/// If `base` is not a prefix of `self` (i.e., [`starts_with`]
+/// returns `false`), returns [`Err`].
+/// 
+/// [`starts_with`]: Path::starts_with
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::path::{Path, PathBuf};
+/// 
+/// let path = Path::new("/test/haha/foo.txt");
+/// 
+/// assert_eq!(path.strip_prefix("/"), Ok(Path::new("test/haha/foo.txt")));
+/// assert_eq!(path.strip_prefix("/test"), Ok(Path::new("haha/foo.txt")));
+/// assert_eq!(path.strip_prefix("/test/"), Ok(Path::new("haha/foo.txt")));
+/// assert_eq!(path.strip_prefix("/test/haha/foo.txt"), Ok(Path::new("")));
+/// assert_eq!(path.strip_prefix("/test/haha/foo.txt/"), Ok(Path::new("")));
+/// 
+/// assert!(path.strip_prefix("test").is_err());
+/// assert!(path.strip_prefix("/haha").is_err());
+/// 
+/// let prefix = PathBuf::from("/test/");
+/// assert_eq!(path.strip_prefix(prefix), Ok(Path::new("haha/foo.txt")));
+/// ```
+fn strip_prefix_wc < P > ( & self , base : P ) -> crate :: rewrite_output_type ! ( core :: result :: Result < & Self , std :: path :: StripPrefixError > ) where P : core :: convert :: AsRef < std :: path :: Path >;
+/// Returns an iterator over the entries within a directory.
+/// 
+/// The iterator will yield instances of <code>[io::Result]<[fs::DirEntry]></code>. New
+/// errors may be encountered after an iterator is initially constructed.
+/// 
+/// This is an alias to [`fs::read_dir`].
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::path::Path;
+/// 
+/// let path = Path::new("/laputa");
+/// for entry in path.read_dir().expect("read_dir call failed") {
+///     if let Ok(entry) = entry {
+///         println!("{:?}", entry.path());
+///     }
+/// }
+/// ```
+fn read_dir_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: ReadDir > );
+/// Returns the `Path` without its final component, if there is one.
+/// 
+/// This means it returns `Some("")` for relative paths with one component.
+/// 
+/// Returns [`None`] if the path terminates in a root or prefix, or if it's
+/// the empty string.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::path::Path;
+/// 
+/// let path = Path::new("/foo/bar");
+/// let parent = path.parent().unwrap();
+/// assert_eq!(parent, Path::new("/foo"));
+/// 
+/// let grand_parent = parent.parent().unwrap();
+/// assert_eq!(grand_parent, Path::new("/"));
+/// assert_eq!(grand_parent.parent(), None);
+/// 
+/// let relative_path = Path::new("foo/bar");
+/// let parent = relative_path.parent();
+/// assert_eq!(parent, Some(Path::new("foo")));
+/// let grand_parent = parent.and_then(Path::parent);
+/// assert_eq!(grand_parent, Some(Path::new("")));
+/// let great_grand_parent = grand_parent.and_then(Path::parent);
+/// assert_eq!(great_grand_parent, None);
+/// ```
+fn parent_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & Self > );
+/// Returns the canonical, absolute form of the path with all intermediate
+/// components normalized and symbolic links resolved.
+/// 
+/// This is an alias to [`fs::canonicalize`].
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::path::{Path, PathBuf};
+/// 
+/// let path = Path::new("/foo/test/../test/bar.rs");
+/// assert_eq!(path.canonicalize().unwrap(), PathBuf::from("/foo/test/bar.rs"));
+/// ```
+fn canonicalize_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > );
+/// Returns the final component of the `Path`, if there is one.
+/// 
+/// If the path is a normal file, this is the file name. If it's the path of a directory, this
+/// is the directory name.
+/// 
+/// Returns [`None`] if the path terminates in `..`.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::path::Path;
+/// use std::ffi::OsStr;
+/// 
+/// assert_eq!(Some(OsStr::new("bin")), Path::new("/usr/bin/").file_name());
+/// assert_eq!(Some(OsStr::new("foo.txt")), Path::new("tmp/foo.txt").file_name());
+/// assert_eq!(Some(OsStr::new("foo.txt")), Path::new("foo.txt/.").file_name());
+/// assert_eq!(Some(OsStr::new("foo.txt")), Path::new("foo.txt/.//").file_name());
+/// assert_eq!(None, Path::new("foo.txt/..").file_name());
+/// assert_eq!(None, Path::new("/").file_name());
+/// ```
+fn file_name_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > );
+/// Yields a [`&str`] slice if the `Path` is valid unicode.
+/// 
+/// This conversion may entail doing a check for UTF-8 validity.
+/// Note that validation is performed because non-UTF-8 strings are
+/// perfectly valid for some OS.
+/// 
+/// [`&str`]: str
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::path::Path;
+/// 
+/// let path = Path::new("foo.txt");
+/// assert_eq!(path.to_str(), Some("foo.txt"));
+/// ```
+fn to_str_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & str > );
 }
 impl PathContext for std :: path :: Path {
-fn canonicalize_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
-    std :: path :: Path :: canonicalize(self)
-        .with_context(|| crate::call_failed!(Some(self), "canonicalize"))
-}
 fn extension_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > ) {
     std :: path :: Path :: extension(self)
         .with_context(|| crate::call_failed!(Some(self), "extension"))
 }
-fn file_name_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > ) {
-    std :: path :: Path :: file_name(self)
-        .with_context(|| crate::call_failed!(Some(self), "file_name"))
+#[cfg(feature = "path_file_prefix")]
+fn file_prefix_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > ) {
+    std :: path :: Path :: file_prefix(self)
+        .with_context(|| crate::call_failed!(Some(self), "file_prefix"))
 }
 fn file_stem_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > ) {
     std :: path :: Path :: file_stem(self)
@@ -57,43 +322,124 @@ fn metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Resul
     std :: path :: Path :: metadata(self)
         .with_context(|| crate::call_failed!(Some(self), "metadata"))
 }
-fn parent_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & Self > ) {
-    std :: path :: Path :: parent(self)
-        .with_context(|| crate::call_failed!(Some(self), "parent"))
-}
-fn read_dir_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: ReadDir > ) {
-    std :: path :: Path :: read_dir(self)
-        .with_context(|| crate::call_failed!(Some(self), "read_dir"))
+fn symlink_metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
+    std :: path :: Path :: symlink_metadata(self)
+        .with_context(|| crate::call_failed!(Some(self), "symlink_metadata"))
 }
 fn read_link_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
     std :: path :: Path :: read_link(self)
         .with_context(|| crate::call_failed!(Some(self), "read_link"))
+}
+fn try_exists_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
+    std :: path :: Path :: try_exists(self)
+        .with_context(|| crate::call_failed!(Some(self), "try_exists"))
 }
 fn strip_prefix_wc < P > ( & self , base : P ) -> crate :: rewrite_output_type ! ( core :: result :: Result < & Self , std :: path :: StripPrefixError > ) where P : core :: convert :: AsRef < std :: path :: Path > {
     let base = base.as_ref();
     std :: path :: Path :: strip_prefix(self, base)
         .with_context(|| crate::call_failed!(Some(self), "strip_prefix", base))
 }
-fn symlink_metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
-    std :: path :: Path :: symlink_metadata(self)
-        .with_context(|| crate::call_failed!(Some(self), "symlink_metadata"))
+fn read_dir_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: ReadDir > ) {
+    std :: path :: Path :: read_dir(self)
+        .with_context(|| crate::call_failed!(Some(self), "read_dir"))
+}
+fn parent_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & Self > ) {
+    std :: path :: Path :: parent(self)
+        .with_context(|| crate::call_failed!(Some(self), "parent"))
+}
+fn canonicalize_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
+    std :: path :: Path :: canonicalize(self)
+        .with_context(|| crate::call_failed!(Some(self), "canonicalize"))
+}
+fn file_name_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > ) {
+    std :: path :: Path :: file_name(self)
+        .with_context(|| crate::call_failed!(Some(self), "file_name"))
 }
 fn to_str_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & str > ) {
     std :: path :: Path :: to_str(self)
         .with_context(|| crate::call_failed!(Some(self), "to_str"))
 }
-fn try_exists_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
-    std :: path :: Path :: try_exists(self)
-        .with_context(|| crate::call_failed!(Some(self), "try_exists"))
-}
-#[cfg(feature = "path_file_prefix")]
-fn file_prefix_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > ) {
-    std :: path :: Path :: file_prefix(self)
-        .with_context(|| crate::call_failed!(Some(self), "file_prefix"))
-}
 }
 
 
+/// Makes the path absolute without accessing the filesystem.
+/// 
+/// If the path is relative, the current directory is used as the base directory.
+/// All intermediate components will be resolved according to platform-specific
+/// rules, but unlike [`canonicalize`][crate::fs::canonicalize], this does not
+/// resolve symlinks and may succeed even if the path does not exist.
+/// 
+/// If the `path` is empty or getting the
+/// [current directory][crate::env::current_dir] fails, then an error will be
+/// returned.
+/// 
+/// # Platform-specific behavior
+/// 
+/// On POSIX platforms, the path is resolved using [POSIX semantics][posix-semantics],
+/// except that it stops short of resolving symlinks. This means it will keep `..`
+/// components and trailing slashes.
+/// 
+/// On Windows, for verbatim paths, this will simply return the path as given. For other
+/// paths, this is currently equivalent to calling
+/// [`GetFullPathNameW`][windows-path].
+/// 
+/// Note that these [may change in the future][changes].
+/// 
+/// # Errors
+/// 
+/// This function may return an error in the following situations:
+/// 
+/// * If `path` is syntactically invalid; in particular, if it is empty.
+/// * If getting the [current directory][crate::env::current_dir] fails.
+/// 
+/// # Examples
+/// 
+/// ## POSIX paths
+/// 
+/// ```
+/// # #[cfg(unix)]
+/// fn main() -> std::io::Result<()> {
+///     use std::path::{self, Path};
+/// 
+///     // Relative to absolute
+///     let absolute = path::absolute("foo/./bar")?;
+///     assert!(absolute.ends_with("foo/bar"));
+/// 
+///     // Absolute to absolute
+///     let absolute = path::absolute("/foo//test/.././bar.rs")?;
+///     assert_eq!(absolute, Path::new("/foo/test/../bar.rs"));
+///     Ok(())
+/// }
+/// # #[cfg(not(unix))]
+/// # fn main() {}
+/// ```
+/// 
+/// ## Windows paths
+/// 
+/// ```
+/// # #[cfg(windows)]
+/// fn main() -> std::io::Result<()> {
+///     use std::path::{self, Path};
+/// 
+///     // Relative to absolute
+///     let absolute = path::absolute("foo/./bar")?;
+///     assert!(absolute.ends_with(r"foo\bar"));
+/// 
+///     // Absolute to absolute
+///     let absolute = path::absolute(r"C:\foo//test\..\./bar.rs")?;
+/// 
+///     assert_eq!(absolute, Path::new(r"C:\foo\bar.rs"));
+///     Ok(())
+/// }
+/// # #[cfg(not(windows))]
+/// # fn main() {}
+/// ```
+/// 
+/// Note that this [may change in the future][changes].
+/// 
+/// [changes]: io#platform-specific-behavior
+/// [posix-semantics]: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap04.html#tag_04_13
+/// [windows-path]: https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfullpathnamew
 pub fn absolute_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
     let path = path.as_ref();
     std :: path :: absolute(path)

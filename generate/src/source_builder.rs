@@ -21,6 +21,7 @@ struct StructWrapper {
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 struct Fn {
+    docs: Option<String>,
     attrs: Vec<String>,
     sig: String,
     body: String,
@@ -89,6 +90,7 @@ impl Module {
         &mut self,
         path: &[&str],
         qualified_type_wrapper: &[Token],
+        docs: Option<&str>,
         attrs: &Vec<String>,
         sig: &str,
         body: &str,
@@ -99,6 +101,7 @@ impl Module {
             .entry(qualified_type_wrapper.to_vec())
             .or_default()
             .insert(Fn {
+                docs: docs.map(ToOwned::to_owned),
                 attrs: attrs.to_owned(),
                 sig: sig.to_owned(),
                 body: body.to_owned(),
@@ -159,9 +162,16 @@ impl Module {
                 qualified_wrapped_trait.to_string()
             )?;
             if let Some(fns) = self.fns.remove(qualified_trait_wrapper) {
-                for Fn { attrs, sig, body } in fns {
+                for Fn {
+                    docs,
+                    attrs,
+                    sig,
+                    body,
+                } in fns
+                {
+                    let docs = docify(&docs.unwrap_or_default());
                     let attrs = join_attrs(&remove_common_attrs(attrs, &common_attrs));
-                    writeln!(file, "{attrs}{sig} {{{body}}}")?;
+                    writeln!(file, "{docs}{attrs}{sig} {{{body}}}")?;
                 }
             }
             writeln!(
@@ -211,13 +221,15 @@ impl Module {
             )?;
             if let Some(fns) = self.fns.get(qualified_struct_wrapper) {
                 for Fn {
+                    docs,
                     attrs,
                     sig,
                     body: _,
                 } in fns
                 {
+                    let docs = docify(&docs.clone().unwrap_or_default());
                     let attrs = join_attrs(&remove_common_attrs(attrs.clone(), &common_attrs));
-                    writeln!(file, "{attrs}{sig};")?;
+                    writeln!(file, "{docs}{attrs}{sig};")?;
                 }
             }
             writeln!(
@@ -229,7 +241,15 @@ impl Module {
                 qualified_wrapped_struct.to_string()
             )?;
             if let Some(fns) = self.fns.remove(qualified_struct_wrapper) {
-                for Fn { attrs, sig, body } in fns {
+                for Fn {
+                    docs: _,
+                    attrs,
+                    sig,
+                    body,
+                } in fns
+                {
+                    // smoelius: The docs were printed as part of the struct wrapper definition
+                    // above. Don't print the docs again.
                     let attrs = join_attrs(&remove_common_attrs(attrs, &common_attrs));
                     writeln!(file, "{attrs}{sig} {{{body}}}")?;
                 }
@@ -243,12 +263,16 @@ impl Module {
         for (qualified_struct_wrapper, fns) in &self.fns {
             assert!(qualified_struct_wrapper.is_empty());
             writeln!(file)?;
-            for Fn { attrs, sig, body } in fns {
+            for Fn {
+                docs,
+                attrs,
+                sig,
+                body,
+            } in fns
+            {
+                let docs = docify(&docs.clone().unwrap_or_default());
                 let attrs = join_attrs(attrs);
-                writeln!(file, "{attrs}{sig} {{{body}}}")?;
-            }
-            if !qualified_struct_wrapper.is_empty() {
-                writeln!(file, "}}")?;
+                writeln!(file, "{docs}{attrs}{sig} {{{body}}}")?;
             }
         }
         Ok(())
@@ -278,6 +302,10 @@ use anyhow::Context;";
 fn write_header(file: &mut File) -> Result<()> {
     writeln!(file, "{HEADER}")?;
     Ok(())
+}
+
+fn docify(docs: &str) -> String {
+    docs.lines().map(|line| format!("/// {line}\n")).collect()
 }
 
 fn join_attrs<'a>(attrs: impl IntoIterator<Item = &'a String>) -> String {

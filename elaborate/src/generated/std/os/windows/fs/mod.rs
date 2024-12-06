@@ -7,10 +7,72 @@ use anyhow::Context;
 
 #[cfg(windows)]
 pub trait FileExtContext: std :: os :: windows :: fs :: FileExt {
+/// Seeks to a given position and reads a number of bytes.
+/// 
+/// Returns the number of bytes read.
+/// 
+/// The offset is relative to the start of the file and thus independent
+/// from the current cursor. The current cursor **is** affected by this
+/// function, it is set to the end of the read.
+/// 
+/// Reading beyond the end of the file will always return with a length of
+/// 0\.
+/// 
+/// Note that similar to `File::read`, it is not an error to return with a
+/// short read. When returning from such a short read, the file pointer is
+/// still updated.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::io;
+/// use std::fs::File;
+/// use std::os::windows::prelude::*;
+/// 
+/// fn main() -> io::Result<()> {
+///     let mut file = File::open("foo.txt")?;
+///     let mut buffer = [0; 10];
+/// 
+///     // Read 10 bytes, starting 72 bytes from the
+///     // start of the file.
+///     file.seek_read(&mut buffer[..], 72)?;
+///     Ok(())
+/// }
+/// ```
 fn seek_read_wc ( & self , buf : & mut [ u8 ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     < Self as :: std :: os :: windows :: fs :: FileExt > :: seek_read(self, buf, offset)
         .with_context(|| crate::call_failed!(Some(self), "seek_read", buf, offset))
 }
+/// Seeks to a given position and writes a number of bytes.
+/// 
+/// Returns the number of bytes written.
+/// 
+/// The offset is relative to the start of the file and thus independent
+/// from the current cursor. The current cursor **is** affected by this
+/// function, it is set to the end of the write.
+/// 
+/// When writing beyond the end of the file, the file is appropriately
+/// extended and the intermediate bytes are set to zero.
+/// 
+/// Note that similar to `File::write`, it is not an error to return a
+/// short write. When returning from such a short write, the file pointer
+/// is still updated.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs::File;
+/// use std::os::windows::prelude::*;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let mut buffer = File::create("foo.txt")?;
+/// 
+///     // Write a byte string starting 72 bytes from
+///     // the start of the file.
+///     buffer.seek_write(b"some bytes", 72)?;
+///     Ok(())
+/// }
+/// ```
 fn seek_write_wc ( & self , buf : & [ u8 ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     < Self as :: std :: os :: windows :: fs :: FileExt > :: seek_write(self, buf, offset)
         .with_context(|| crate::call_failed!(Some(self), "seek_write", buf, offset))
@@ -21,25 +83,51 @@ fn seek_write_wc ( & self , buf : & [ u8 ] , offset : u64 ) -> crate :: rewrite_
 impl<T> FileExtContext for T where T: std :: os :: windows :: fs :: FileExt {}
 #[cfg(windows)]
 pub trait MetadataExtContext: std :: os :: windows :: fs :: MetadataExt {
-#[cfg(feature = "windows_by_handle")]
-fn file_index_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < u64 > ) {
-    < Self as :: std :: os :: windows :: fs :: MetadataExt > :: file_index(self)
-        .with_context(|| crate::call_failed!(Some(self), "file_index"))
+/// Returns the value of the `ChangeTime` fields of this metadata.
+/// 
+/// `ChangeTime` is the last time file metadata was changed, such as
+/// renames, attributes, etc.
+/// 
+/// This will return `None` if `Metadata` instance was created from a call to
+/// `DirEntry::metadata` or if the `target_vendor` is outside the current platform
+/// support for this api.
+#[cfg(feature = "windows_change_time")]
+fn change_time_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < u64 > ) {
+    < Self as :: std :: os :: windows :: fs :: MetadataExt > :: change_time(self)
+        .with_context(|| crate::call_failed!(Some(self), "change_time"))
 }
-#[cfg(feature = "windows_by_handle")]
-fn number_of_links_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < u32 > ) {
-    < Self as :: std :: os :: windows :: fs :: MetadataExt > :: number_of_links(self)
-        .with_context(|| crate::call_failed!(Some(self), "number_of_links"))
-}
+/// Returns the value of the `dwVolumeSerialNumber` field of this
+/// metadata.
+/// 
+/// This will return `None` if the `Metadata` instance was created from a
+/// call to `DirEntry::metadata`. If this `Metadata` was created by using
+/// `fs::metadata` or `File::metadata`, then this will return `Some`.
 #[cfg(feature = "windows_by_handle")]
 fn volume_serial_number_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < u32 > ) {
     < Self as :: std :: os :: windows :: fs :: MetadataExt > :: volume_serial_number(self)
         .with_context(|| crate::call_failed!(Some(self), "volume_serial_number"))
 }
-#[cfg(feature = "windows_change_time")]
-fn change_time_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < u64 > ) {
-    < Self as :: std :: os :: windows :: fs :: MetadataExt > :: change_time(self)
-        .with_context(|| crate::call_failed!(Some(self), "change_time"))
+/// Returns the value of the `nFileIndex` fields of this
+/// metadata.
+/// 
+/// This will return `None` if the `Metadata` instance was created from a
+/// call to `DirEntry::metadata`. If this `Metadata` was created by using
+/// `fs::metadata` or `File::metadata`, then this will return `Some`.
+#[cfg(feature = "windows_by_handle")]
+fn file_index_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < u64 > ) {
+    < Self as :: std :: os :: windows :: fs :: MetadataExt > :: file_index(self)
+        .with_context(|| crate::call_failed!(Some(self), "file_index"))
+}
+/// Returns the value of the `nNumberOfLinks` field of this
+/// metadata.
+/// 
+/// This will return `None` if the `Metadata` instance was created from a
+/// call to `DirEntry::metadata`. If this `Metadata` was created by using
+/// `fs::metadata` or `File::metadata`, then this will return `Some`.
+#[cfg(feature = "windows_by_handle")]
+fn number_of_links_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < u32 > ) {
+    < Self as :: std :: os :: windows :: fs :: MetadataExt > :: number_of_links(self)
+        .with_context(|| crate::call_failed!(Some(self), "number_of_links"))
 }
 }
 
@@ -48,6 +136,13 @@ impl<T> MetadataExtContext for T where T: std :: os :: windows :: fs :: Metadata
 
 
 
+/// Creates a junction point.
+/// 
+/// The `link` path will be a directory junction pointing to the original path.
+/// If `link` is a relative path then it will be made absolute prior to creating the junction point.
+/// The `original` path must be a directory or a link to a directory, otherwise the junction point will be broken.
+/// 
+/// If either path is not a local file path then this will fail.
 #[cfg(feature = "junction_point")]
 #[cfg(windows)]
 pub fn junction_point_wc < P : core :: convert :: AsRef < std :: path :: Path > , Q : core :: convert :: AsRef < std :: path :: Path > > ( original : P , link : Q ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
@@ -56,6 +151,40 @@ pub fn junction_point_wc < P : core :: convert :: AsRef < std :: path :: Path > 
     std :: os :: windows :: fs :: junction_point(original, link)
         .with_context(|| crate::call_failed!(None::<()>, "std::os::windows::fs::junction_point", original, link))
 }
+/// Creates a new symlink to a directory on the filesystem.
+/// 
+/// The `link` path will be a directory symbolic link pointing to the `original`
+/// path.
+/// 
+/// The `original` path must be a directory or a symlink to a directory,
+/// otherwise the symlink will be broken. Use [`symlink_file`] for other files.
+/// 
+/// This function currently corresponds to [`CreateSymbolicLinkW`][CreateSymbolicLinkW].
+/// Note that this [may change in the future][changes].
+/// 
+/// [CreateSymbolicLinkW]: https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createsymboliclinkw
+/// [changes]: io#platform-specific-behavior
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::windows::fs;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     fs::symlink_dir("a", "b")?;
+///     Ok(())
+/// }
+/// ```
+/// 
+/// # Limitations
+/// 
+/// Windows treats symlink creation as a [privileged action][symlink-security],
+/// therefore this function is likely to fail unless the user makes changes to
+/// their system to permit symlink creation. Users can try enabling Developer
+/// Mode, granting the `SeCreateSymbolicLinkPrivilege` privilege, or running
+/// the process as an administrator.
+/// 
+/// [symlink-security]: https://docs.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/create-symbolic-links
 #[cfg(windows)]
 pub fn symlink_dir_wc < P : core :: convert :: AsRef < std :: path :: Path > , Q : core :: convert :: AsRef < std :: path :: Path > > ( original : P , link : Q ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let original = original.as_ref();
@@ -63,6 +192,40 @@ pub fn symlink_dir_wc < P : core :: convert :: AsRef < std :: path :: Path > , Q
     std :: os :: windows :: fs :: symlink_dir(original, link)
         .with_context(|| crate::call_failed!(None::<()>, "std::os::windows::fs::symlink_dir", original, link))
 }
+/// Creates a new symlink to a non-directory file on the filesystem.
+/// 
+/// The `link` path will be a file symbolic link pointing to the `original`
+/// path.
+/// 
+/// The `original` path should not be a directory or a symlink to a directory,
+/// otherwise the symlink will be broken. Use [`symlink_dir`] for directories.
+/// 
+/// This function currently corresponds to [`CreateSymbolicLinkW`][CreateSymbolicLinkW].
+/// Note that this [may change in the future][changes].
+/// 
+/// [CreateSymbolicLinkW]: https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createsymboliclinkw
+/// [changes]: io#platform-specific-behavior
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::windows::fs;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     fs::symlink_file("a.txt", "b.txt")?;
+///     Ok(())
+/// }
+/// ```
+/// 
+/// # Limitations
+/// 
+/// Windows treats symlink creation as a [privileged action][symlink-security],
+/// therefore this function is likely to fail unless the user makes changes to
+/// their system to permit symlink creation. Users can try enabling Developer
+/// Mode, granting the `SeCreateSymbolicLinkPrivilege` privilege, or running
+/// the process as an administrator.
+/// 
+/// [symlink-security]: https://docs.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/create-symbolic-links
 #[cfg(windows)]
 pub fn symlink_file_wc < P : core :: convert :: AsRef < std :: path :: Path > , Q : core :: convert :: AsRef < std :: path :: Path > > ( original : P , link : Q ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let original = original.as_ref();

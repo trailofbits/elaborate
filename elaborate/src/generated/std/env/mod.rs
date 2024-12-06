@@ -8,34 +8,282 @@ use anyhow::Context;
 
 
 
-pub fn current_dir_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
-    std :: env :: current_dir()
-        .with_context(|| crate::call_failed!(None::<()>, "std::env::current_dir"))
-}
-pub fn current_exe_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
-    std :: env :: current_exe()
-        .with_context(|| crate::call_failed!(None::<()>, "std::env::current_exe"))
-}
-pub fn home_dir_wc ( ) -> crate :: rewrite_output_type ! ( core :: option :: Option < std :: path :: PathBuf > ) {
-    std :: env :: home_dir()
-        .with_context(|| crate::call_failed!(None::<()>, "std::env::home_dir"))
-}
-pub fn join_paths_wc < I , T > ( paths : I ) -> crate :: rewrite_output_type ! ( core :: result :: Result < std :: ffi :: OsString , std :: env :: JoinPathsError > ) where I : core :: iter :: IntoIterator < Item = T > , T : core :: convert :: AsRef < std :: ffi :: OsStr > {
-    std :: env :: join_paths(paths)
-        .with_context(|| crate::call_failed!(None::<()>, "std::env::join_paths", crate::CustomDebugMessage("value of type impl IntoIterator")))
-}
+/// Changes the current working directory to the specified path.
+/// 
+/// # Platform-specific behavior
+/// 
+/// This function [currently] corresponds to the `chdir` function on Unix
+/// and the `SetCurrentDirectoryW` function on Windows.
+/// 
+/// Returns an [`Err`] if the operation fails.
+/// 
+/// [currently]: crate::io#platform-specific-behavior
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::env;
+/// use std::path::Path;
+/// 
+/// let root = Path::new("/");
+/// assert!(env::set_current_dir(&root).is_ok());
+/// println!("Successfully changed working directory to {}!", root.display());
+/// ```
 pub fn set_current_dir_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let path = path.as_ref();
     std :: env :: set_current_dir(path)
         .with_context(|| crate::call_failed!(None::<()>, "std::env::set_current_dir", path))
 }
+/// Fetches the environment variable `key` from the current process, returning
+/// [`None`] if the variable isn't set or if there is another error.
+/// 
+/// It may return `None` if the environment variable's name contains
+/// the equal sign character (`=`) or the NUL character.
+/// 
+/// Note that this function will not check if the environment variable
+/// is valid Unicode. If you want to have an error on invalid UTF-8,
+/// use the [`var`] function instead.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::env;
+/// 
+/// let key = "HOME";
+/// match env::var_os(key) {
+///     Some(val) => println!("{key}: {val:?}"),
+///     None => println!("{key} is not defined in the environment.")
+/// }
+/// ```
+/// 
+/// If expecting a delimited variable (such as `PATH`), [`split_paths`]
+/// can be used to separate items.
 pub fn var_os_wc < K : core :: convert :: AsRef < std :: ffi :: OsStr > > ( key : K ) -> crate :: rewrite_output_type ! ( core :: option :: Option < std :: ffi :: OsString > ) {
     let key = key.as_ref();
     std :: env :: var_os(key)
         .with_context(|| crate::call_failed!(None::<()>, "std::env::var_os", key))
 }
+/// Fetches the environment variable `key` from the current process.
+/// 
+/// # Errors
+/// 
+/// Returns [`VarError::NotPresent`] if:
+/// - The variable is not set.
+/// - The variable's name contains an equal sign or NUL (`'='` or `'\0'`).
+/// 
+/// Returns [`VarError::NotUnicode`] if the variable's value is not valid
+/// Unicode. If this is not desired, consider using [`var_os`].
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::env;
+/// 
+/// let key = "HOME";
+/// match env::var(key) {
+///     Ok(val) => println!("{key}: {val:?}"),
+///     Err(e) => println!("couldn't interpret {key}: {e}"),
+/// }
+/// ```
 pub fn var_wc < K : core :: convert :: AsRef < std :: ffi :: OsStr > > ( key : K ) -> crate :: rewrite_output_type ! ( core :: result :: Result < std :: string :: String , std :: env :: VarError > ) {
     let key = key.as_ref();
     std :: env :: var(key)
         .with_context(|| crate::call_failed!(None::<()>, "std::env::var", key))
+}
+/// Joins a collection of [`Path`]s appropriately for the `PATH`
+/// environment variable.
+/// 
+/// # Errors
+/// 
+/// Returns an [`Err`] (containing an error message) if one of the input
+/// [`Path`]s contains an invalid character for constructing the `PATH`
+/// variable (a double quote on Windows or a colon on Unix), or if the system
+/// does not have a `PATH`-like variable (e.g. UEFI or WASI).
+/// 
+/// # Examples
+/// 
+/// Joining paths on a Unix-like platform:
+/// 
+/// ```
+/// use std::env;
+/// use std::ffi::OsString;
+/// use std::path::Path;
+/// 
+/// fn main() -> Result<(), env::JoinPathsError> {
+/// # if cfg!(unix) {
+///     let paths = [Path::new("/bin"), Path::new("/usr/bin")];
+///     let path_os_string = env::join_paths(paths.iter())?;
+///     assert_eq!(path_os_string, OsString::from("/bin:/usr/bin"));
+/// # }
+///     Ok(())
+/// }
+/// ```
+/// 
+/// Joining a path containing a colon on a Unix-like platform results in an
+/// error:
+/// 
+/// ```
+/// # if cfg!(unix) {
+/// use std::env;
+/// use std::path::Path;
+/// 
+/// let paths = [Path::new("/bin"), Path::new("/usr/bi:n")];
+/// assert!(env::join_paths(paths.iter()).is_err());
+/// # }
+/// ```
+/// 
+/// Using `env::join_paths()` with [`env::split_paths()`] to append an item to
+/// the `PATH` environment variable:
+/// 
+/// ```
+/// use std::env;
+/// use std::path::PathBuf;
+/// 
+/// fn main() -> Result<(), env::JoinPathsError> {
+///     if let Some(path) = env::var_os("PATH") {
+///         let mut paths = env::split_paths(&path).collect::<Vec<_>>();
+///         paths.push(PathBuf::from("/home/xyz/bin"));
+///         let new_path = env::join_paths(paths)?;
+///         env::set_var("PATH", &new_path);
+///     }
+/// 
+///     Ok(())
+/// }
+/// ```
+/// 
+/// [`env::split_paths()`]: split_paths
+pub fn join_paths_wc < I , T > ( paths : I ) -> crate :: rewrite_output_type ! ( core :: result :: Result < std :: ffi :: OsString , std :: env :: JoinPathsError > ) where I : core :: iter :: IntoIterator < Item = T > , T : core :: convert :: AsRef < std :: ffi :: OsStr > {
+    std :: env :: join_paths(paths)
+        .with_context(|| crate::call_failed!(None::<()>, "std::env::join_paths", crate::CustomDebugMessage("value of type impl IntoIterator")))
+}
+/// Returns the current working directory as a [`PathBuf`].
+/// 
+/// # Platform-specific behavior
+/// 
+/// This function [currently] corresponds to the `getcwd` function on Unix
+/// and the `GetCurrentDirectoryW` function on Windows.
+/// 
+/// [currently]: crate::io#platform-specific-behavior
+/// 
+/// # Errors
+/// 
+/// Returns an [`Err`] if the current working directory value is invalid.
+/// Possible cases:
+/// 
+/// * Current directory does not exist.
+/// * There are insufficient permissions to access the current directory.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::env;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let path = env::current_dir()?;
+///     println!("The current directory is {}", path.display());
+///     Ok(())
+/// }
+/// ```
+pub fn current_dir_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
+    std :: env :: current_dir()
+        .with_context(|| crate::call_failed!(None::<()>, "std::env::current_dir"))
+}
+/// Returns the full filesystem path of the current running executable.
+/// 
+/// # Platform-specific behavior
+/// 
+/// If the executable was invoked through a symbolic link, some platforms will
+/// return the path of the symbolic link and other platforms will return the
+/// path of the symbolic link’s target.
+/// 
+/// If the executable is renamed while it is running, platforms may return the
+/// path at the time it was loaded instead of the new path.
+/// 
+/// # Errors
+/// 
+/// Acquiring the path of the current executable is a platform-specific operation
+/// that can fail for a good number of reasons. Some errors can include, but not
+/// be limited to, filesystem operations failing or general syscall failures.
+/// 
+/// # Security
+/// 
+/// The output of this function should not be trusted for anything
+/// that might have security implications. Basically, if users can run
+/// the executable, they can change the output arbitrarily.
+/// 
+/// As an example, you can easily introduce a race condition. It goes
+/// like this:
+/// 
+/// 1. You get the path to the current executable using `current_exe()`, and
+///    store it in a variable.
+/// 2. Time passes. A malicious actor removes the current executable, and
+///    replaces it with a malicious one.
+/// 3. You then use the stored path to re-execute the current
+///    executable.
+/// 
+/// You expected to safely execute the current executable, but you're
+/// instead executing something completely different. The code you
+/// just executed run with your privileges.
+/// 
+/// This sort of behavior has been known to [lead to privilege escalation] when
+/// used incorrectly.
+/// 
+/// [lead to privilege escalation]: https://securityvulns.com/Wdocument183.html
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::env;
+/// 
+/// match env::current_exe() {
+///     Ok(exe_path) => println!("Path of this executable is: {}",
+///                              exe_path.display()),
+///     Err(e) => println!("failed to get current exe path: {e}"),
+/// };
+/// ```
+pub fn current_exe_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
+    std :: env :: current_exe()
+        .with_context(|| crate::call_failed!(None::<()>, "std::env::current_exe"))
+}
+/// Returns the path of the current user's home directory if known.
+/// 
+/// # Unix
+/// 
+/// - Returns the value of the 'HOME' environment variable if it is set
+///   (including to an empty string).
+/// - Otherwise, it tries to determine the home directory by invoking the `getpwuid_r` function
+///   using the UID of the current user. An empty home directory field returned from the
+///   `getpwuid_r` function is considered to be a valid value.
+/// - Returns `None` if the current user has no entry in the /etc/passwd file.
+/// 
+/// # Windows
+/// 
+/// - Returns the value of the 'HOME' environment variable if it is set
+///   (including to an empty string).
+/// - Otherwise, returns the value of the 'USERPROFILE' environment variable if it is set
+///   (including to an empty string).
+/// - If both do not exist, [`GetUserProfileDirectory`][msdn] is used to return the path.
+/// 
+/// [msdn]: https://docs.microsoft.com/en-us/windows/win32/api/userenv/nf-userenv-getuserprofiledirectorya
+/// 
+/// # Deprecation
+/// 
+/// This function is deprecated because the behaviour on Windows is not correct.
+/// The 'HOME' environment variable is not standard on Windows, and may not produce
+/// desired results; for instance, under Cygwin or Mingw it will return `/home/you`
+/// when it should return `C:\Users\you`.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::env;
+/// 
+/// match env::home_dir() {
+///     Some(path) => println!("Your home directory, probably: {}", path.display()),
+///     None => println!("Impossible to get your home dir!"),
+/// }
+/// ```
+pub fn home_dir_wc ( ) -> crate :: rewrite_output_type ! ( core :: option :: Option < std :: path :: PathBuf > ) {
+    std :: env :: home_dir()
+        .with_context(|| crate::call_failed!(None::<()>, "std::env::home_dir"))
 }

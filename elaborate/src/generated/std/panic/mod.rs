@@ -8,6 +8,27 @@ use anyhow::Context;
 
 
 
+/// Checks whether the standard library's panic hook will capture and print a
+/// backtrace.
+/// 
+/// This function will, if a backtrace style has not been set via
+/// [`set_backtrace_style`], read the environment variable `RUST_BACKTRACE` to
+/// determine a default value for the backtrace formatting:
+/// 
+/// The first call to `get_backtrace_style` may read the `RUST_BACKTRACE`
+/// environment variable if `set_backtrace_style` has not been called to
+/// override the default value. After a call to `set_backtrace_style` or
+/// `get_backtrace_style`, any changes to `RUST_BACKTRACE` will have no effect.
+/// 
+/// `RUST_BACKTRACE` is read according to these rules:
+/// 
+/// * `0` for `BacktraceStyle::Off`
+/// * `full` for `BacktraceStyle::Full`
+/// * `1` for `BacktraceStyle::Short`
+/// * Other values are currently `BacktraceStyle::Short`, but this may change in
+///   the future
+/// 
+/// Returns `None` if backtraces aren't currently supported.
 #[cfg(feature = "panic_backtrace_config")]
 pub fn get_backtrace_style_wc ( ) -> crate :: rewrite_output_type ! ( core :: option :: Option < std :: panic :: BacktraceStyle > ) {
     std :: panic :: get_backtrace_style()

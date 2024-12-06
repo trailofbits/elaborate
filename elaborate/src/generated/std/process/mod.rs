@@ -7,55 +7,277 @@ use anyhow::Context;
 
 
 pub trait ChildContext {
-fn kill_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Attempts to collect the exit status of the child if it has already
+/// exited.
+/// 
+/// This function will not block the calling thread and will only
+/// check to see if the child process has exited or not. If the child has
+/// exited then on Unix the process ID is reaped. This function is
+/// guaranteed to repeatedly return a successful exit status so long as the
+/// child has already exited.
+/// 
+/// If the child has exited, then `Ok(Some(status))` is returned. If the
+/// exit status is not available at this time then `Ok(None)` is returned.
+/// If an error occurs, then that error is returned.
+/// 
+/// Note that unlike `wait`, this function will not attempt to drop stdin.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::process::Command;
+/// 
+/// let mut child = Command::new("ls").spawn().unwrap();
+/// 
+/// match child.try_wait() {
+///     Ok(Some(status)) => println!("exited with: {status}"),
+///     Ok(None) => {
+///         println!("status not ready yet, let's really wait");
+///         let res = child.wait();
+///         println!("result: {res:?}");
+///     }
+///     Err(e) => println!("error attempting to wait: {e}"),
+/// }
+/// ```
 fn try_wait_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: process :: ExitStatus > > );
-fn wait_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: process :: ExitStatus > );
+/// Forces the child process to exit. If the child has already exited, `Ok(())`
+/// is returned.
+/// 
+/// The mapping to [`ErrorKind`]s is not part of the compatibility contract of the function.
+/// 
+/// This is equivalent to sending a SIGKILL on Unix platforms.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::process::Command;
+/// 
+/// let mut command = Command::new("yes");
+/// if let Ok(mut child) = command.spawn() {
+///     child.kill().expect("command couldn't be killed");
+/// } else {
+///     println!("yes command didn't start");
+/// }
+/// ```
+/// 
+/// [`ErrorKind`]: io::ErrorKind
+/// [`InvalidInput`]: io::ErrorKind::InvalidInput
+fn kill_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Simultaneously waits for the child to exit and collect all remaining
+/// output on the stdout/stderr handles, returning an `Output`
+/// instance.
+/// 
+/// The stdin handle to the child process, if any, will be closed
+/// before waiting. This helps avoid deadlock: it ensures that the
+/// child does not block waiting for input from the parent, while
+/// the parent waits for the child to exit.
+/// 
+/// By default, stdin, stdout and stderr are inherited from the parent.
+/// In order to capture the output into this `Result<Output>` it is
+/// necessary to create new pipes between parent and child. Use
+/// `stdout(Stdio::piped())` or `stderr(Stdio::piped())`, respectively.
+/// 
+/// # Examples
+/// 
+/// ```should_panic
+/// use std::process::{Command, Stdio};
+/// 
+/// let child = Command::new("/bin/cat")
+///     .arg("file.txt")
+///     .stdout(Stdio::piped())
+///     .spawn()
+///     .expect("failed to execute child");
+/// 
+/// let output = child
+///     .wait_with_output()
+///     .expect("failed to wait on child");
+/// 
+/// assert!(output.status.success());
+/// ```
 fn wait_with_output_wc ( self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: process :: Output > );
+/// Waits for the child to exit completely, returning the status that it
+/// exited with. This function will continue to have the same return value
+/// after it has been called at least once.
+/// 
+/// The stdin handle to the child process, if any, will be closed
+/// before waiting. This helps avoid deadlock: it ensures that the
+/// child does not block waiting for input from the parent, while
+/// the parent waits for the child to exit.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::process::Command;
+/// 
+/// let mut command = Command::new("ls");
+/// if let Ok(mut child) = command.spawn() {
+///     child.wait().expect("command wasn't running");
+///     println!("Child has finished its execution!");
+/// } else {
+///     println!("ls command didn't start");
+/// }
+/// ```
+fn wait_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: process :: ExitStatus > );
 }
 impl ChildContext for std :: process :: Child {
-fn kill_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    std :: process :: Child :: kill(self)
-        .with_context(|| crate::call_failed!(Some(self), "kill"))
-}
 fn try_wait_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: process :: ExitStatus > > ) {
     std :: process :: Child :: try_wait(self)
         .with_context(|| crate::call_failed!(Some(self), "try_wait"))
 }
-fn wait_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: process :: ExitStatus > ) {
-    std :: process :: Child :: wait(self)
-        .with_context(|| crate::call_failed!(Some(self), "wait"))
+fn kill_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: process :: Child :: kill(self)
+        .with_context(|| crate::call_failed!(Some(self), "kill"))
 }
 fn wait_with_output_wc ( self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: process :: Output > ) {
     std :: process :: Child :: wait_with_output(self)
         .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type std::process::Child")), "wait_with_output"))
 }
+fn wait_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: process :: ExitStatus > ) {
+    std :: process :: Child :: wait(self)
+        .with_context(|| crate::call_failed!(Some(self), "wait"))
+}
 }
 pub trait CommandContext {
-fn get_current_dir_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: path :: Path > );
-fn output_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: process :: Output > );
-fn spawn_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: process :: Child > );
+/// Executes a command as a child process, waiting for it to finish and
+/// collecting its status.
+/// 
+/// By default, stdin, stdout and stderr are inherited from the parent.
+/// 
+/// # Examples
+/// 
+/// ```should_panic
+/// use std::process::Command;
+/// 
+/// let status = Command::new("/bin/cat")
+///     .arg("file.txt")
+///     .status()
+///     .expect("failed to execute process");
+/// 
+/// println!("process finished with: {status}");
+/// 
+/// assert!(status.success());
+/// ```
 fn status_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: process :: ExitStatus > );
+/// Executes the command as a child process, returning a handle to it.
+/// 
+/// By default, stdin, stdout and stderr are inherited from the parent.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::process::Command;
+/// 
+/// Command::new("ls")
+///     .spawn()
+///     .expect("ls command failed to start");
+/// ```
+fn spawn_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: process :: Child > );
+/// Executes the command as a child process, waiting for it to finish and
+/// collecting all of its output.
+/// 
+/// By default, stdout and stderr are captured (and used to provide the
+/// resulting output). Stdin is not inherited from the parent and any
+/// attempt by the child process to read from the stdin stream will result
+/// in the stream immediately closing.
+/// 
+/// # Examples
+/// 
+/// ```should_panic
+/// use std::process::Command;
+/// use std::io::{self, Write};
+/// let output = Command::new("/bin/cat")
+///     .arg("file.txt")
+///     .output()
+///     .expect("failed to execute process");
+/// 
+/// println!("status: {}", output.status);
+/// io::stdout().write_all(&output.stdout).unwrap();
+/// io::stderr().write_all(&output.stderr).unwrap();
+/// 
+/// assert!(output.status.success());
+/// ```
+fn output_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: process :: Output > );
+/// Returns the working directory for the child process.
+/// 
+/// This returns [`None`] if the working directory will not be changed.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::path::Path;
+/// use std::process::Command;
+/// 
+/// let mut cmd = Command::new("ls");
+/// assert_eq!(cmd.get_current_dir(), None);
+/// cmd.current_dir("/bin");
+/// assert_eq!(cmd.get_current_dir(), Some(Path::new("/bin")));
+/// ```
+fn get_current_dir_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: path :: Path > );
 }
 impl CommandContext for std :: process :: Command {
-fn get_current_dir_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: path :: Path > ) {
-    std :: process :: Command :: get_current_dir(self)
-        .with_context(|| crate::call_failed!(Some(self), "get_current_dir"))
-}
-fn output_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: process :: Output > ) {
-    std :: process :: Command :: output(self)
-        .with_context(|| crate::call_failed!(Some(self), "output"))
+fn status_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: process :: ExitStatus > ) {
+    std :: process :: Command :: status(self)
+        .with_context(|| crate::call_failed!(Some(self), "status"))
 }
 fn spawn_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: process :: Child > ) {
     std :: process :: Command :: spawn(self)
         .with_context(|| crate::call_failed!(Some(self), "spawn"))
 }
-fn status_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: process :: ExitStatus > ) {
-    std :: process :: Command :: status(self)
-        .with_context(|| crate::call_failed!(Some(self), "status"))
+fn output_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: process :: Output > ) {
+    std :: process :: Command :: output(self)
+        .with_context(|| crate::call_failed!(Some(self), "output"))
+}
+fn get_current_dir_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: path :: Path > ) {
+    std :: process :: Command :: get_current_dir(self)
+        .with_context(|| crate::call_failed!(Some(self), "get_current_dir"))
 }
 }
 pub trait ExitStatusContext {
+/// Returns the exit code of the process, if any.
+/// 
+/// In Unix terms the return value is the **exit status**: the value passed to `exit`, if the
+/// process finished by calling `exit`.  Note that on Unix the exit status is truncated to 8
+/// bits, and that values that didn't come from a program's call to `exit` may be invented by the
+/// runtime system (often, for example, 255, 254, 127 or 126).
+/// 
+/// On Unix, this will return `None` if the process was terminated by a signal.
+/// [`ExitStatusExt`](crate::os::unix::process::ExitStatusExt) is an
+/// extension trait for extracting any such signal, and other details, from the `ExitStatus`.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::process::Command;
+/// 
+/// let status = Command::new("mkdir")
+///     .arg("projects")
+///     .status()
+///     .expect("failed to execute mkdir");
+/// 
+/// match status.code() {
+///     Some(code) => println!("Exited with status code: {code}"),
+///     None => println!("Process terminated by signal")
+/// }
+/// ```
 fn code_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < i32 > );
+/// Was termination successful?  Returns a `Result`.
+/// 
+/// # Examples
+/// 
+/// ```
+/// #![feature(exit_status_error)]
+/// # if cfg!(unix) {
+/// use std::process::Command;
+/// 
+/// let status = Command::new("ls")
+///     .arg("/dev/nonexistent")
+///     .status()
+///     .expect("ls could not be executed");
+/// 
+/// println!("ls: {status}");
+/// status.exit_ok().expect_err("/dev/nonexistent could be listed!");
+/// # } // cfg!(unix)
+/// ```
 #[cfg(feature = "exit_status_error")]
 fn exit_ok_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: result :: Result < ( ) , std :: process :: ExitStatusError > );
 }
@@ -72,7 +294,58 @@ fn exit_ok_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: result :: R
 }
 #[cfg(feature = "exit_status_error")]
 pub trait ExitStatusErrorContext {
+/// Reports the exit code, if applicable, from an `ExitStatusError`, as a [`NonZero`].
+/// 
+/// This is exactly like [`code()`](Self::code), except that it returns a <code>[NonZero]<[i32]></code>.
+/// 
+/// Plain `code`, returning a plain integer, is provided because it is often more convenient.
+/// The returned value from `code()` is indeed also nonzero; use `code_nonzero()` when you want
+/// a type-level guarantee of nonzeroness.
+/// 
+/// # Examples
+/// 
+/// ```
+/// #![feature(exit_status_error)]
+/// 
+/// # if cfg!(unix) {
+/// use std::num::NonZero;
+/// use std::process::Command;
+/// 
+/// let bad = Command::new("false").status().unwrap().exit_ok().unwrap_err();
+/// assert_eq!(bad.code_nonzero().unwrap(), NonZero::new(1).unwrap());
+/// # } // cfg!(unix)
+/// ```
 fn code_nonzero_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < core :: num :: NonZero < i32 > > );
+/// Reports the exit code, if applicable, from an `ExitStatusError`.
+/// 
+/// In Unix terms the return value is the **exit status**: the value passed to `exit`, if the
+/// process finished by calling `exit`.  Note that on Unix the exit status is truncated to 8
+/// bits, and that values that didn't come from a program's call to `exit` may be invented by the
+/// runtime system (often, for example, 255, 254, 127 or 126).
+/// 
+/// On Unix, this will return `None` if the process was terminated by a signal.  If you want to
+/// handle such situations specially, consider using methods from
+/// [`ExitStatusExt`](crate::os::unix::process::ExitStatusExt).
+/// 
+/// If the process finished by calling `exit` with a nonzero value, this will return
+/// that exit status.
+/// 
+/// If the error was something else, it will return `None`.
+/// 
+/// If the process exited successfully (ie, by calling `exit(0)`), there is no
+/// `ExitStatusError`.  So the return value from `ExitStatusError::code()` is always nonzero.
+/// 
+/// # Examples
+/// 
+/// ```
+/// #![feature(exit_status_error)]
+/// # #[cfg(unix)] {
+/// use std::process::Command;
+/// 
+/// let bad = Command::new("false").status().unwrap().exit_ok().unwrap_err();
+/// assert_eq!(bad.code(), Some(1));
+/// # } // #[cfg(unix)]
+/// ```
 fn code_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < i32 > );
 }
 #[cfg(feature = "exit_status_error")]

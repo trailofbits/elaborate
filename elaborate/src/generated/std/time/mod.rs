@@ -7,28 +7,109 @@ use anyhow::Context;
 
 
 pub trait InstantContext: Sized {
+/// Returns `Some(t)` where `t` is the time `self + duration` if `t` can be represented as
+/// `Instant` (which means it's inside the bounds of the underlying data structure), `None`
+/// otherwise.
 fn checked_add_wc ( & self , duration : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( core :: option :: Option < Self > );
-fn checked_duration_since_wc ( & self , earlier : std :: time :: Instant ) -> crate :: rewrite_output_type ! ( core :: option :: Option < core :: time :: Duration > );
+/// Returns `Some(t)` where `t` is the time `self - duration` if `t` can be represented as
+/// `Instant` (which means it's inside the bounds of the underlying data structure), `None`
+/// otherwise.
 fn checked_sub_wc ( & self , duration : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( core :: option :: Option < Self > );
+/// Returns the amount of time elapsed from another instant to this one,
+/// or None if that instant is later than this one.
+/// 
+/// Due to [monotonicity bugs], even under correct logical ordering of the passed `Instant`s,
+/// this method can return `None`.
+/// 
+/// [monotonicity bugs]: Instant#monotonicity
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::time::{Duration, Instant};
+/// use std::thread::sleep;
+/// 
+/// let now = Instant::now();
+/// sleep(Duration::new(1, 0));
+/// let new_now = Instant::now();
+/// println!("{:?}", new_now.checked_duration_since(now));
+/// println!("{:?}", now.checked_duration_since(new_now)); // None
+/// ```
+fn checked_duration_since_wc ( & self , earlier : std :: time :: Instant ) -> crate :: rewrite_output_type ! ( core :: option :: Option < core :: time :: Duration > );
 }
 impl InstantContext for std :: time :: Instant {
 fn checked_add_wc ( & self , duration : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( core :: option :: Option < Self > ) {
     std :: time :: Instant :: checked_add(self, duration)
         .with_context(|| crate::call_failed!(Some(self), "checked_add", duration))
 }
-fn checked_duration_since_wc ( & self , earlier : std :: time :: Instant ) -> crate :: rewrite_output_type ! ( core :: option :: Option < core :: time :: Duration > ) {
-    std :: time :: Instant :: checked_duration_since(self, earlier)
-        .with_context(|| crate::call_failed!(Some(self), "checked_duration_since", earlier))
-}
 fn checked_sub_wc ( & self , duration : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( core :: option :: Option < Self > ) {
     std :: time :: Instant :: checked_sub(self, duration)
         .with_context(|| crate::call_failed!(Some(self), "checked_sub", duration))
 }
+fn checked_duration_since_wc ( & self , earlier : std :: time :: Instant ) -> crate :: rewrite_output_type ! ( core :: option :: Option < core :: time :: Duration > ) {
+    std :: time :: Instant :: checked_duration_since(self, earlier)
+        .with_context(|| crate::call_failed!(Some(self), "checked_duration_since", earlier))
+}
 }
 pub trait SystemTimeContext: Sized {
+/// Returns `Some(t)` where `t` is the time `self + duration` if `t` can be represented as
+/// `SystemTime` (which means it's inside the bounds of the underlying data structure), `None`
+/// otherwise.
 fn checked_add_wc ( & self , duration : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( core :: option :: Option < Self > );
+/// Returns `Some(t)` where `t` is the time `self - duration` if `t` can be represented as
+/// `SystemTime` (which means it's inside the bounds of the underlying data structure), `None`
+/// otherwise.
 fn checked_sub_wc ( & self , duration : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( core :: option :: Option < Self > );
+/// Returns the amount of time elapsed from an earlier point in time.
+/// 
+/// This function may fail because measurements taken earlier are not
+/// guaranteed to always be before later measurements (due to anomalies such
+/// as the system clock being adjusted either forwards or backwards).
+/// [`Instant`] can be used to measure elapsed time without this risk of failure.
+/// 
+/// If successful, <code>[Ok]\([Duration])</code> is returned where the duration represents
+/// the amount of time elapsed from the specified measurement to this one.
+/// 
+/// Returns an [`Err`] if `earlier` is later than `self`, and the error
+/// contains how far from `self` the time is.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::time::SystemTime;
+/// 
+/// let sys_time = SystemTime::now();
+/// let new_sys_time = SystemTime::now();
+/// let difference = new_sys_time.duration_since(sys_time)
+///     .expect("Clock may have gone backwards");
+/// println!("{difference:?}");
+/// ```
 fn duration_since_wc ( & self , earlier : std :: time :: SystemTime ) -> crate :: rewrite_output_type ! ( core :: result :: Result < core :: time :: Duration , std :: time :: SystemTimeError > );
+/// Returns the difference from this system time to the
+/// current clock time.
+/// 
+/// This function may fail as the underlying system clock is susceptible to
+/// drift and updates (e.g., the system clock could go backwards), so this
+/// function might not always succeed. If successful, <code>[Ok]\([Duration])</code> is
+/// returned where the duration represents the amount of time elapsed from
+/// this time measurement to the current time.
+/// 
+/// To measure elapsed time reliably, use [`Instant`] instead.
+/// 
+/// Returns an [`Err`] if `self` is later than the current system time, and
+/// the error contains how far from the current system time `self` is.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::thread::sleep;
+/// use std::time::{Duration, SystemTime};
+/// 
+/// let sys_time = SystemTime::now();
+/// let one_sec = Duration::from_secs(1);
+/// sleep(one_sec);
+/// assert!(sys_time.elapsed().unwrap() >= one_sec);
+/// ```
 fn elapsed_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: result :: Result < core :: time :: Duration , std :: time :: SystemTimeError > );
 }
 impl SystemTimeContext for std :: time :: SystemTime {

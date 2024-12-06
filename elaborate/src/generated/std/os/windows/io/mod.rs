@@ -8,6 +8,8 @@ use anyhow::Context;
 
 #[cfg(windows)]
 pub trait BorrowedHandleContext {
+/// Creates a new `OwnedHandle` instance that shares the same underlying
+/// object as the existing `BorrowedHandle` instance.
 fn try_clone_to_owned_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: windows :: io :: OwnedHandle > );
 }
 #[cfg(windows)]
@@ -19,6 +21,8 @@ fn try_clone_to_owned_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: i
 }
 #[cfg(windows)]
 pub trait BorrowedSocketContext {
+/// Creates a new `OwnedSocket` instance that shares the same underlying
+/// object as the existing `BorrowedSocket` instance.
 fn try_clone_to_owned_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: windows :: io :: OwnedSocket > );
 }
 #[cfg(windows)]
@@ -30,6 +34,8 @@ fn try_clone_to_owned_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: i
 }
 #[cfg(windows)]
 pub trait OwnedHandleContext: Sized {
+/// Creates a new `OwnedHandle` instance that shares the same underlying
+/// object as the existing `OwnedHandle` instance.
 fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
 }
 #[cfg(windows)]
@@ -41,6 +47,8 @@ fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Resu
 }
 #[cfg(windows)]
 pub trait OwnedSocketContext: Sized {
+/// Creates a new `OwnedSocket` instance that shares the same underlying
+/// object as the existing `OwnedSocket` instance.
 fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
 }
 #[cfg(windows)]

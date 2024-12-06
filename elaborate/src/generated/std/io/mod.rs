@@ -6,23 +6,260 @@ use anyhow::Context;
 
 
 pub trait BufReadContext: std :: io :: BufRead {
-fn fill_buf_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < & [ u8 ] > ) {
-    < Self as :: std :: io :: BufRead > :: fill_buf(self)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type impl std::io::BufRead")), "fill_buf"))
-}
-fn read_line_wc ( & mut self , buf : & mut std :: string :: String ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-    < Self as :: std :: io :: BufRead > :: read_line(self, buf)
-        .with_context(|| crate::call_failed!(Some(self), "read_line", buf))
-}
-fn read_until_wc ( & mut self , byte : u8 , buf : & mut std :: vec :: Vec < u8 > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-    < Self as :: std :: io :: BufRead > :: read_until(self, byte, buf)
-        .with_context(|| crate::call_failed!(Some(self), "read_until", byte, buf))
-}
+/// Checks if the underlying `Read` has any data left to be read.
+/// 
+/// This function may fill the buffer to check for data,
+/// so this functions returns `Result<bool>`, not `bool`.
+/// 
+/// Default implementation calls `fill_buf` and checks that
+/// returned slice is empty (which means that there is no data left,
+/// since EOF is reached).
+/// 
+/// Examples
+/// 
+/// ```
+/// #![feature(buf_read_has_data_left)]
+/// use std::io;
+/// use std::io::prelude::*;
+/// 
+/// let stdin = io::stdin();
+/// let mut stdin = stdin.lock();
+/// 
+/// while stdin.has_data_left().unwrap() {
+///     let mut line = String::new();
+///     stdin.read_line(&mut line).unwrap();
+///     // work with line
+///     println!("{line:?}");
+/// }
+/// ```
 #[cfg(feature = "buf_read_has_data_left")]
 fn has_data_left_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
     < Self as :: std :: io :: BufRead > :: has_data_left(self)
         .with_context(|| crate::call_failed!(Some(self), "has_data_left"))
 }
+/// Reads all bytes into `buf` until the delimiter `byte` or EOF is reached.
+/// 
+/// This function will read bytes from the underlying stream until the
+/// delimiter or EOF is found. Once found, all bytes up to, and including,
+/// the delimiter (if found) will be appended to `buf`.
+/// 
+/// If successful, this function will return the total number of bytes read.
+/// 
+/// This function is blocking and should be used carefully: it is possible for
+/// an attacker to continuously send bytes without ever sending the delimiter
+/// or EOF.
+/// 
+/// # Errors
+/// 
+/// This function will ignore all instances of [`ErrorKind::Interrupted`] and
+/// will otherwise return any errors returned by [`fill_buf`].
+/// 
+/// If an I/O error is encountered then all bytes read so far will be
+/// present in `buf` and its length will have been adjusted appropriately.
+/// 
+/// [`fill_buf`]: BufRead::fill_buf
+/// 
+/// # Examples
+/// 
+/// [`std::io::Cursor`][`Cursor`] is a type that implements `BufRead`. In
+/// this example, we use [`Cursor`] to read all the bytes in a byte slice
+/// in hyphen delimited segments:
+/// 
+/// ```
+/// use std::io::{self, BufRead};
+/// 
+/// let mut cursor = io::Cursor::new(b"lorem-ipsum");
+/// let mut buf = vec![];
+/// 
+/// // cursor is at 'l'
+/// let num_bytes = cursor.read_until(b'-', &mut buf)
+///     .expect("reading from cursor won't fail");
+/// assert_eq!(num_bytes, 6);
+/// assert_eq!(buf, b"lorem-");
+/// buf.clear();
+/// 
+/// // cursor is at 'i'
+/// let num_bytes = cursor.read_until(b'-', &mut buf)
+///     .expect("reading from cursor won't fail");
+/// assert_eq!(num_bytes, 5);
+/// assert_eq!(buf, b"ipsum");
+/// buf.clear();
+/// 
+/// // cursor is at EOF
+/// let num_bytes = cursor.read_until(b'-', &mut buf)
+///     .expect("reading from cursor won't fail");
+/// assert_eq!(num_bytes, 0);
+/// assert_eq!(buf, b"");
+/// ```
+fn read_until_wc ( & mut self , byte : u8 , buf : & mut std :: vec :: Vec < u8 > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
+    < Self as :: std :: io :: BufRead > :: read_until(self, byte, buf)
+        .with_context(|| crate::call_failed!(Some(self), "read_until", byte, buf))
+}
+/// Reads all bytes until a newline (the `0xA` byte) is reached, and append
+/// them to the provided `String` buffer.
+/// 
+/// Previous content of the buffer will be preserved. To avoid appending to
+/// the buffer, you need to [`clear`] it first.
+/// 
+/// This function will read bytes from the underlying stream until the
+/// newline delimiter (the `0xA` byte) or EOF is found. Once found, all bytes
+/// up to, and including, the delimiter (if found) will be appended to
+/// `buf`.
+/// 
+/// If successful, this function will return the total number of bytes read.
+/// 
+/// If this function returns [`Ok(0)`], the stream has reached EOF.
+/// 
+/// This function is blocking and should be used carefully: it is possible for
+/// an attacker to continuously send bytes without ever sending a newline
+/// or EOF. You can use [`take`] to limit the maximum number of bytes read.
+/// 
+/// [`Ok(0)`]: Ok
+/// [`clear`]: String::clear
+/// [`take`]: crate::io::Read::take
+/// 
+/// # Errors
+/// 
+/// This function has the same error semantics as [`read_until`] and will
+/// also return an error if the read bytes are not valid UTF-8. If an I/O
+/// error is encountered then `buf` may contain some bytes already read in
+/// the event that all data read so far was valid UTF-8.
+/// 
+/// [`read_until`]: BufRead::read_until
+/// 
+/// # Examples
+/// 
+/// [`std::io::Cursor`][`Cursor`] is a type that implements `BufRead`. In
+/// this example, we use [`Cursor`] to read all the lines in a byte slice:
+/// 
+/// ```
+/// use std::io::{self, BufRead};
+/// 
+/// let mut cursor = io::Cursor::new(b"foo\nbar");
+/// let mut buf = String::new();
+/// 
+/// // cursor is at 'f'
+/// let num_bytes = cursor.read_line(&mut buf)
+///     .expect("reading from cursor won't fail");
+/// assert_eq!(num_bytes, 4);
+/// assert_eq!(buf, "foo\n");
+/// buf.clear();
+/// 
+/// // cursor is at 'b'
+/// let num_bytes = cursor.read_line(&mut buf)
+///     .expect("reading from cursor won't fail");
+/// assert_eq!(num_bytes, 3);
+/// assert_eq!(buf, "bar");
+/// buf.clear();
+/// 
+/// // cursor is at EOF
+/// let num_bytes = cursor.read_line(&mut buf)
+///     .expect("reading from cursor won't fail");
+/// assert_eq!(num_bytes, 0);
+/// assert_eq!(buf, "");
+/// ```
+fn read_line_wc ( & mut self , buf : & mut std :: string :: String ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
+    < Self as :: std :: io :: BufRead > :: read_line(self, buf)
+        .with_context(|| crate::call_failed!(Some(self), "read_line", buf))
+}
+/// Returns the contents of the internal buffer, filling it with more data
+/// from the inner reader if it is empty.
+/// 
+/// This function is a lower-level call. It needs to be paired with the
+/// [`consume`] method to function properly. When calling this
+/// method, none of the contents will be "read" in the sense that later
+/// calling `read` may return the same contents. As such, [`consume`] must
+/// be called with the number of bytes that are consumed from this buffer to
+/// ensure that the bytes are never returned twice.
+/// 
+/// [`consume`]: BufRead::consume
+/// 
+/// An empty buffer returned indicates that the stream has reached EOF.
+/// 
+/// # Errors
+/// 
+/// This function will return an I/O error if the underlying reader was
+/// read, but returned an error.
+/// 
+/// # Examples
+/// 
+/// A locked standard input implements `BufRead`:
+/// 
+/// ```no_run
+/// use std::io;
+/// use std::io::prelude::*;
+/// 
+/// let stdin = io::stdin();
+/// let mut stdin = stdin.lock();
+/// 
+/// let buffer = stdin.fill_buf().unwrap();
+/// 
+/// // work with buffer
+/// println!("{buffer:?}");
+/// 
+/// // ensure the bytes we worked with aren't returned again later
+/// let length = buffer.len();
+/// stdin.consume(length);
+/// ```
+fn fill_buf_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < & [ u8 ] > ) {
+    < Self as :: std :: io :: BufRead > :: fill_buf(self)
+        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type impl std::io::BufRead")), "fill_buf"))
+}
+/// Skips all bytes until the delimiter `byte` or EOF is reached.
+/// 
+/// This function will read (and discard) bytes from the underlying stream until the
+/// delimiter or EOF is found.
+/// 
+/// If successful, this function will return the total number of bytes read,
+/// including the delimiter byte.
+/// 
+/// This is useful for efficiently skipping data such as NUL-terminated strings
+/// in binary file formats without buffering.
+/// 
+/// This function is blocking and should be used carefully: it is possible for
+/// an attacker to continuously send bytes without ever sending the delimiter
+/// or EOF.
+/// 
+/// # Errors
+/// 
+/// This function will ignore all instances of [`ErrorKind::Interrupted`] and
+/// will otherwise return any errors returned by [`fill_buf`].
+/// 
+/// If an I/O error is encountered then all bytes read so far will be
+/// present in `buf` and its length will have been adjusted appropriately.
+/// 
+/// [`fill_buf`]: BufRead::fill_buf
+/// 
+/// # Examples
+/// 
+/// [`std::io::Cursor`][`Cursor`] is a type that implements `BufRead`. In
+/// this example, we use [`Cursor`] to read some NUL-terminated information
+/// about Ferris from a binary string, skipping the fun fact:
+/// 
+/// ```
+/// use std::io::{self, BufRead};
+/// 
+/// let mut cursor = io::Cursor::new(b"Ferris\0Likes long walks on the beach\0Crustacean\0");
+/// 
+/// // read name
+/// let mut name = Vec::new();
+/// let num_bytes = cursor.read_until(b'\0', &mut name)
+///     .expect("reading from cursor won't fail");
+/// assert_eq!(num_bytes, 7);
+/// assert_eq!(name, b"Ferris\0");
+/// 
+/// // skip fun fact
+/// let num_bytes = cursor.skip_until(b'\0')
+///     .expect("reading from cursor won't fail");
+/// assert_eq!(num_bytes, 30);
+/// 
+/// // read animal type
+/// let mut animal = Vec::new();
+/// let num_bytes = cursor.read_until(b'\0', &mut animal)
+///     .expect("reading from cursor won't fail");
+/// assert_eq!(num_bytes, 11);
+/// assert_eq!(animal, b"Crustacean\0");
+/// ```
 #[cfg(feature = "bufread_skip_until")]
 fn skip_until_wc ( & mut self , byte : u8 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     < Self as :: std :: io :: BufRead > :: skip_until(self, byte)
@@ -32,102 +269,864 @@ fn skip_until_wc ( & mut self , byte : u8 ) -> crate :: rewrite_output_type ! ( 
 
 impl<T> BufReadContext for T where T: std :: io :: BufRead {}
 pub trait ReadContext: std :: io :: Read {
-fn read_exact_wc ( & mut self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    < Self as :: std :: io :: Read > :: read_exact(self, buf)
-        .with_context(|| crate::call_failed!(Some(self), "read_exact", buf))
-}
-fn read_to_end_wc ( & mut self , buf : & mut std :: vec :: Vec < u8 > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-    < Self as :: std :: io :: Read > :: read_to_end(self, buf)
-        .with_context(|| crate::call_failed!(Some(self), "read_to_end", buf))
-}
-fn read_to_string_wc ( & mut self , buf : & mut std :: string :: String ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-    < Self as :: std :: io :: Read > :: read_to_string(self, buf)
-        .with_context(|| crate::call_failed!(Some(self), "read_to_string", buf))
-}
+/// Like `read`, except that it reads into a slice of buffers.
+/// 
+/// Data is copied to fill each buffer in order, with the final buffer
+/// written to possibly being only partially filled. This method must
+/// behave equivalently to a single call to `read` with concatenated
+/// buffers.
+/// 
+/// The default implementation calls `read` with either the first nonempty
+/// buffer provided, or an empty one if none exists.
 fn read_vectored_wc ( & mut self , bufs : & mut [ std :: io :: IoSliceMut < '_ > ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     < Self as :: std :: io :: Read > :: read_vectored(self, bufs)
         .with_context(|| crate::call_failed!(Some(self), "read_vectored", bufs))
 }
+/// Pull some bytes from this source into the specified buffer, returning
+/// how many bytes were read.
+/// 
+/// This function does not provide any guarantees about whether it blocks
+/// waiting for data, but if an object needs to block for a read and cannot,
+/// it will typically signal this via an [`Err`] return value.
+/// 
+/// If the return value of this method is [`Ok(n)`], then implementations must
+/// guarantee that `0 <= n <= buf.len()`. A nonzero `n` value indicates
+/// that the buffer `buf` has been filled in with `n` bytes of data from this
+/// source. If `n` is `0`, then it can indicate one of two scenarios:
+/// 
+/// 1. This reader has reached its "end of file" and will likely no longer
+///    be able to produce bytes. Note that this does not mean that the
+///    reader will *always* no longer be able to produce bytes. As an example,
+///    on Linux, this method will call the `recv` syscall for a [`TcpStream`],
+///    where returning zero indicates the connection was shut down correctly. While
+///    for [`File`], it is possible to reach the end of file and get zero as result,
+///    but if more data is appended to the file, future calls to `read` will return
+///    more data.
+/// 2. The buffer specified was 0 bytes in length.
+/// 
+/// It is not an error if the returned value `n` is smaller than the buffer size,
+/// even when the reader is not at the end of the stream yet.
+/// This may happen for example because fewer bytes are actually available right now
+/// (e. g. being close to end-of-file) or because read() was interrupted by a signal.
+/// 
+/// As this trait is safe to implement, callers in unsafe code cannot rely on
+/// `n <= buf.len()` for safety.
+/// Extra care needs to be taken when `unsafe` functions are used to access the read bytes.
+/// Callers have to ensure that no unchecked out-of-bounds accesses are possible even if
+/// `n > buf.len()`.
+/// 
+/// *Implementations* of this method can make no assumptions about the contents of `buf` when
+/// this function is called. It is recommended that implementations only write data to `buf`
+/// instead of reading its contents.
+/// 
+/// Correspondingly, however, *callers* of this method in unsafe code must not assume
+/// any guarantees about how the implementation uses `buf`. The trait is safe to implement,
+/// so it is possible that the code that's supposed to write to the buffer might also read
+/// from it. It is your responsibility to make sure that `buf` is initialized
+/// before calling `read`. Calling `read` with an uninitialized `buf` (of the kind one
+/// obtains via [`MaybeUninit<T>`]) is not safe, and can lead to undefined behavior.
+/// 
+/// [`MaybeUninit<T>`]: crate::mem::MaybeUninit
+/// 
+/// # Errors
+/// 
+/// If this function encounters any form of I/O or other error, an error
+/// variant will be returned. If an error is returned then it must be
+/// guaranteed that no bytes were read.
+/// 
+/// An error of the [`ErrorKind::Interrupted`] kind is non-fatal and the read
+/// operation should be retried if there is nothing else to do.
+/// 
+/// # Examples
+/// 
+/// [`File`]s implement `Read`:
+/// 
+/// [`Ok(n)`]: Ok
+/// [`File`]: crate::fs::File
+/// [`TcpStream`]: crate::net::TcpStream
+/// 
+/// ```no_run
+/// use std::io;
+/// use std::io::prelude::*;
+/// use std::fs::File;
+/// 
+/// fn main() -> io::Result<()> {
+///     let mut f = File::open("foo.txt")?;
+///     let mut buffer = [0; 10];
+/// 
+///     // read up to 10 bytes
+///     let n = f.read(&mut buffer[..])?;
+/// 
+///     println!("The bytes: {:?}", &buffer[..n]);
+///     Ok(())
+/// }
+/// ```
 fn read_wc ( & mut self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     < Self as :: std :: io :: Read > :: read(self, buf)
         .with_context(|| crate::call_failed!(Some(self), "read", buf))
 }
-#[cfg(feature = "read_buf")]
-fn read_buf_exact_wc ( & mut self , cursor : core :: io :: BorrowedCursor < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    < Self as :: std :: io :: Read > :: read_buf_exact(self, cursor)
-        .with_context(|| crate::call_failed!(Some(self), "read_buf_exact", crate::CustomDebugMessage("value of type BorrowedCursor")))
-}
+/// Pull some bytes from this source into the specified buffer.
+/// 
+/// This is equivalent to the [`read`](Read::read) method, except that it is passed a [`BorrowedCursor`] rather than `[u8]` to allow use
+/// with uninitialized buffers. The new data will be appended to any existing contents of `buf`.
+/// 
+/// The default implementation delegates to `read`.
+/// 
+/// This method makes it possible to return both data and an error but it is advised against.
 #[cfg(feature = "read_buf")]
 fn read_buf_wc ( & mut self , buf : core :: io :: BorrowedCursor < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: io :: Read > :: read_buf(self, buf)
         .with_context(|| crate::call_failed!(Some(self), "read_buf", crate::CustomDebugMessage("value of type BorrowedCursor")))
 }
+/// Reads all bytes until EOF in this source, appending them to `buf`.
+/// 
+/// If successful, this function returns the number of bytes which were read
+/// and appended to `buf`.
+/// 
+/// # Errors
+/// 
+/// If the data in this stream is *not* valid UTF-8 then an error is
+/// returned and `buf` is unchanged.
+/// 
+/// See [`read_to_end`] for other error semantics.
+/// 
+/// [`read_to_end`]: Read::read_to_end
+/// 
+/// # Examples
+/// 
+/// [`File`]s implement `Read`:
+/// 
+/// [`File`]: crate::fs::File
+/// 
+/// ```no_run
+/// use std::io;
+/// use std::io::prelude::*;
+/// use std::fs::File;
+/// 
+/// fn main() -> io::Result<()> {
+///     let mut f = File::open("foo.txt")?;
+///     let mut buffer = String::new();
+/// 
+///     f.read_to_string(&mut buffer)?;
+///     Ok(())
+/// }
+/// ```
+/// 
+/// (See also the [`std::fs::read_to_string`] convenience function for
+/// reading from a file.)
+/// 
+/// [`std::fs::read_to_string`]: crate::fs::read_to_string
+fn read_to_string_wc ( & mut self , buf : & mut std :: string :: String ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
+    < Self as :: std :: io :: Read > :: read_to_string(self, buf)
+        .with_context(|| crate::call_failed!(Some(self), "read_to_string", buf))
+}
+/// Reads all bytes until EOF in this source, placing them into `buf`.
+/// 
+/// All bytes read from this source will be appended to the specified buffer
+/// `buf`. This function will continuously call [`read()`] to append more data to
+/// `buf` until [`read()`] returns either [`Ok(0)`] or an error of
+/// non-[`ErrorKind::Interrupted`] kind.
+/// 
+/// If successful, this function will return the total number of bytes read.
+/// 
+/// # Errors
+/// 
+/// If this function encounters an error of the kind
+/// [`ErrorKind::Interrupted`] then the error is ignored and the operation
+/// will continue.
+/// 
+/// If any other read error is encountered then this function immediately
+/// returns. Any bytes which have already been read will be appended to
+/// `buf`.
+/// 
+/// # Examples
+/// 
+/// [`File`]s implement `Read`:
+/// 
+/// [`read()`]: Read::read
+/// [`Ok(0)`]: Ok
+/// [`File`]: crate::fs::File
+/// 
+/// ```no_run
+/// use std::io;
+/// use std::io::prelude::*;
+/// use std::fs::File;
+/// 
+/// fn main() -> io::Result<()> {
+///     let mut f = File::open("foo.txt")?;
+///     let mut buffer = Vec::new();
+/// 
+///     // read the whole file
+///     f.read_to_end(&mut buffer)?;
+///     Ok(())
+/// }
+/// ```
+/// 
+/// (See also the [`std::fs::read`] convenience function for reading from a
+/// file.)
+/// 
+/// [`std::fs::read`]: crate::fs::read
+/// 
+/// ## Implementing `read_to_end`
+/// 
+/// When implementing the `io::Read` trait, it is recommended to allocate
+/// memory using [`Vec::try_reserve`]. However, this behavior is not guaranteed
+/// by all implementations, and `read_to_end` may not handle out-of-memory
+/// situations gracefully.
+/// 
+/// ```no_run
+/// # use std::io::{self, BufRead};
+/// # struct Example { example_datasource: io::Empty } impl Example {
+/// # fn get_some_data_for_the_example(&self) -> &'static [u8] { &[] }
+/// fn read_to_end(&mut self, dest_vec: &mut Vec<u8>) -> io::Result<usize> {
+///     let initial_vec_len = dest_vec.len();
+///     loop {
+///         let src_buf = self.example_datasource.fill_buf()?;
+///         if src_buf.is_empty() {
+///             break;
+///         }
+///         dest_vec.try_reserve(src_buf.len())?;
+///         dest_vec.extend_from_slice(src_buf);
+/// 
+///         // Any irreversible side effects should happen after `try_reserve` succeeds,
+///         // to avoid losing data on allocation error.
+///         let read = src_buf.len();
+///         self.example_datasource.consume(read);
+///     }
+///     Ok(dest_vec.len() - initial_vec_len)
+/// }
+/// # }
+/// ```
+/// 
+/// [`Vec::try_reserve`]: crate::vec::Vec::try_reserve
+fn read_to_end_wc ( & mut self , buf : & mut std :: vec :: Vec < u8 > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
+    < Self as :: std :: io :: Read > :: read_to_end(self, buf)
+        .with_context(|| crate::call_failed!(Some(self), "read_to_end", buf))
+}
+/// Reads the exact number of bytes required to fill `buf`.
+/// 
+/// This function reads as many bytes as necessary to completely fill the
+/// specified buffer `buf`.
+/// 
+/// *Implementations* of this method can make no assumptions about the contents of `buf` when
+/// this function is called. It is recommended that implementations only write data to `buf`
+/// instead of reading its contents. The documentation on [`read`] has a more detailed
+/// explanation of this subject.
+/// 
+/// # Errors
+/// 
+/// If this function encounters an error of the kind
+/// [`ErrorKind::Interrupted`] then the error is ignored and the operation
+/// will continue.
+/// 
+/// If this function encounters an "end of file" before completely filling
+/// the buffer, it returns an error of the kind [`ErrorKind::UnexpectedEof`].
+/// The contents of `buf` are unspecified in this case.
+/// 
+/// If any other read error is encountered then this function immediately
+/// returns. The contents of `buf` are unspecified in this case.
+/// 
+/// If this function returns an error, it is unspecified how many bytes it
+/// has read, but it will never read more than would be necessary to
+/// completely fill the buffer.
+/// 
+/// # Examples
+/// 
+/// [`File`]s implement `Read`:
+/// 
+/// [`read`]: Read::read
+/// [`File`]: crate::fs::File
+/// 
+/// ```no_run
+/// use std::io;
+/// use std::io::prelude::*;
+/// use std::fs::File;
+/// 
+/// fn main() -> io::Result<()> {
+///     let mut f = File::open("foo.txt")?;
+///     let mut buffer = [0; 10];
+/// 
+///     // read exactly 10 bytes
+///     f.read_exact(&mut buffer)?;
+///     Ok(())
+/// }
+/// ```
+fn read_exact_wc ( & mut self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    < Self as :: std :: io :: Read > :: read_exact(self, buf)
+        .with_context(|| crate::call_failed!(Some(self), "read_exact", buf))
+}
+/// Reads the exact number of bytes required to fill `cursor`.
+/// 
+/// This is similar to the [`read_exact`](Read::read_exact) method, except
+/// that it is passed a [`BorrowedCursor`] rather than `[u8]` to allow use
+/// with uninitialized buffers.
+/// 
+/// # Errors
+/// 
+/// If this function encounters an error of the kind [`ErrorKind::Interrupted`]
+/// then the error is ignored and the operation will continue.
+/// 
+/// If this function encounters an "end of file" before completely filling
+/// the buffer, it returns an error of the kind [`ErrorKind::UnexpectedEof`].
+/// 
+/// If any other read error is encountered then this function immediately
+/// returns.
+/// 
+/// If this function returns an error, all bytes read will be appended to `cursor`.
+#[cfg(feature = "read_buf")]
+fn read_buf_exact_wc ( & mut self , cursor : core :: io :: BorrowedCursor < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    < Self as :: std :: io :: Read > :: read_buf_exact(self, cursor)
+        .with_context(|| crate::call_failed!(Some(self), "read_buf_exact", crate::CustomDebugMessage("value of type BorrowedCursor")))
+}
 }
 
 impl<T> ReadContext for T where T: std :: io :: Read {}
 pub trait SeekContext: std :: io :: Seek {
-fn rewind_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    < Self as :: std :: io :: Seek > :: rewind(self)
-        .with_context(|| crate::call_failed!(Some(self), "rewind"))
-}
-fn seek_relative_wc ( & mut self , offset : i64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    < Self as :: std :: io :: Seek > :: seek_relative(self, offset)
-        .with_context(|| crate::call_failed!(Some(self), "seek_relative", offset))
-}
-fn seek_wc ( & mut self , pos : std :: io :: SeekFrom ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u64 > ) {
-    < Self as :: std :: io :: Seek > :: seek(self, pos)
-        .with_context(|| crate::call_failed!(Some(self), "seek", pos))
-}
+/// Returns the current seek position from the start of the stream.
+/// 
+/// This is equivalent to `self.seek(SeekFrom::Current(0))`.
+/// 
+/// # Example
+/// 
+/// ```no_run
+/// use std::{
+///     io::{self, BufRead, BufReader, Seek},
+///     fs::File,
+/// };
+/// 
+/// fn main() -> io::Result<()> {
+///     let mut f = BufReader::new(File::open("foo.txt")?);
+/// 
+///     let before = f.stream_position()?;
+///     f.read_line(&mut String::new())?;
+///     let after = f.stream_position()?;
+/// 
+///     println!("The first line was {} bytes long", after - before);
+///     Ok(())
+/// }
+/// ```
 fn stream_position_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u64 > ) {
     < Self as :: std :: io :: Seek > :: stream_position(self)
         .with_context(|| crate::call_failed!(Some(self), "stream_position"))
 }
+/// Returns the length of this stream (in bytes).
+/// 
+/// This method is implemented using up to three seek operations. If this
+/// method returns successfully, the seek position is unchanged (i.e. the
+/// position before calling this method is the same as afterwards).
+/// However, if this method returns an error, the seek position is
+/// unspecified.
+/// 
+/// If you need to obtain the length of *many* streams and you don't care
+/// about the seek position afterwards, you can reduce the number of seek
+/// operations by simply calling `seek(SeekFrom::End(0))` and using its
+/// return value (it is also the stream length).
+/// 
+/// Note that length of a stream can change over time (for example, when
+/// data is appended to a file). So calling this method multiple times does
+/// not necessarily return the same length each time.
+/// 
+/// # Example
+/// 
+/// ```no_run
+/// #![feature(seek_stream_len)]
+/// use std::{
+///     io::{self, Seek},
+///     fs::File,
+/// };
+/// 
+/// fn main() -> io::Result<()> {
+///     let mut f = File::open("foo.txt")?;
+/// 
+///     let len = f.stream_len()?;
+///     println!("The file is currently {len} bytes long");
+///     Ok(())
+/// }
+/// ```
 #[cfg(feature = "seek_stream_len")]
 fn stream_len_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u64 > ) {
     < Self as :: std :: io :: Seek > :: stream_len(self)
         .with_context(|| crate::call_failed!(Some(self), "stream_len"))
 }
+/// Rewind to the beginning of a stream.
+/// 
+/// This is a convenience method, equivalent to `seek(SeekFrom::Start(0))`.
+/// 
+/// # Errors
+/// 
+/// Rewinding can fail, for example because it might involve flushing a buffer.
+/// 
+/// # Example
+/// 
+/// ```no_run
+/// use std::io::{Read, Seek, Write};
+/// use std::fs::OpenOptions;
+/// 
+/// let mut f = OpenOptions::new()
+///     .write(true)
+///     .read(true)
+///     .create(true)
+///     .open("foo.txt").unwrap();
+/// 
+/// let hello = "Hello!\n";
+/// write!(f, "{hello}").unwrap();
+/// f.rewind().unwrap();
+/// 
+/// let mut buf = String::new();
+/// f.read_to_string(&mut buf).unwrap();
+/// assert_eq!(&buf, hello);
+/// ```
+fn rewind_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    < Self as :: std :: io :: Seek > :: rewind(self)
+        .with_context(|| crate::call_failed!(Some(self), "rewind"))
+}
+/// Seek to an offset, in bytes, in a stream.
+/// 
+/// A seek beyond the end of a stream is allowed, but behavior is defined
+/// by the implementation.
+/// 
+/// If the seek operation completed successfully,
+/// this method returns the new position from the start of the stream.
+/// That position can be used later with [`SeekFrom::Start`].
+/// 
+/// # Errors
+/// 
+/// Seeking can fail, for example because it might involve flushing a buffer.
+/// 
+/// Seeking to a negative offset is considered an error.
+fn seek_wc ( & mut self , pos : std :: io :: SeekFrom ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u64 > ) {
+    < Self as :: std :: io :: Seek > :: seek(self, pos)
+        .with_context(|| crate::call_failed!(Some(self), "seek", pos))
+}
+/// Seeks relative to the current position.
+/// 
+/// This is equivalent to `self.seek(SeekFrom::Current(offset))` but
+/// doesn't return the new position which can allow some implementations
+/// such as [`BufReader`] to perform more efficient seeks.
+/// 
+/// # Example
+/// 
+/// ```no_run
+/// use std::{
+///     io::{self, Seek},
+///     fs::File,
+/// };
+/// 
+/// fn main() -> io::Result<()> {
+///     let mut f = File::open("foo.txt")?;
+///     f.seek_relative(10)?;
+///     assert_eq!(f.stream_position()?, 10);
+///     Ok(())
+/// }
+/// ```
+/// 
+/// [`BufReader`]: crate::io::BufReader
+fn seek_relative_wc ( & mut self , offset : i64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    < Self as :: std :: io :: Seek > :: seek_relative(self, offset)
+        .with_context(|| crate::call_failed!(Some(self), "seek_relative", offset))
+}
 }
 
 impl<T> SeekContext for T where T: std :: io :: Seek {}
 pub trait WriteContext: std :: io :: Write {
-fn flush_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    < Self as :: std :: io :: Write > :: flush(self)
-        .with_context(|| crate::call_failed!(Some(self), "flush"))
-}
+/// Attempts to write an entire buffer into this writer.
+/// 
+/// This method will continuously call [`write`] until there is no more data
+/// to be written or an error of non-[`ErrorKind::Interrupted`] kind is
+/// returned. This method will not return until the entire buffer has been
+/// successfully written or such an error occurs. The first error that is
+/// not of [`ErrorKind::Interrupted`] kind generated from this method will be
+/// returned.
+/// 
+/// If the buffer contains no data, this will never call [`write`].
+/// 
+/// # Errors
+/// 
+/// This function will return the first error of
+/// non-[`ErrorKind::Interrupted`] kind that [`write`] returns.
+/// 
+/// [`write`]: Write::write
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::io::prelude::*;
+/// use std::fs::File;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let mut buffer = File::create("foo.txt")?;
+/// 
+///     buffer.write_all(b"some bytes")?;
+///     Ok(())
+/// }
+/// ```
 fn write_all_wc ( & mut self , buf : & [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: io :: Write > :: write_all(self, buf)
         .with_context(|| crate::call_failed!(Some(self), "write_all", buf))
 }
-fn write_fmt_wc ( & mut self , fmt : core :: fmt :: Arguments < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    < Self as :: std :: io :: Write > :: write_fmt(self, fmt)
-        .with_context(|| crate::call_failed!(Some(self), "write_fmt", fmt))
-}
-fn write_vectored_wc ( & mut self , bufs : & [ std :: io :: IoSlice < '_ > ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-    < Self as :: std :: io :: Write > :: write_vectored(self, bufs)
-        .with_context(|| crate::call_failed!(Some(self), "write_vectored", bufs))
-}
-fn write_wc ( & mut self , buf : & [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-    < Self as :: std :: io :: Write > :: write(self, buf)
-        .with_context(|| crate::call_failed!(Some(self), "write", buf))
-}
+/// Attempts to write multiple buffers into this writer.
+/// 
+/// This method will continuously call [`write_vectored`] until there is no
+/// more data to be written or an error of non-[`ErrorKind::Interrupted`]
+/// kind is returned. This method will not return until all buffers have
+/// been successfully written or such an error occurs. The first error that
+/// is not of [`ErrorKind::Interrupted`] kind generated from this method
+/// will be returned.
+/// 
+/// If the buffer contains no data, this will never call [`write_vectored`].
+/// 
+/// # Notes
+/// 
+/// Unlike [`write_vectored`], this takes a *mutable* reference to
+/// a slice of [`IoSlice`]s, not an immutable one. That's because we need to
+/// modify the slice to keep track of the bytes already written.
+/// 
+/// Once this function returns, the contents of `bufs` are unspecified, as
+/// this depends on how many calls to [`write_vectored`] were necessary. It is
+/// best to understand this function as taking ownership of `bufs` and to
+/// not use `bufs` afterwards. The underlying buffers, to which the
+/// [`IoSlice`]s point (but not the [`IoSlice`]s themselves), are unchanged and
+/// can be reused.
+/// 
+/// [`write_vectored`]: Write::write_vectored
+/// 
+/// # Examples
+/// 
+/// ```
+/// #![feature(write_all_vectored)]
+/// # fn main() -> std::io::Result<()> {
+/// 
+/// use std::io::{Write, IoSlice};
+/// 
+/// let mut writer = Vec::new();
+/// let bufs = &mut [
+///     IoSlice::new(&[1]),
+///     IoSlice::new(&[2, 3]),
+///     IoSlice::new(&[4, 5, 6]),
+/// ];
+/// 
+/// writer.write_all_vectored(bufs)?;
+/// // Note: the contents of `bufs` is now undefined, see the Notes section.
+/// 
+/// assert_eq!(writer, &[1, 2, 3, 4, 5, 6]);
+/// # Ok(()) }
+/// ```
 #[cfg(feature = "write_all_vectored")]
 fn write_all_vectored_wc ( & mut self , bufs : & mut [ std :: io :: IoSlice < '_ > ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: io :: Write > :: write_all_vectored(self, bufs)
         .with_context(|| crate::call_failed!(Some(self), "write_all_vectored", bufs))
+}
+/// Flushes this output stream, ensuring that all intermediately buffered
+/// contents reach their destination.
+/// 
+/// # Errors
+/// 
+/// It is considered an error if not all bytes could be written due to
+/// I/O errors or EOF being reached.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::io::prelude::*;
+/// use std::io::BufWriter;
+/// use std::fs::File;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let mut buffer = BufWriter::new(File::create("foo.txt")?);
+/// 
+///     buffer.write_all(b"some bytes")?;
+///     buffer.flush()?;
+///     Ok(())
+/// }
+/// ```
+fn flush_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    < Self as :: std :: io :: Write > :: flush(self)
+        .with_context(|| crate::call_failed!(Some(self), "flush"))
+}
+/// Like [`write`], except that it writes from a slice of buffers.
+/// 
+/// Data is copied from each buffer in order, with the final buffer
+/// read from possibly being only partially consumed. This method must
+/// behave as a call to [`write`] with the buffers concatenated would.
+/// 
+/// The default implementation calls [`write`] with either the first nonempty
+/// buffer provided, or an empty one if none exists.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::io::IoSlice;
+/// use std::io::prelude::*;
+/// use std::fs::File;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let data1 = [1; 8];
+///     let data2 = [15; 8];
+///     let io_slice1 = IoSlice::new(&data1);
+///     let io_slice2 = IoSlice::new(&data2);
+/// 
+///     let mut buffer = File::create("foo.txt")?;
+/// 
+///     // Writes some prefix of the byte string, not necessarily all of it.
+///     buffer.write_vectored(&[io_slice1, io_slice2])?;
+///     Ok(())
+/// }
+/// ```
+/// 
+/// [`write`]: Write::write
+fn write_vectored_wc ( & mut self , bufs : & [ std :: io :: IoSlice < '_ > ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
+    < Self as :: std :: io :: Write > :: write_vectored(self, bufs)
+        .with_context(|| crate::call_failed!(Some(self), "write_vectored", bufs))
+}
+/// Writes a buffer into this writer, returning how many bytes were written.
+/// 
+/// This function will attempt to write the entire contents of `buf`, but
+/// the entire write might not succeed, or the write may also generate an
+/// error. Typically, a call to `write` represents one attempt to write to
+/// any wrapped object.
+/// 
+/// Calls to `write` are not guaranteed to block waiting for data to be
+/// written, and a write which would otherwise block can be indicated through
+/// an [`Err`] variant.
+/// 
+/// If this method consumed `n > 0` bytes of `buf` it must return [`Ok(n)`].
+/// If the return value is `Ok(n)` then `n` must satisfy `n <= buf.len()`.
+/// A return value of `Ok(0)` typically means that the underlying object is
+/// no longer able to accept bytes and will likely not be able to in the
+/// future as well, or that the buffer provided is empty.
+/// 
+/// # Errors
+/// 
+/// Each call to `write` may generate an I/O error indicating that the
+/// operation could not be completed. If an error is returned then no bytes
+/// in the buffer were written to this writer.
+/// 
+/// It is **not** considered an error if the entire buffer could not be
+/// written to this writer.
+/// 
+/// An error of the [`ErrorKind::Interrupted`] kind is non-fatal and the
+/// write operation should be retried if there is nothing else to do.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::io::prelude::*;
+/// use std::fs::File;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let mut buffer = File::create("foo.txt")?;
+/// 
+///     // Writes some prefix of the byte string, not necessarily all of it.
+///     buffer.write(b"some bytes")?;
+///     Ok(())
+/// }
+/// ```
+/// 
+/// [`Ok(n)`]: Ok
+fn write_wc ( & mut self , buf : & [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
+    < Self as :: std :: io :: Write > :: write(self, buf)
+        .with_context(|| crate::call_failed!(Some(self), "write", buf))
+}
+/// Writes a formatted string into this writer, returning any error
+/// encountered.
+/// 
+/// This method is primarily used to interface with the
+/// [`format_args!()`] macro, and it is rare that this should
+/// explicitly be called. The [`write!()`] macro should be favored to
+/// invoke this method instead.
+/// 
+/// This function internally uses the [`write_all`] method on
+/// this trait and hence will continuously write data so long as no errors
+/// are received. This also means that partial writes are not indicated in
+/// this signature.
+/// 
+/// [`write_all`]: Write::write_all
+/// 
+/// # Errors
+/// 
+/// This function will return any I/O error reported while formatting.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::io::prelude::*;
+/// use std::fs::File;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let mut buffer = File::create("foo.txt")?;
+/// 
+///     // this call
+///     write!(buffer, "{:.*}", 2, 1.234567)?;
+///     // turns into this:
+///     buffer.write_fmt(format_args!("{:.*}", 2, 1.234567))?;
+///     Ok(())
+/// }
+/// ```
+fn write_fmt_wc ( & mut self , fmt : core :: fmt :: Arguments < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    < Self as :: std :: io :: Write > :: write_fmt(self, fmt)
+        .with_context(|| crate::call_failed!(Some(self), "write_fmt", fmt))
 }
 }
 
 impl<T> WriteContext for T where T: std :: io :: Write {}
 
 pub trait ErrorContext {
-fn get_mut_wc ( & mut self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & mut ( dyn core :: error :: Error + core :: marker :: Send + core :: marker :: Sync + 'static ) > );
-fn get_ref_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & ( dyn core :: error :: Error + core :: marker :: Send + core :: marker :: Sync + 'static ) > );
+/// Consumes the `Error`, returning its inner error (if any).
+/// 
+/// If this [`Error`] was constructed via [`new`] then this function will
+/// return [`Some`], otherwise it will return [`None`].
+/// 
+/// [`new`]: Error::new
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::io::{Error, ErrorKind};
+/// 
+/// fn print_error(err: Error) {
+///     if let Some(inner_err) = err.into_inner() {
+///         println!("Inner error: {inner_err}");
+///     } else {
+///         println!("No inner error");
+///     }
+/// }
+/// 
+/// fn main() {
+///     // Will print "No inner error".
+///     print_error(Error::last_os_error());
+///     // Will print "Inner error: ...".
+///     print_error(Error::new(ErrorKind::Other, "oh no!"));
+/// }
+/// ```
 fn into_inner_wc ( self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < std :: boxed :: Box < ( dyn core :: error :: Error + core :: marker :: Send + core :: marker :: Sync ) > > );
+/// Returns a mutable reference to the inner error wrapped by this error
+/// (if any).
+/// 
+/// If this [`Error`] was constructed via [`new`] then this function will
+/// return [`Some`], otherwise it will return [`None`].
+/// 
+/// [`new`]: Error::new
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::io::{Error, ErrorKind};
+/// use std::{error, fmt};
+/// use std::fmt::Display;
+/// 
+/// #[derive(Debug)]
+/// struct MyError {
+///     v: String,
+/// }
+/// 
+/// impl MyError {
+///     fn new() -> MyError {
+///         MyError {
+///             v: "oh no!".to_string()
+///         }
+///     }
+/// 
+///     fn change_message(&mut self, new_message: &str) {
+///         self.v = new_message.to_string();
+///     }
+/// }
+/// 
+/// impl error::Error for MyError {}
+/// 
+/// impl Display for MyError {
+///     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+///         write!(f, "MyError: {}", self.v)
+///     }
+/// }
+/// 
+/// fn change_error(mut err: Error) -> Error {
+///     if let Some(inner_err) = err.get_mut() {
+///         inner_err.downcast_mut::<MyError>().unwrap().change_message("I've been changed!");
+///     }
+///     err
+/// }
+/// 
+/// fn print_error(err: &Error) {
+///     if let Some(inner_err) = err.get_ref() {
+///         println!("Inner error: {inner_err}");
+///     } else {
+///         println!("No inner error");
+///     }
+/// }
+/// 
+/// fn main() {
+///     // Will print "No inner error".
+///     print_error(&change_error(Error::last_os_error()));
+///     // Will print "Inner error: ...".
+///     print_error(&change_error(Error::new(ErrorKind::Other, MyError::new())));
+/// }
+/// ```
+fn get_mut_wc ( & mut self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & mut ( dyn core :: error :: Error + core :: marker :: Send + core :: marker :: Sync + 'static ) > );
+/// Returns a reference to the inner error wrapped by this error (if any).
+/// 
+/// If this [`Error`] was constructed via [`new`] then this function will
+/// return [`Some`], otherwise it will return [`None`].
+/// 
+/// [`new`]: Error::new
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::io::{Error, ErrorKind};
+/// 
+/// fn print_error(err: &Error) {
+///     if let Some(inner_err) = err.get_ref() {
+///         println!("Inner error: {inner_err:?}");
+///     } else {
+///         println!("No inner error");
+///     }
+/// }
+/// 
+/// fn main() {
+///     // Will print "No inner error".
+///     print_error(&Error::last_os_error());
+///     // Will print "Inner error: ...".
+///     print_error(&Error::new(ErrorKind::Other, "oh no!"));
+/// }
+/// ```
+fn get_ref_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & ( dyn core :: error :: Error + core :: marker :: Send + core :: marker :: Sync + 'static ) > );
+/// Returns the OS error that this error represents (if any).
+/// 
+/// If this [`Error`] was constructed via [`last_os_error`] or
+/// [`from_raw_os_error`], then this function will return [`Some`], otherwise
+/// it will return [`None`].
+/// 
+/// [`last_os_error`]: Error::last_os_error
+/// [`from_raw_os_error`]: Error::from_raw_os_error
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::io::{Error, ErrorKind};
+/// 
+/// fn print_os_error(err: &Error) {
+///     if let Some(raw_os_err) = err.raw_os_error() {
+///         println!("raw OS error: {raw_os_err:?}");
+///     } else {
+///         println!("Not an OS error");
+///     }
+/// }
+/// 
+/// fn main() {
+///     // Will print "raw OS error: ...".
+///     print_os_error(&Error::last_os_error());
+///     // Will print "Not an OS error".
+///     print_os_error(&Error::new(ErrorKind::Other, "oh no!"));
+/// }
+/// ```
 #[cfg(feature = "raw_os_error_ty")]
 fn raw_os_error_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < std :: io :: RawOsError > );
 }
 impl ErrorContext for std :: io :: Error {
+fn into_inner_wc ( self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < std :: boxed :: Box < ( dyn core :: error :: Error + core :: marker :: Send + core :: marker :: Sync ) > > ) {
+    std :: io :: Error :: into_inner(self)
+        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type std::io::Error")), "into_inner"))
+}
 fn get_mut_wc ( & mut self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & mut ( dyn core :: error :: Error + core :: marker :: Send + core :: marker :: Sync + 'static ) > ) {
     std :: io :: Error :: get_mut(self)
         .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type std::io::Error")), "get_mut"))
@@ -136,10 +1135,6 @@ fn get_ref_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: O
     std :: io :: Error :: get_ref(self)
         .with_context(|| crate::call_failed!(Some(self), "get_ref"))
 }
-fn into_inner_wc ( self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < std :: boxed :: Box < ( dyn core :: error :: Error + core :: marker :: Send + core :: marker :: Sync ) > > ) {
-    std :: io :: Error :: into_inner(self)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type std::io::Error")), "into_inner"))
-}
 #[cfg(feature = "raw_os_error_ty")]
 fn raw_os_error_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < std :: io :: RawOsError > ) {
     std :: io :: Error :: raw_os_error(self)
@@ -147,6 +1142,37 @@ fn raw_os_error_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option
 }
 }
 pub trait StdinContext {
+/// Locks this handle and reads a line of input, appending it to the specified buffer.
+/// 
+/// For detailed semantics of this method, see the documentation on
+/// [`BufRead::read_line`]. In particular:
+/// * Previous content of the buffer will be preserved. To avoid appending
+///   to the buffer, you need to [`clear`] it first.
+/// * The trailing newline character, if any, is included in the buffer.
+/// 
+/// [`clear`]: String::clear
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::io;
+/// 
+/// let mut input = String::new();
+/// match io::stdin().read_line(&mut input) {
+///     Ok(n) => {
+///         println!("{n} bytes read");
+///         println!("{input}");
+///     }
+///     Err(error) => println!("error: {error}"),
+/// }
+/// ```
+/// 
+/// You can run the example one of two ways:
+/// 
+/// - Pipe some text to it, e.g., `printf foo | path/to/executable`
+/// - Give it text interactively by running the executable directly,
+///   in which case it will wait for the Enter key to be pressed before
+///   continuing
 fn read_line_wc ( & self , buf : & mut std :: string :: String ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
 }
 impl StdinContext for std :: io :: Stdin {
@@ -157,10 +1183,103 @@ fn read_line_wc ( & self , buf : & mut std :: string :: String ) -> crate :: rew
 }
 
 
+/// Copies the entire contents of a reader into a writer.
+/// 
+/// This function will continuously read data from `reader` and then
+/// write it into `writer` in a streaming fashion until `reader`
+/// returns EOF.
+/// 
+/// On success, the total number of bytes that were copied from
+/// `reader` to `writer` is returned.
+/// 
+/// If you want to copy the contents of one file to another and you’re
+/// working with filesystem paths, see the [`fs::copy`] function.
+/// 
+/// [`fs::copy`]: crate::fs::copy
+/// 
+/// # Errors
+/// 
+/// This function will return an error immediately if any call to [`read`] or
+/// [`write`] returns an error. All instances of [`ErrorKind::Interrupted`] are
+/// handled by this function and the underlying operation is retried.
+/// 
+/// [`read`]: Read::read
+/// [`write`]: Write::write
+/// [`ErrorKind::Interrupted`]: crate::io::ErrorKind::Interrupted
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::io;
+/// 
+/// fn main() -> io::Result<()> {
+///     let mut reader: &[u8] = b"hello";
+///     let mut writer: Vec<u8> = vec![];
+/// 
+///     io::copy(&mut reader, &mut writer)?;
+/// 
+///     assert_eq!(&b"hello"[..], &writer[..]);
+///     Ok(())
+/// }
+/// ```
+/// 
+/// # Platform-specific behavior
+/// 
+/// On Linux (including Android), this function uses `copy_file_range(2)`,
+/// `sendfile(2)` or `splice(2)` syscalls to move data directly between file
+/// descriptors if possible.
+/// 
+/// Note that platform-specific behavior [may change in the future][changes].
+/// 
+/// [changes]: crate::io#platform-specific-behavior
 pub fn copy_wc < R , W > ( reader : & mut R , writer : & mut W ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u64 > ) where R : std :: io :: Read + ? core :: marker :: Sized , W : std :: io :: Write + ? core :: marker :: Sized {
     std :: io :: copy(reader, writer)
         .with_context(|| crate::call_failed!(None::<()>, "std::io::copy", reader, writer))
 }
+/// Reads all bytes from a [reader][Read] into a new [`String`].
+/// 
+/// This is a convenience function for [`Read::read_to_string`]. Using this
+/// function avoids having to create a variable first and provides more type
+/// safety since you can only get the buffer out if there were no errors. (If you
+/// use [`Read::read_to_string`] you have to remember to check whether the read
+/// succeeded because otherwise your buffer will be empty or only partially full.)
+/// 
+/// # Performance
+/// 
+/// The downside of this function's increased ease of use and type safety is
+/// that it gives you less control over performance. For example, you can't
+/// pre-allocate memory like you can using [`String::with_capacity`] and
+/// [`Read::read_to_string`]. Also, you can't re-use the buffer if an error
+/// occurs while reading.
+/// 
+/// In many cases, this function's performance will be adequate and the ease of use
+/// and type safety tradeoffs will be worth it. However, there are cases where you
+/// need more control over performance, and in those cases you should definitely use
+/// [`Read::read_to_string`] directly.
+/// 
+/// Note that in some special cases, such as when reading files, this function will
+/// pre-allocate memory based on the size of the input it is reading. In those
+/// cases, the performance should be as good as if you had used
+/// [`Read::read_to_string`] with a manually pre-allocated buffer.
+/// 
+/// # Errors
+/// 
+/// This function forces you to handle errors because the output (the `String`)
+/// is wrapped in a [`Result`]. See [`Read::read_to_string`] for the errors
+/// that can occur. If any error occurs, you will get an [`Err`], so you
+/// don't have to worry about your buffer being empty or partially full.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// # use std::io;
+/// fn main() -> io::Result<()> {
+///     let stdin = io::read_to_string(io::stdin())?;
+///     println!("Stdin was:");
+///     println!("{stdin}");
+///     Ok(())
+/// }
+/// ```
 pub fn read_to_string_wc < R : std :: io :: Read > ( reader : R ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: string :: String > ) {
     std :: io :: read_to_string(reader)
         .with_context(|| crate::call_failed!(None::<()>, "std::io::read_to_string", crate::CustomDebugMessage("value of type impl Read")))
