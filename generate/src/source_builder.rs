@@ -160,8 +160,8 @@ impl Module {
             )?;
             if let Some(fns) = self.fns.remove(qualified_trait_wrapper) {
                 for Fn { attrs, sig, body } in fns {
-                    let attrs = remove_common_attrs(attrs, &common_attrs);
-                    writeln!(file, "{}{sig} {{{body}}}", join_attrs(&attrs))?;
+                    let attrs = join_attrs(&remove_common_attrs(attrs, &common_attrs));
+                    writeln!(file, "{attrs}{sig} {{{body}}}")?;
                 }
             }
             writeln!(
@@ -216,8 +216,8 @@ impl Module {
                     body: _,
                 } in fns
                 {
-                    let attrs = remove_common_attrs(attrs.clone(), &common_attrs);
-                    writeln!(file, "{}{sig};", join_attrs(&attrs))?;
+                    let attrs = join_attrs(&remove_common_attrs(attrs.clone(), &common_attrs));
+                    writeln!(file, "{attrs}{sig};")?;
                 }
             }
             writeln!(
@@ -230,8 +230,8 @@ impl Module {
             )?;
             if let Some(fns) = self.fns.remove(qualified_struct_wrapper) {
                 for Fn { attrs, sig, body } in fns {
-                    let attrs = remove_common_attrs(attrs, &common_attrs);
-                    writeln!(file, "{}{sig} {{{body}}}", join_attrs(&attrs))?;
+                    let attrs = join_attrs(&remove_common_attrs(attrs, &common_attrs));
+                    writeln!(file, "{attrs}{sig} {{{body}}}")?;
                 }
             }
             writeln!(file, "}}")?;
@@ -263,8 +263,8 @@ impl Module {
                 )?;
             }
             for Fn { attrs, sig, body } in fns {
-                let attrs = remove_common_attrs(attrs.clone(), &common_attrs);
-                writeln!(file, "{}{sig} {{{body}}}", join_attrs(&attrs))?;
+                let attrs = join_attrs(&remove_common_attrs(attrs.clone(), &common_attrs));
+                writeln!(file, "{attrs}{sig} {{{body}}}")?;
             }
             if !qualified_struct_wrapper.is_empty() {
                 writeln!(file, "}}")?;
