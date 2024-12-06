@@ -66,7 +66,13 @@
 
 use ::std::{any::type_name, fmt::Debug};
 
-#[expect(deprecated, clippy::module_name_repetitions)]
+#[expect(
+    deprecated,
+    clippy::doc_lazy_continuation,
+    clippy::doc_markdown,
+    clippy::module_name_repetitions
+)]
+#[cfg_attr(dylint_lib = "supplementary", expect(escaping_doc_link))]
 mod generated;
 pub use generated::std;
 

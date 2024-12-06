@@ -7,6 +7,24 @@ use anyhow::Context;
 
 
 pub trait DirBuilderContext {
+/// Creates the specified directory with the options configured in this
+/// builder.
+/// 
+/// It is considered an error if the directory already exists unless
+/// recursive mode is enabled.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs::{self, DirBuilder};
+/// 
+/// let path = "/tmp/foo/bar/baz";
+/// DirBuilder::new()
+///     .recursive(true)
+///     .create(path).unwrap();
+/// 
+/// assert!(fs::metadata(path).unwrap().is_dir());
+/// ```
 fn create_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
 }
 impl DirBuilderContext for std :: fs :: DirBuilder {
@@ -17,7 +35,70 @@ fn create_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self ,
 }
 }
 pub trait DirEntryContext {
+/// Returns the file type for the file that this entry points at.
+/// 
+/// This function will not traverse symlinks if this entry points at a
+/// symlink.
+/// 
+/// # Platform-specific behavior
+/// 
+/// On Windows and most Unix platforms this function is free (no extra
+/// system calls needed), but some Unix platforms may require the equivalent
+/// call to `symlink_metadata` to learn about the target file type.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::fs;
+/// 
+/// if let Ok(entries) = fs::read_dir(".") {
+///     for entry in entries {
+///         if let Ok(entry) = entry {
+///             // Here, `entry` is a `DirEntry`.
+///             if let Ok(file_type) = entry.file_type() {
+///                 // Now let's show our entry's file type!
+///                 println!("{:?}: {:?}", entry.path(), file_type);
+///             } else {
+///                 println!("Couldn't get file type for {:?}", entry.path());
+///             }
+///         }
+///     }
+/// }
+/// ```
 fn file_type_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: FileType > );
+/// Returns the metadata for the file that this entry points at.
+/// 
+/// This function will not traverse symlinks if this entry points at a
+/// symlink. To traverse symlinks use [`fs::metadata`] or [`fs::File::metadata`].
+/// 
+/// [`fs::metadata`]: metadata
+/// [`fs::File::metadata`]: File::metadata
+/// 
+/// # Platform-specific behavior
+/// 
+/// On Windows this function is cheap to call (no extra system calls
+/// needed), but on Unix platforms this function is the equivalent of
+/// calling `symlink_metadata` on the path.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::fs;
+/// 
+/// if let Ok(entries) = fs::read_dir(".") {
+///     for entry in entries {
+///         if let Ok(entry) = entry {
+///             // Here, `entry` is a `DirEntry`.
+///             if let Ok(metadata) = entry.metadata() {
+///                 // Now let's show our entry's permissions!
+///                 println!("{:?}: {:?}", entry.path(), metadata.permissions());
+///             } else {
+///                 println!("Couldn't get metadata for {:?}", entry.path());
+///             }
+///         }
+///     }
+/// }
+/// ```
 fn metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > );
 }
 impl DirEntryContext for std :: fs :: DirEntry {
@@ -31,46 +112,387 @@ fn metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Resul
 }
 }
 pub trait FileContext: Sized + std::io::Write {
-fn create_new_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
-fn create_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
-fn metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > );
-fn open_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
-fn set_len_wc ( & self , size : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn set_modified_wc ( & self , time : std :: time :: SystemTime ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn set_permissions_wc ( & self , perm : std :: fs :: Permissions ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn set_times_wc ( & self , times : std :: fs :: FileTimes ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn sync_all_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn sync_data_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+/// Attempts to open a file in read-only mode with buffering.
+/// 
+/// See the [`OpenOptions::open`] method, the [`BufReader`][io::BufReader] type,
+/// and the [`BufRead`][io::BufRead] trait for more details.
+/// 
+/// If you only need to read the entire file contents,
+/// consider [`std::fs::read()`][self::read] or
+/// [`std::fs::read_to_string()`][self::read_to_string] instead.
+/// 
+/// # Errors
+/// 
+/// This function will return an error if `path` does not already exist,
+/// or if memory allocation fails for the new buffer.
+/// Other errors may also be returned according to [`OpenOptions::open`].
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(file_buffered)]
+/// use std::fs::File;
+/// use std::io::BufRead;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let mut f = File::open_buffered("foo.txt")?;
+///     assert!(f.capacity() > 0);
+///     for (line, i) in f.lines().zip(1..) {
+///         println!("{i:6}: {}", line?);
+///     }
+///     Ok(())
+/// }
+/// ```
 #[cfg(feature = "file_buffered")]
 fn open_buffered_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: io :: BufReader < Self > > );
+/// Attempts to open a file in read-only mode.
+/// 
+/// See the [`OpenOptions::open`] method for more details.
+/// 
+/// If you only need to read the entire file contents,
+/// consider [`std::fs::read()`][self::read] or
+/// [`std::fs::read_to_string()`][self::read_to_string] instead.
+/// 
+/// # Errors
+/// 
+/// This function will return an error if `path` does not already exist.
+/// Other errors may also be returned according to [`OpenOptions::open`].
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs::File;
+/// use std::io::Read;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let mut f = File::open("foo.txt")?;
+///     let mut data = vec![];
+///     f.read_to_end(&mut data)?;
+///     Ok(())
+/// }
+/// ```
+fn open_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+/// Attempts to sync all OS-internal file content and metadata to disk.
+/// 
+/// This function will attempt to ensure that all in-memory data reaches the
+/// filesystem before returning.
+/// 
+/// This can be used to handle errors that would otherwise only be caught
+/// when the `File` is closed, as dropping a `File` will ignore all errors.
+/// Note, however, that `sync_all` is generally more expensive than closing
+/// a file by dropping it, because the latter is not required to block until
+/// the data has been written to the filesystem.
+/// 
+/// If synchronizing the metadata is not required, use [`sync_data`] instead.
+/// 
+/// [`sync_data`]: File::sync_data
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs::File;
+/// use std::io::prelude::*;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let mut f = File::create("foo.txt")?;
+///     f.write_all(b"Hello, world!")?;
+/// 
+///     f.sync_all()?;
+///     Ok(())
+/// }
+/// ```
+fn sync_all_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Changes the modification time of the underlying file.
+/// 
+/// This is an alias for `set_times(FileTimes::new().set_modified(time))`.
+fn set_modified_wc ( & self , time : std :: time :: SystemTime ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Changes the permissions on the underlying file.
+/// 
+/// # Platform-specific behavior
+/// 
+/// This function currently corresponds to the `fchmod` function on Unix and
+/// the `SetFileInformationByHandle` function on Windows. Note that, this
+/// [may change in the future][changes].
+/// 
+/// [changes]: io#platform-specific-behavior
+/// 
+/// # Errors
+/// 
+/// This function will return an error if the user lacks permission change
+/// attributes on the underlying file. It may also return an error in other
+/// os-specific unspecified cases.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// fn main() -> std::io::Result<()> {
+///     use std::fs::File;
+/// 
+///     let file = File::open("foo.txt")?;
+///     let mut perms = file.metadata()?.permissions();
+///     perms.set_readonly(true);
+///     file.set_permissions(perms)?;
+///     Ok(())
+/// }
+/// ```
+/// 
+/// Note that this method alters the permissions of the underlying file,
+/// even though it takes `&self` rather than `&mut self`.
+fn set_permissions_wc ( & self , perm : std :: fs :: Permissions ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Changes the timestamps of the underlying file.
+/// 
+/// # Platform-specific behavior
+/// 
+/// This function currently corresponds to the `futimens` function on Unix (falling back to
+/// `futimes` on macOS before 10.13) and the `SetFileTime` function on Windows. Note that this
+/// [may change in the future][changes].
+/// 
+/// [changes]: io#platform-specific-behavior
+/// 
+/// # Errors
+/// 
+/// This function will return an error if the user lacks permission to change timestamps on the
+/// underlying file. It may also return an error in other os-specific unspecified cases.
+/// 
+/// This function may return an error if the operating system lacks support to change one or
+/// more of the timestamps set in the `FileTimes` structure.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// fn main() -> std::io::Result<()> {
+///     use std::fs::{self, File, FileTimes};
+/// 
+///     let src = fs::metadata("src")?;
+///     let dest = File::options().write(true).open("dest")?;
+///     let times = FileTimes::new()
+///         .set_accessed(src.accessed()?)
+///         .set_modified(src.modified()?);
+///     dest.set_times(times)?;
+///     Ok(())
+/// }
+/// ```
+fn set_times_wc ( & self , times : std :: fs :: FileTimes ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Creates a new `File` instance that shares the same underlying file handle
+/// as the existing `File` instance. Reads, writes, and seeks will affect
+/// both `File` instances simultaneously.
+/// 
+/// # Examples
+/// 
+/// Creates two handles for a file named `foo.txt`:
+/// 
+/// ```no_run
+/// use std::fs::File;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let mut file = File::open("foo.txt")?;
+///     let file_copy = file.try_clone()?;
+///     Ok(())
+/// }
+/// ```
+/// 
+/// Assuming there’s a file named `foo.txt` with contents `abcdef\n`, create
+/// two handles, seek one of them, and read the remaining bytes from the
+/// other handle:
+/// 
+/// ```no_run
+/// use std::fs::File;
+/// use std::io::SeekFrom;
+/// use std::io::prelude::*;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let mut file = File::open("foo.txt")?;
+///     let mut file_copy = file.try_clone()?;
+/// 
+///     file.seek(SeekFrom::Start(3))?;
+/// 
+///     let mut contents = vec![];
+///     file_copy.read_to_end(&mut contents)?;
+///     assert_eq!(contents, b"def\n");
+///     Ok(())
+/// }
+/// ```
+fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+/// Creates a new file in read-write mode; error if the file exists.
+/// 
+/// This function will create a file if it does not exist, or return an error if it does. This
+/// way, if the call succeeds, the file returned is guaranteed to be new.
+/// If a file exists at the target location, creating a new file will fail with [`AlreadyExists`]
+/// or another error based on the situation. See [`OpenOptions::open`] for a
+/// non-exhaustive list of likely errors.
+/// 
+/// This option is useful because it is atomic. Otherwise between checking whether a file
+/// exists and creating a new one, the file may have been created by another process (a TOCTOU
+/// race condition / attack).
+/// 
+/// This can also be written using
+/// `File::options().read(true).write(true).create_new(true).open(...)`.
+/// 
+/// [`AlreadyExists`]: crate::io::ErrorKind::AlreadyExists
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs::File;
+/// use std::io::Write;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let mut f = File::create_new("foo.txt")?;
+///     f.write_all("Hello, world!".as_bytes())?;
+///     Ok(())
+/// }
+/// ```
+fn create_new_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+/// Opens a file in write-only mode with buffering.
+/// 
+/// This function will create a file if it does not exist,
+/// and will truncate it if it does.
+/// 
+/// Depending on the platform, this function may fail if the
+/// full directory path does not exist.
+/// 
+/// See the [`OpenOptions::open`] method and the
+/// [`BufWriter`][io::BufWriter] type for more details.
+/// 
+/// See also [`std::fs::write()`][self::write] for a simple function to
+/// create a file with some given data.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(file_buffered)]
+/// use std::fs::File;
+/// use std::io::Write;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let mut f = File::create_buffered("foo.txt")?;
+///     assert!(f.capacity() > 0);
+///     for i in 0..100 {
+///         writeln!(&mut f, "{i}")?;
+///     }
+///     f.flush()?;
+///     Ok(())
+/// }
+/// ```
 #[cfg(feature = "core_io_borrowed_buf")]
 #[cfg(feature = "file_buffered")]
 fn create_buffered_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: io :: BufWriter < Self > > );
+/// Opens a file in write-only mode.
+/// 
+/// This function will create a file if it does not exist,
+/// and will truncate it if it does.
+/// 
+/// Depending on the platform, this function may fail if the
+/// full directory path does not exist.
+/// See the [`OpenOptions::open`] function for more details.
+/// 
+/// See also [`std::fs::write()`][self::write] for a simple function to
+/// create a file with some given data.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs::File;
+/// use std::io::Write;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let mut f = File::create("foo.txt")?;
+///     f.write_all(&1234_u32.to_be_bytes())?;
+///     Ok(())
+/// }
+/// ```
+fn create_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+/// Queries metadata about the underlying file.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs::File;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let mut f = File::open("foo.txt")?;
+///     let metadata = f.metadata()?;
+///     Ok(())
+/// }
+/// ```
+fn metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > );
+/// This function is similar to [`sync_all`], except that it might not
+/// synchronize file metadata to the filesystem.
+/// 
+/// This is intended for use cases that must synchronize content, but don't
+/// need the metadata on disk. The goal of this method is to reduce disk
+/// operations.
+/// 
+/// Note that some platforms may simply implement this in terms of
+/// [`sync_all`].
+/// 
+/// [`sync_all`]: File::sync_all
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs::File;
+/// use std::io::prelude::*;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let mut f = File::create("foo.txt")?;
+///     f.write_all(b"Hello, world!")?;
+/// 
+///     f.sync_data()?;
+///     Ok(())
+/// }
+/// ```
+fn sync_data_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Truncates or extends the underlying file, updating the size of
+/// this file to become `size`.
+/// 
+/// If the `size` is less than the current file's size, then the file will
+/// be shrunk. If it is greater than the current file's size, then the file
+/// will be extended to `size` and have all of the intermediate data filled
+/// in with 0s.
+/// 
+/// The file's cursor isn't changed. In particular, if the cursor was at the
+/// end and the file is shrunk using this operation, the cursor will now be
+/// past the end.
+/// 
+/// # Errors
+/// 
+/// This function will return an error if the file is not opened for writing.
+/// Also, [`std::io::ErrorKind::InvalidInput`](crate::io::ErrorKind::InvalidInput)
+/// will be returned if the desired length would cause an overflow due to
+/// the implementation specifics.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs::File;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let mut f = File::create("foo.txt")?;
+///     f.set_len(10)?;
+///     Ok(())
+/// }
+/// ```
+/// 
+/// Note that this method alters the content of the underlying file, even
+/// though it takes `&self` rather than `&mut self`.
+fn set_len_wc ( & self , size : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
 }
 impl FileContext for std :: fs :: File {
-fn create_new_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
+#[cfg(feature = "file_buffered")]
+fn open_buffered_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: io :: BufReader < Self > > ) {
     let path = path.as_ref();
-    std :: fs :: File :: create_new(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std::fs::File::create_new", path))
-}
-fn create_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
-    let path = path.as_ref();
-    std :: fs :: File :: create(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std::fs::File::create", path))
-}
-fn metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
-    std :: fs :: File :: metadata(self)
-        .with_context(|| crate::call_failed!(Some(self), "metadata"))
+    std :: fs :: File :: open_buffered(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::File::open_buffered", path))
 }
 fn open_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     let path = path.as_ref();
     std :: fs :: File :: open(path)
         .with_context(|| crate::call_failed!(None::<()>, "std::fs::File::open", path))
 }
-fn set_len_wc ( & self , size : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    std :: fs :: File :: set_len(self, size)
-        .with_context(|| crate::call_failed!(Some(self), "set_len", size))
+fn sync_all_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: fs :: File :: sync_all(self)
+        .with_context(|| crate::call_failed!(Some(self), "sync_all"))
 }
 fn set_modified_wc ( & self , time : std :: time :: SystemTime ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     std :: fs :: File :: set_modified(self, time)
@@ -84,23 +506,14 @@ fn set_times_wc ( & self , times : std :: fs :: FileTimes ) -> crate :: rewrite_
     std :: fs :: File :: set_times(self, times)
         .with_context(|| crate::call_failed!(Some(self), "set_times", times))
 }
-fn sync_all_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    std :: fs :: File :: sync_all(self)
-        .with_context(|| crate::call_failed!(Some(self), "sync_all"))
-}
-fn sync_data_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    std :: fs :: File :: sync_data(self)
-        .with_context(|| crate::call_failed!(Some(self), "sync_data"))
-}
 fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     std :: fs :: File :: try_clone(self)
         .with_context(|| crate::call_failed!(Some(self), "try_clone"))
 }
-#[cfg(feature = "file_buffered")]
-fn open_buffered_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: io :: BufReader < Self > > ) {
+fn create_new_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     let path = path.as_ref();
-    std :: fs :: File :: open_buffered(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std::fs::File::open_buffered", path))
+    std :: fs :: File :: create_new(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::File::create_new", path))
 }
 #[cfg(feature = "core_io_borrowed_buf")]
 #[cfg(feature = "file_buffered")]
@@ -109,20 +522,120 @@ fn create_buffered_wc < P : core :: convert :: AsRef < std :: path :: Path > > (
     std :: fs :: File :: create_buffered(path)
         .with_context(|| crate::call_failed!(None::<()>, "std::fs::File::create_buffered", path))
 }
+fn create_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
+    let path = path.as_ref();
+    std :: fs :: File :: create(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::File::create", path))
+}
+fn metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
+    std :: fs :: File :: metadata(self)
+        .with_context(|| crate::call_failed!(Some(self), "metadata"))
+}
+fn sync_data_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: fs :: File :: sync_data(self)
+        .with_context(|| crate::call_failed!(Some(self), "sync_data"))
+}
+fn set_len_wc ( & self , size : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: fs :: File :: set_len(self, size)
+        .with_context(|| crate::call_failed!(Some(self), "set_len", size))
+}
 }
 pub trait MetadataContext {
-fn accessed_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: time :: SystemTime > );
+/// Returns the creation time listed in this metadata.
+/// 
+/// The returned value corresponds to the `btime` field of `statx` on
+/// Linux kernel starting from to 4.11, the `birthtime` field of `stat` on other
+/// Unix platforms, and the `ftCreationTime` field on Windows platforms.
+/// 
+/// # Errors
+/// 
+/// This field might not be available on all platforms, and will return an
+/// `Err` on platforms or filesystems where it is not available.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let metadata = fs::metadata("foo.txt")?;
+/// 
+///     if let Ok(time) = metadata.created() {
+///         println!("{time:?}");
+///     } else {
+///         println!("Not supported on this platform or filesystem");
+///     }
+///     Ok(())
+/// }
+/// ```
 fn created_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: time :: SystemTime > );
+/// Returns the last access time of this metadata.
+/// 
+/// The returned value corresponds to the `atime` field of `stat` on Unix
+/// platforms and the `ftLastAccessTime` field on Windows platforms.
+/// 
+/// Note that not all platforms will keep this field update in a file's
+/// metadata, for example Windows has an option to disable updating this
+/// time when files are accessed and Linux similarly has `noatime`.
+/// 
+/// # Errors
+/// 
+/// This field might not be available on all platforms, and will return an
+/// `Err` on platforms where it is not available.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let metadata = fs::metadata("foo.txt")?;
+/// 
+///     if let Ok(time) = metadata.accessed() {
+///         println!("{time:?}");
+///     } else {
+///         println!("Not supported on this platform");
+///     }
+///     Ok(())
+/// }
+/// ```
+fn accessed_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: time :: SystemTime > );
+/// Returns the last modification time listed in this metadata.
+/// 
+/// The returned value corresponds to the `mtime` field of `stat` on Unix
+/// platforms and the `ftLastWriteTime` field on Windows platforms.
+/// 
+/// # Errors
+/// 
+/// This field might not be available on all platforms, and will return an
+/// `Err` on platforms where it is not available.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let metadata = fs::metadata("foo.txt")?;
+/// 
+///     if let Ok(time) = metadata.modified() {
+///         println!("{time:?}");
+///     } else {
+///         println!("Not supported on this platform");
+///     }
+///     Ok(())
+/// }
+/// ```
 fn modified_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: time :: SystemTime > );
 }
 impl MetadataContext for std :: fs :: Metadata {
-fn accessed_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: time :: SystemTime > ) {
-    std :: fs :: Metadata :: accessed(self)
-        .with_context(|| crate::call_failed!(Some(self), "accessed"))
-}
 fn created_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: time :: SystemTime > ) {
     std :: fs :: Metadata :: created(self)
         .with_context(|| crate::call_failed!(Some(self), "created"))
+}
+fn accessed_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: time :: SystemTime > ) {
+    std :: fs :: Metadata :: accessed(self)
+        .with_context(|| crate::call_failed!(Some(self), "accessed"))
 }
 fn modified_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: time :: SystemTime > ) {
     std :: fs :: Metadata :: modified(self)
@@ -130,6 +643,48 @@ fn modified_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Resul
 }
 }
 pub trait OpenOptionsContext {
+/// Opens a file at `path` with the options specified by `self`.
+/// 
+/// # Errors
+/// 
+/// This function will return an error under a number of different
+/// circumstances. Some of these error conditions are listed here, together
+/// with their [`io::ErrorKind`]. The mapping to [`io::ErrorKind`]s is not
+/// part of the compatibility contract of the function.
+/// 
+/// * [`NotFound`]: The specified file does not exist and neither `create`
+///   or `create_new` is set.
+/// * [`NotFound`]: One of the directory components of the file path does
+///   not exist.
+/// * [`PermissionDenied`]: The user lacks permission to get the specified
+///   access rights for the file.
+/// * [`PermissionDenied`]: The user lacks permission to open one of the
+///   directory components of the specified path.
+/// * [`AlreadyExists`]: `create_new` was specified and the file already
+///   exists.
+/// * [`InvalidInput`]: Invalid combinations of open options (truncate
+///   without write access, no access mode set, etc.).
+/// 
+/// The following errors don't match any existing [`io::ErrorKind`] at the moment:
+/// * One of the directory components of the specified file path
+///   was not, in fact, a directory.
+/// * Filesystem-level errors: full disk, write permission
+///   requested on a read-only file system, exceeded disk quota, too many
+///   open files, too long filename, too many symbolic links in the
+///   specified path (Unix-like systems only), etc.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs::OpenOptions;
+/// 
+/// let file = OpenOptions::new().read(true).open("foo.txt");
+/// ```
+/// 
+/// [`AlreadyExists`]: io::ErrorKind::AlreadyExists
+/// [`InvalidInput`]: io::ErrorKind::InvalidInput
+/// [`NotFound`]: io::ErrorKind::NotFound
+/// [`PermissionDenied`]: io::ErrorKind::PermissionDenied
 fn open_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: File > );
 }
 impl OpenOptionsContext for std :: fs :: OpenOptions {
@@ -141,100 +696,775 @@ fn open_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , p
 }
 
 
-pub fn canonicalize_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
+/// Changes the permissions found on a file or a directory.
+/// 
+/// # Platform-specific behavior
+/// 
+/// This function currently corresponds to the `chmod` function on Unix
+/// and the `SetFileAttributes` function on Windows.
+/// Note that, this [may change in the future][changes].
+/// 
+/// [changes]: io#platform-specific-behavior
+/// 
+/// # Errors
+/// 
+/// This function will return an error in the following situations, but is not
+/// limited to just these cases:
+/// 
+/// * `path` does not exist.
+/// * The user lacks the permission to change attributes of the file.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let mut perms = fs::metadata("foo.txt")?.permissions();
+///     perms.set_readonly(true);
+///     fs::set_permissions("foo.txt", perms)?;
+///     Ok(())
+/// }
+/// ```
+pub fn set_permissions_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P , perm : std :: fs :: Permissions ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let path = path.as_ref();
-    std :: fs :: canonicalize(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std::fs::canonicalize", path))
+    std :: fs :: set_permissions(path, perm.clone())
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::set_permissions", path, perm))
 }
+/// Copies the contents of one file to another. This function will also
+/// copy the permission bits of the original file to the destination file.
+/// 
+/// This function will **overwrite** the contents of `to`.
+/// 
+/// Note that if `from` and `to` both point to the same file, then the file
+/// will likely get truncated by this operation.
+/// 
+/// On success, the total number of bytes copied is returned and it is equal to
+/// the length of the `to` file as reported by `metadata`.
+/// 
+/// If you want to copy the contents of one file to another and you’re
+/// working with [`File`]s, see the [`io::copy`](io::copy()) function.
+/// 
+/// # Platform-specific behavior
+/// 
+/// This function currently corresponds to the `open` function in Unix
+/// with `O_RDONLY` for `from` and `O_WRONLY`, `O_CREAT`, and `O_TRUNC` for `to`.
+/// `O_CLOEXEC` is set for returned file descriptors.
+/// 
+/// On Linux (including Android), this function attempts to use `copy_file_range(2)`,
+/// and falls back to reading and writing if that is not possible.
+/// 
+/// On Windows, this function currently corresponds to `CopyFileEx`. Alternate
+/// NTFS streams are copied but only the size of the main stream is returned by
+/// this function.
+/// 
+/// On MacOS, this function corresponds to `fclonefileat` and `fcopyfile`.
+/// 
+/// Note that platform-specific behavior [may change in the future][changes].
+/// 
+/// [changes]: io#platform-specific-behavior
+/// 
+/// # Errors
+/// 
+/// This function will return an error in the following situations, but is not
+/// limited to just these cases:
+/// 
+/// * `from` is neither a regular file nor a symlink to a regular file.
+/// * `from` does not exist.
+/// * The current process does not have the permission rights to read
+///   `from` or write `to`.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     fs::copy("foo.txt", "bar.txt")?;  // Copy foo.txt to bar.txt
+///     Ok(())
+/// }
+/// ```
 pub fn copy_wc < P : core :: convert :: AsRef < std :: path :: Path > , Q : core :: convert :: AsRef < std :: path :: Path > > ( from : P , to : Q ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u64 > ) {
     let from = from.as_ref();
     let to = to.as_ref();
     std :: fs :: copy(from, to)
         .with_context(|| crate::call_failed!(None::<()>, "std::fs::copy", from, to))
 }
-pub fn create_dir_all_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let path = path.as_ref();
-    std :: fs :: create_dir_all(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std::fs::create_dir_all", path))
-}
-pub fn create_dir_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let path = path.as_ref();
-    std :: fs :: create_dir(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std::fs::create_dir", path))
-}
-pub fn exists_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
-    let path = path.as_ref();
-    std :: fs :: exists(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std::fs::exists", path))
-}
+/// Creates a new hard link on the filesystem.
+/// 
+/// The `link` path will be a link pointing to the `original` path. Note that
+/// systems often require these two paths to both be located on the same
+/// filesystem.
+/// 
+/// If `original` names a symbolic link, it is platform-specific whether the
+/// symbolic link is followed. On platforms where it's possible to not follow
+/// it, it is not followed, and the created hard link points to the symbolic
+/// link itself.
+/// 
+/// # Platform-specific behavior
+/// 
+/// This function currently corresponds the `CreateHardLink` function on Windows.
+/// On most Unix systems, it corresponds to the `linkat` function with no flags.
+/// On Android, VxWorks, and Redox, it instead corresponds to the `link` function.
+/// On MacOS, it uses the `linkat` function if it is available, but on very old
+/// systems where `linkat` is not available, `link` is selected at runtime instead.
+/// Note that, this [may change in the future][changes].
+/// 
+/// [changes]: io#platform-specific-behavior
+/// 
+/// # Errors
+/// 
+/// This function will return an error in the following situations, but is not
+/// limited to just these cases:
+/// 
+/// * The `original` path is not a file or doesn't exist.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     fs::hard_link("a.txt", "b.txt")?; // Hard link a.txt to b.txt
+///     Ok(())
+/// }
+/// ```
 pub fn hard_link_wc < P : core :: convert :: AsRef < std :: path :: Path > , Q : core :: convert :: AsRef < std :: path :: Path > > ( original : P , link : Q ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let original = original.as_ref();
     let link = link.as_ref();
     std :: fs :: hard_link(original, link)
         .with_context(|| crate::call_failed!(None::<()>, "std::fs::hard_link", original, link))
 }
-pub fn metadata_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
-    let path = path.as_ref();
-    std :: fs :: metadata(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std::fs::metadata", path))
-}
-pub fn read_dir_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: ReadDir > ) {
-    let path = path.as_ref();
-    std :: fs :: read_dir(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std::fs::read_dir", path))
-}
-pub fn read_link_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
-    let path = path.as_ref();
-    std :: fs :: read_link(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std::fs::read_link", path))
-}
-pub fn read_to_string_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: string :: String > ) {
-    let path = path.as_ref();
-    std :: fs :: read_to_string(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std::fs::read_to_string", path))
-}
-pub fn read_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: vec :: Vec < u8 > > ) {
-    let path = path.as_ref();
-    std :: fs :: read(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std::fs::read", path))
-}
-pub fn remove_dir_all_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let path = path.as_ref();
-    std :: fs :: remove_dir_all(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std::fs::remove_dir_all", path))
-}
-pub fn remove_dir_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let path = path.as_ref();
-    std :: fs :: remove_dir(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std::fs::remove_dir", path))
-}
-pub fn remove_file_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let path = path.as_ref();
-    std :: fs :: remove_file(path)
-        .with_context(|| crate::call_failed!(None::<()>, "std::fs::remove_file", path))
-}
-pub fn rename_wc < P : core :: convert :: AsRef < std :: path :: Path > , Q : core :: convert :: AsRef < std :: path :: Path > > ( from : P , to : Q ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let from = from.as_ref();
-    let to = to.as_ref();
-    std :: fs :: rename(from, to)
-        .with_context(|| crate::call_failed!(None::<()>, "std::fs::rename", from, to))
-}
-pub fn set_permissions_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P , perm : std :: fs :: Permissions ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let path = path.as_ref();
-    std :: fs :: set_permissions(path, perm.clone())
-        .with_context(|| crate::call_failed!(None::<()>, "std::fs::set_permissions", path, perm))
-}
+/// Creates a new symbolic link on the filesystem.
+/// 
+/// The `link` path will be a symbolic link pointing to the `original` path.
+/// On Windows, this will be a file symlink, not a directory symlink;
+/// for this reason, the platform-specific [`std::os::unix::fs::symlink`]
+/// and [`std::os::windows::fs::symlink_file`] or [`symlink_dir`] should be
+/// used instead to make the intent explicit.
+/// 
+/// [`std::os::unix::fs::symlink`]: crate::os::unix::fs::symlink
+/// [`std::os::windows::fs::symlink_file`]: crate::os::windows::fs::symlink_file
+/// [`symlink_dir`]: crate::os::windows::fs::symlink_dir
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     fs::soft_link("a.txt", "b.txt")?;
+///     Ok(())
+/// }
+/// ```
 pub fn soft_link_wc < P : core :: convert :: AsRef < std :: path :: Path > , Q : core :: convert :: AsRef < std :: path :: Path > > ( original : P , link : Q ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let original = original.as_ref();
     let link = link.as_ref();
     std :: fs :: soft_link(original, link)
         .with_context(|| crate::call_failed!(None::<()>, "std::fs::soft_link", original, link))
 }
+/// Creates a new, empty directory at the provided path
+/// 
+/// # Platform-specific behavior
+/// 
+/// This function currently corresponds to the `mkdir` function on Unix
+/// and the `CreateDirectoryW` function on Windows.
+/// Note that, this [may change in the future][changes].
+/// 
+/// [changes]: io#platform-specific-behavior
+/// 
+/// **NOTE**: If a parent of the given path doesn't exist, this function will
+/// return an error. To create a directory and all its missing parents at the
+/// same time, use the [`create_dir_all`] function.
+/// 
+/// # Errors
+/// 
+/// This function will return an error in the following situations, but is not
+/// limited to just these cases:
+/// 
+/// * User lacks permissions to create directory at `path`.
+/// * A parent of the given path doesn't exist. (To create a directory and all
+///   its missing parents at the same time, use the [`create_dir_all`]
+///   function.)
+/// * `path` already exists.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     fs::create_dir("/some/dir")?;
+///     Ok(())
+/// }
+/// ```
+pub fn create_dir_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    let path = path.as_ref();
+    std :: fs :: create_dir(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::create_dir", path))
+}
+/// Given a path, queries the file system to get information about a file,
+/// directory, etc.
+/// 
+/// This function will traverse symbolic links to query information about the
+/// destination file.
+/// 
+/// # Platform-specific behavior
+/// 
+/// This function currently corresponds to the `stat` function on Unix
+/// and the `GetFileInformationByHandle` function on Windows.
+/// Note that, this [may change in the future][changes].
+/// 
+/// [changes]: io#platform-specific-behavior
+/// 
+/// # Errors
+/// 
+/// This function will return an error in the following situations, but is not
+/// limited to just these cases:
+/// 
+/// * The user lacks permissions to perform `metadata` call on `path`.
+/// * `path` does not exist.
+/// 
+/// # Examples
+/// 
+/// ```rust,no_run
+/// use std::fs;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let attr = fs::metadata("/some/file/path.txt")?;
+///     // inspect attr ...
+///     Ok(())
+/// }
+/// ```
+pub fn metadata_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
+    let path = path.as_ref();
+    std :: fs :: metadata(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::metadata", path))
+}
+/// Queries the metadata about a file without following symlinks.
+/// 
+/// # Platform-specific behavior
+/// 
+/// This function currently corresponds to the `lstat` function on Unix
+/// and the `GetFileInformationByHandle` function on Windows.
+/// Note that, this [may change in the future][changes].
+/// 
+/// [changes]: io#platform-specific-behavior
+/// 
+/// # Errors
+/// 
+/// This function will return an error in the following situations, but is not
+/// limited to just these cases:
+/// 
+/// * The user lacks permissions to perform `metadata` call on `path`.
+/// * `path` does not exist.
+/// 
+/// # Examples
+/// 
+/// ```rust,no_run
+/// use std::fs;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let attr = fs::symlink_metadata("/some/file/path.txt")?;
+///     // inspect attr ...
+///     Ok(())
+/// }
+/// ```
 pub fn symlink_metadata_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
     let path = path.as_ref();
     std :: fs :: symlink_metadata(path)
         .with_context(|| crate::call_failed!(None::<()>, "std::fs::symlink_metadata", path))
 }
+/// Reads a symbolic link, returning the file that the link points to.
+/// 
+/// # Platform-specific behavior
+/// 
+/// This function currently corresponds to the `readlink` function on Unix
+/// and the `CreateFile` function with `FILE_FLAG_OPEN_REPARSE_POINT` and
+/// `FILE_FLAG_BACKUP_SEMANTICS` flags on Windows.
+/// Note that, this [may change in the future][changes].
+/// 
+/// [changes]: io#platform-specific-behavior
+/// 
+/// # Errors
+/// 
+/// This function will return an error in the following situations, but is not
+/// limited to just these cases:
+/// 
+/// * `path` is not a symbolic link.
+/// * `path` does not exist.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let path = fs::read_link("a.txt")?;
+///     Ok(())
+/// }
+/// ```
+pub fn read_link_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
+    let path = path.as_ref();
+    std :: fs :: read_link(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::read_link", path))
+}
+/// Reads the entire contents of a file into a bytes vector.
+/// 
+/// This is a convenience function for using [`File::open`] and [`read_to_end`]
+/// with fewer imports and without an intermediate variable.
+/// 
+/// [`read_to_end`]: Read::read_to_end
+/// 
+/// # Errors
+/// 
+/// This function will return an error if `path` does not already exist.
+/// Other errors may also be returned according to [`OpenOptions::open`].
+/// 
+/// While reading from the file, this function handles [`io::ErrorKind::Interrupted`]
+/// with automatic retries. See [io::Read] documentation for details.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs;
+/// 
+/// fn main() -> Result<(), Box<dyn std::error::Error + 'static>> {
+///     let data: Vec<u8> = fs::read("image.jpg")?;
+///     assert_eq!(data[0..3], [0xFF, 0xD8, 0xFF]);
+///     Ok(())
+/// }
+/// ```
+pub fn read_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: vec :: Vec < u8 > > ) {
+    let path = path.as_ref();
+    std :: fs :: read(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::read", path))
+}
+/// Reads the entire contents of a file into a string.
+/// 
+/// This is a convenience function for using [`File::open`] and [`read_to_string`]
+/// with fewer imports and without an intermediate variable.
+/// 
+/// [`read_to_string`]: Read::read_to_string
+/// 
+/// # Errors
+/// 
+/// This function will return an error if `path` does not already exist.
+/// Other errors may also be returned according to [`OpenOptions::open`].
+/// 
+/// If the contents of the file are not valid UTF-8, then an error will also be
+/// returned.
+/// 
+/// While reading from the file, this function handles [`io::ErrorKind::Interrupted`]
+/// with automatic retries. See [io::Read] documentation for details.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs;
+/// use std::error::Error;
+/// 
+/// fn main() -> Result<(), Box<dyn Error>> {
+///     let message: String = fs::read_to_string("message.txt")?;
+///     println!("{}", message);
+///     Ok(())
+/// }
+/// ```
+pub fn read_to_string_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: string :: String > ) {
+    let path = path.as_ref();
+    std :: fs :: read_to_string(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::read_to_string", path))
+}
+/// Recursively create a directory and all of its parent components if they
+/// are missing.
+/// 
+/// If this function returns an error, some of the parent components might have
+/// been created already.
+/// 
+/// If the empty path is passed to this function, it always succeeds without
+/// creating any directories.
+/// 
+/// # Platform-specific behavior
+/// 
+/// This function currently corresponds to multiple calls to the `mkdir`
+/// function on Unix and the `CreateDirectoryW` function on Windows.
+/// 
+/// Note that, this [may change in the future][changes].
+/// 
+/// [changes]: io#platform-specific-behavior
+/// 
+/// # Errors
+/// 
+/// The function will return an error if any directory specified in path does not exist and
+/// could not be created. There may be other error conditions; see [`fs::create_dir`] for specifics.
+/// 
+/// Notable exception is made for situations where any of the directories
+/// specified in the `path` could not be created as it was being created concurrently.
+/// Such cases are considered to be successful. That is, calling `create_dir_all`
+/// concurrently from multiple threads or processes is guaranteed not to fail
+/// due to a race condition with itself.
+/// 
+/// [`fs::create_dir`]: create_dir
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     fs::create_dir_all("/some/dir")?;
+///     Ok(())
+/// }
+/// ```
+pub fn create_dir_all_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    let path = path.as_ref();
+    std :: fs :: create_dir_all(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::create_dir_all", path))
+}
+/// Removes a directory at this path, after removing all its contents. Use
+/// carefully!
+/// 
+/// This function does **not** follow symbolic links and it will simply remove the
+/// symbolic link itself.
+/// 
+/// # Platform-specific behavior
+/// 
+/// This function currently corresponds to `openat`, `fdopendir`, `unlinkat` and `lstat` functions
+/// on Unix (except for REDOX) and the `CreateFileW`, `GetFileInformationByHandleEx`,
+/// `SetFileInformationByHandle`, and `NtCreateFile` functions on Windows. Note that, this
+/// [may change in the future][changes].
+/// 
+/// [changes]: io#platform-specific-behavior
+/// 
+/// On REDOX, as well as when running in Miri for any target, this function is not protected against
+/// time-of-check to time-of-use (TOCTOU) race conditions, and should not be used in
+/// security-sensitive code on those platforms. All other platforms are protected.
+/// 
+/// # Errors
+/// 
+/// See [`fs::remove_file`] and [`fs::remove_dir`].
+/// 
+/// `remove_dir_all` will fail if `remove_dir` or `remove_file` fail on any constituent paths, including the root path.
+/// As a result, the directory you are deleting must exist, meaning that this function is not idempotent.
+/// 
+/// Consider ignoring the error if validating the removal is not required for your use case.
+/// 
+/// [`io::ErrorKind::NotFound`] is only returned if no removal occurs.
+/// 
+/// [`fs::remove_file`]: remove_file
+/// [`fs::remove_dir`]: remove_dir
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     fs::remove_dir_all("/some/dir")?;
+///     Ok(())
+/// }
+/// ```
+pub fn remove_dir_all_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    let path = path.as_ref();
+    std :: fs :: remove_dir_all(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::remove_dir_all", path))
+}
+/// Removes a file from the filesystem.
+/// 
+/// Note that there is no
+/// guarantee that the file is immediately deleted (e.g., depending on
+/// platform, other open file descriptors may prevent immediate removal).
+/// 
+/// # Platform-specific behavior
+/// 
+/// This function currently corresponds to the `unlink` function on Unix
+/// and the `DeleteFile` function on Windows.
+/// Note that, this [may change in the future][changes].
+/// 
+/// [changes]: io#platform-specific-behavior
+/// 
+/// # Errors
+/// 
+/// This function will return an error in the following situations, but is not
+/// limited to just these cases:
+/// 
+/// * `path` points to a directory.
+/// * The file doesn't exist.
+/// * The user lacks permissions to remove the file.
+/// 
+/// This function will only ever return an error of kind `NotFound` if the given
+/// path does not exist. Note that the inverse is not true,
+/// ie. if a path does not exist, its removal may fail for a number of reasons,
+/// such as insufficient permissions.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     fs::remove_file("a.txt")?;
+///     Ok(())
+/// }
+/// ```
+pub fn remove_file_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    let path = path.as_ref();
+    std :: fs :: remove_file(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::remove_file", path))
+}
+/// Removes an empty directory.
+/// 
+/// # Platform-specific behavior
+/// 
+/// This function currently corresponds to the `rmdir` function on Unix
+/// and the `RemoveDirectory` function on Windows.
+/// Note that, this [may change in the future][changes].
+/// 
+/// [changes]: io#platform-specific-behavior
+/// 
+/// # Errors
+/// 
+/// This function will return an error in the following situations, but is not
+/// limited to just these cases:
+/// 
+/// * `path` doesn't exist.
+/// * `path` isn't a directory.
+/// * The user lacks permissions to remove the directory at the provided `path`.
+/// * The directory isn't empty.
+/// 
+/// This function will only ever return an error of kind `NotFound` if the given
+/// path does not exist. Note that the inverse is not true,
+/// ie. if a path does not exist, its removal may fail for a number of reasons,
+/// such as insufficient permissions.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     fs::remove_dir("/some/dir")?;
+///     Ok(())
+/// }
+/// ```
+pub fn remove_dir_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    let path = path.as_ref();
+    std :: fs :: remove_dir(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::remove_dir", path))
+}
+/// Renames a file or directory to a new name, replacing the original file if
+/// `to` already exists.
+/// 
+/// This will not work if the new name is on a different mount point.
+/// 
+/// # Platform-specific behavior
+/// 
+/// This function currently corresponds to the `rename` function on Unix
+/// and the `MoveFileEx` function with the `MOVEFILE_REPLACE_EXISTING` flag on Windows.
+/// 
+/// Because of this, the behavior when both `from` and `to` exist differs. On
+/// Unix, if `from` is a directory, `to` must also be an (empty) directory. If
+/// `from` is not a directory, `to` must also be not a directory. In contrast,
+/// on Windows, `from` can be anything, but `to` must *not* be a directory.
+/// 
+/// Note that, this [may change in the future][changes].
+/// 
+/// [changes]: io#platform-specific-behavior
+/// 
+/// # Errors
+/// 
+/// This function will return an error in the following situations, but is not
+/// limited to just these cases:
+/// 
+/// * `from` does not exist.
+/// * The user lacks permissions to view contents.
+/// * `from` and `to` are on separate filesystems.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     fs::rename("a.txt", "b.txt")?; // Rename a.txt to b.txt
+///     Ok(())
+/// }
+/// ```
+pub fn rename_wc < P : core :: convert :: AsRef < std :: path :: Path > , Q : core :: convert :: AsRef < std :: path :: Path > > ( from : P , to : Q ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    let from = from.as_ref();
+    let to = to.as_ref();
+    std :: fs :: rename(from, to)
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::rename", from, to))
+}
+/// Returns `Ok(true)` if the path points at an existing entity.
+/// 
+/// This function will traverse symbolic links to query information about the
+/// destination file. In case of broken symbolic links this will return `Ok(false)`.
+/// 
+/// As opposed to the [`Path::exists`] method, this will only return `Ok(true)` or `Ok(false)`
+/// if the path was _verified_ to exist or not exist. If its existence can neither be confirmed
+/// nor denied, an `Err(_)` will be propagated instead. This can be the case if e.g. listing
+/// permission is denied on one of the parent directories.
+/// 
+/// Note that while this avoids some pitfalls of the `exists()` method, it still can not
+/// prevent time-of-check to time-of-use (TOCTOU) bugs. You should only use it in scenarios
+/// where those bugs are not an issue.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs;
+/// 
+/// assert!(!fs::exists("does_not_exist.txt").expect("Can't check existence of file does_not_exist.txt"));
+/// assert!(fs::exists("/root/secret_file.txt").is_err());
+/// ```
+/// 
+/// [`Path::exists`]: crate::path::Path::exists
+pub fn exists_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
+    let path = path.as_ref();
+    std :: fs :: exists(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::exists", path))
+}
+/// Returns an iterator over the entries within a directory.
+/// 
+/// The iterator will yield instances of <code>[io::Result]<[DirEntry]></code>.
+/// New errors may be encountered after an iterator is initially constructed.
+/// Entries for the current and parent directories (typically `.` and `..`) are
+/// skipped.
+/// 
+/// # Platform-specific behavior
+/// 
+/// This function currently corresponds to the `opendir` function on Unix
+/// and the `FindFirstFileEx` function on Windows. Advancing the iterator
+/// currently corresponds to `readdir` on Unix and `FindNextFile` on Windows.
+/// Note that, this [may change in the future][changes].
+/// 
+/// [changes]: io#platform-specific-behavior
+/// 
+/// The order in which this iterator returns entries is platform and filesystem
+/// dependent.
+/// 
+/// # Errors
+/// 
+/// This function will return an error in the following situations, but is not
+/// limited to just these cases:
+/// 
+/// * The provided `path` doesn't exist.
+/// * The process lacks permissions to view the contents.
+/// * The `path` points at a non-directory file.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use std::io;
+/// use std::fs::{self, DirEntry};
+/// use std::path::Path;
+/// 
+/// // one possible implementation of walking a directory only visiting files
+/// fn visit_dirs(dir: &Path, cb: &dyn Fn(&DirEntry)) -> io::Result<()> {
+///     if dir.is_dir() {
+///         for entry in fs::read_dir(dir)? {
+///             let entry = entry?;
+///             let path = entry.path();
+///             if path.is_dir() {
+///                 visit_dirs(&path, cb)?;
+///             } else {
+///                 cb(&entry);
+///             }
+///         }
+///     }
+///     Ok(())
+/// }
+/// ```
+/// 
+/// ```rust,no_run
+/// use std::{fs, io};
+/// 
+/// fn main() -> io::Result<()> {
+///     let mut entries = fs::read_dir(".")?
+///         .map(|res| res.map(|e| e.path()))
+///         .collect::<Result<Vec<_>, io::Error>>()?;
+/// 
+///     // The order in which `read_dir` returns entries is not guaranteed. If reproducible
+///     // ordering is required the entries should be explicitly sorted.
+/// 
+///     entries.sort();
+/// 
+///     // The entries have now been sorted by their path.
+/// 
+///     Ok(())
+/// }
+/// ```
+pub fn read_dir_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: ReadDir > ) {
+    let path = path.as_ref();
+    std :: fs :: read_dir(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::read_dir", path))
+}
+/// Returns the canonical, absolute form of a path with all intermediate
+/// components normalized and symbolic links resolved.
+/// 
+/// # Platform-specific behavior
+/// 
+/// This function currently corresponds to the `realpath` function on Unix
+/// and the `CreateFile` and `GetFinalPathNameByHandle` functions on Windows.
+/// Note that this [may change in the future][changes].
+/// 
+/// On Windows, this converts the path to use [extended length path][path]
+/// syntax, which allows your program to use longer path names, but means you
+/// can only join backslash-delimited paths to it, and it may be incompatible
+/// with other applications (if passed to the application on the command-line,
+/// or written to a file another application may read).
+/// 
+/// [changes]: io#platform-specific-behavior
+/// [path]: https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
+/// 
+/// # Errors
+/// 
+/// This function will return an error in the following situations, but is not
+/// limited to just these cases:
+/// 
+/// * `path` does not exist.
+/// * A non-final component in path is not a directory.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let path = fs::canonicalize("../a/../foo.txt")?;
+///     Ok(())
+/// }
+/// ```
+pub fn canonicalize_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
+    let path = path.as_ref();
+    std :: fs :: canonicalize(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::canonicalize", path))
+}
+/// Writes a slice as the entire contents of a file.
+/// 
+/// This function will create a file if it does not exist,
+/// and will entirely replace its contents if it does.
+/// 
+/// Depending on the platform, this function may fail if the
+/// full directory path does not exist.
+/// 
+/// This is a convenience function for using [`File::create`] and [`write_all`]
+/// with fewer imports.
+/// 
+/// [`write_all`]: Write::write_all
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     fs::write("foo.txt", b"Lorem ipsum")?;
+///     fs::write("bar.txt", "dolor sit")?;
+///     Ok(())
+/// }
+/// ```
 pub fn write_wc < P : core :: convert :: AsRef < std :: path :: Path > , C : core :: convert :: AsRef < [ u8 ] > > ( path : P , contents : C ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let path = path.as_ref();
     let contents = contents.as_ref();

@@ -8,6 +8,7 @@ use anyhow::Context;
 
 #[cfg(feature = "anonymous_pipe")]
 pub trait PipeReaderContext: Sized {
+/// Create a new [`PipeReader`] instance that shares the same underlying file description.
 fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
 }
 #[cfg(feature = "anonymous_pipe")]
@@ -19,6 +20,7 @@ fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Resu
 }
 #[cfg(feature = "anonymous_pipe")]
 pub trait PipeWriterContext: Sized {
+/// Create a new [`PipeWriter`] instance that shares the same underlying file description.
 fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
 }
 #[cfg(feature = "anonymous_pipe")]
@@ -30,6 +32,7 @@ fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Resu
 }
 
 
+/// Create anonymous pipe that is close-on-exec and blocking.
 #[cfg(feature = "anonymous_pipe")]
 pub fn pipe_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( std :: pipe :: PipeReader , std :: pipe :: PipeWriter ) > ) {
     std :: pipe :: pipe()

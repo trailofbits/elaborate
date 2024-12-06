@@ -8,6 +8,8 @@ use anyhow::Context;
 
 #[cfg(unix)]
 pub trait BorrowedFdContext {
+/// Creates a new `OwnedFd` instance that shares the same underlying file
+/// description as the existing `BorrowedFd` instance.
 fn try_clone_to_owned_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: fd :: OwnedFd > );
 }
 #[cfg(unix)]
@@ -19,6 +21,8 @@ fn try_clone_to_owned_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: i
 }
 #[cfg(unix)]
 pub trait OwnedFdContext: Sized {
+/// Creates a new `OwnedFd` instance that shares the same underlying file
+/// description as the existing `OwnedFd` instance.
 fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
 }
 #[cfg(unix)]

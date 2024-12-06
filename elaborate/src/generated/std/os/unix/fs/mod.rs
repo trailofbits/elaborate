@@ -7,28 +7,211 @@ use anyhow::Context;
 
 #[cfg(unix)]
 pub trait FileExtContext: std :: os :: unix :: fs :: FileExt {
+/// Attempts to write an entire buffer starting from a given offset.
+/// 
+/// The offset is relative to the start of the file and thus independent
+/// from the current cursor.
+/// 
+/// The current file cursor is not affected by this function.
+/// 
+/// This method will continuously call [`write_at`] until there is no more data
+/// to be written or an error of non-[`io::ErrorKind::Interrupted`] kind is
+/// returned. This method will not return until the entire buffer has been
+/// successfully written or such an error occurs. The first error that is
+/// not of [`io::ErrorKind::Interrupted`] kind generated from this method will be
+/// returned.
+/// 
+/// # Errors
+/// 
+/// This function will return the first error of
+/// non-[`io::ErrorKind::Interrupted`] kind that [`write_at`] returns.
+/// 
+/// [`write_at`]: FileExt::write_at
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs::File;
+/// use std::io;
+/// use std::os::unix::prelude::FileExt;
+/// 
+/// fn main() -> io::Result<()> {
+///     let file = File::open("foo.txt")?;
+/// 
+///     // We now write at the offset 10.
+///     file.write_all_at(b"sushi", 10)?;
+///     Ok(())
+/// }
+/// ```
+fn write_all_at_wc ( & self , buf : & [ u8 ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    < Self as :: std :: os :: unix :: fs :: FileExt > :: write_all_at(self, buf, offset)
+        .with_context(|| crate::call_failed!(Some(self), "write_all_at", buf, offset))
+}
+/// Like `read_at`, except that it reads into a slice of buffers.
+/// 
+/// Data is copied to fill each buffer in order, with the final buffer
+/// written to possibly being only partially filled. This method must behave
+/// equivalently to a single call to read with concatenated buffers.
 #[cfg(feature = "unix_file_vectored_at")]
 fn read_vectored_at_wc ( & self , bufs : & mut [ std :: io :: IoSliceMut < '_ > ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     < Self as :: std :: os :: unix :: fs :: FileExt > :: read_vectored_at(self, bufs, offset)
         .with_context(|| crate::call_failed!(Some(self), "read_vectored_at", bufs, offset))
 }
+/// Like `write_at`, except that it writes from a slice of buffers.
+/// 
+/// Data is copied from each buffer in order, with the final buffer read
+/// from possibly being only partially consumed. This method must behave as
+/// a call to `write_at` with the buffers concatenated would.
 #[cfg(feature = "unix_file_vectored_at")]
 fn write_vectored_at_wc ( & self , bufs : & [ std :: io :: IoSlice < '_ > ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     < Self as :: std :: os :: unix :: fs :: FileExt > :: write_vectored_at(self, bufs, offset)
         .with_context(|| crate::call_failed!(Some(self), "write_vectored_at", bufs, offset))
 }
+/// Reads a number of bytes starting from a given offset.
+/// 
+/// Returns the number of bytes read.
+/// 
+/// The offset is relative to the start of the file and thus independent
+/// from the current cursor.
+/// 
+/// The current file cursor is not affected by this function.
+/// 
+/// Note that similar to [`File::read`], it is not an error to return with a
+/// short read.
+/// 
+/// [`File::read`]: fs::File::read
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::io;
+/// use std::fs::File;
+/// use std::os::unix::prelude::FileExt;
+/// 
+/// fn main() -> io::Result<()> {
+///     let mut buf = [0u8; 8];
+///     let file = File::open("foo.txt")?;
+/// 
+///     // We now read 8 bytes from the offset 10.
+///     let num_bytes_read = file.read_at(&mut buf, 10)?;
+///     println!("read {num_bytes_read} bytes: {buf:?}");
+///     Ok(())
+/// }
+/// ```
 fn read_at_wc ( & self , buf : & mut [ u8 ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     < Self as :: std :: os :: unix :: fs :: FileExt > :: read_at(self, buf, offset)
         .with_context(|| crate::call_failed!(Some(self), "read_at", buf, offset))
 }
+/// Reads the exact number of bytes required to fill `buf` from the given offset.
+/// 
+/// The offset is relative to the start of the file and thus independent
+/// from the current cursor.
+/// 
+/// The current file cursor is not affected by this function.
+/// 
+/// Similar to [`io::Read::read_exact`] but uses [`read_at`] instead of `read`.
+/// 
+/// [`read_at`]: FileExt::read_at
+/// 
+/// # Errors
+/// 
+/// If this function encounters an error of the kind
+/// [`io::ErrorKind::Interrupted`] then the error is ignored and the operation
+/// will continue.
+/// 
+/// If this function encounters an "end of file" before completely filling
+/// the buffer, it returns an error of the kind [`io::ErrorKind::UnexpectedEof`].
+/// The contents of `buf` are unspecified in this case.
+/// 
+/// If any other read error is encountered then this function immediately
+/// returns. The contents of `buf` are unspecified in this case.
+/// 
+/// If this function returns an error, it is unspecified how many bytes it
+/// has read, but it will never read more than would be necessary to
+/// completely fill the buffer.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::io;
+/// use std::fs::File;
+/// use std::os::unix::prelude::FileExt;
+/// 
+/// fn main() -> io::Result<()> {
+///     let mut buf = [0u8; 8];
+///     let file = File::open("foo.txt")?;
+/// 
+///     // We now read exactly 8 bytes from the offset 10.
+///     file.read_exact_at(&mut buf, 10)?;
+///     println!("read {} bytes: {:?}", buf.len(), buf);
+///     Ok(())
+/// }
+/// ```
 fn read_exact_at_wc ( & self , buf : & mut [ u8 ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: os :: unix :: fs :: FileExt > :: read_exact_at(self, buf, offset)
         .with_context(|| crate::call_failed!(Some(self), "read_exact_at", buf, offset))
 }
-fn write_all_at_wc ( & self , buf : & [ u8 ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    < Self as :: std :: os :: unix :: fs :: FileExt > :: write_all_at(self, buf, offset)
-        .with_context(|| crate::call_failed!(Some(self), "write_all_at", buf, offset))
-}
+/// Writes a number of bytes starting from a given offset.
+/// 
+/// Returns the number of bytes written.
+/// 
+/// The offset is relative to the start of the file and thus independent
+/// from the current cursor.
+/// 
+/// The current file cursor is not affected by this function.
+/// 
+/// When writing beyond the end of the file, the file is appropriately
+/// extended and the intermediate bytes are initialized with the value 0.
+/// 
+/// Note that similar to [`File::write`], it is not an error to return a
+/// short write.
+/// 
+/// # Bug
+/// On some systems, `write_at` utilises [`pwrite64`] to write to files.
+/// However, this syscall has a [bug] where files opened with the `O_APPEND`
+/// flag fail to respect the offset parameter, always appending to the end
+/// of the file instead.
+/// 
+/// It is possible to inadvertently set this flag, like in the example below.
+/// Therefore, it is important to be vigilant while changing options to mitigate
+/// unexpected behaviour.
+/// 
+/// ```no_run
+/// use std::fs::File;
+/// use std::io;
+/// use std::os::unix::prelude::FileExt;
+/// 
+/// fn main() -> io::Result<()> {
+///     // Open a file with the append option (sets the `O_APPEND` flag)
+///     let file = File::options().append(true).open("foo.txt")?;
+/// 
+///     // We attempt to write at offset 10; instead appended to EOF
+///     file.write_at(b"sushi", 10)?;
+/// 
+///     // foo.txt is 5 bytes long instead of 15
+///     Ok(())
+/// }
+/// ```
+/// 
+/// [`File::write`]: fs::File::write
+/// [`pwrite64`]: https://man7.org/linux/man-pages/man2/pwrite.2.html
+/// [bug]: https://man7.org/linux/man-pages/man2/pwrite.2.html#BUGS
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::fs::File;
+/// use std::io;
+/// use std::os::unix::prelude::FileExt;
+/// 
+/// fn main() -> io::Result<()> {
+///     let file = File::create("foo.txt")?;
+/// 
+///     // We now write at the offset 10.
+///     file.write_at(b"sushi", 10)?;
+///     Ok(())
+/// }
+/// ```
 fn write_at_wc ( & self , buf : & [ u8 ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     < Self as :: std :: os :: unix :: fs :: FileExt > :: write_at(self, buf, offset)
         .with_context(|| crate::call_failed!(Some(self), "write_at", buf, offset))
@@ -40,34 +223,118 @@ impl<T> FileExtContext for T where T: std :: os :: unix :: fs :: FileExt {}
 
 
 
+/// Change the owner and group of the file referenced by the specified open file descriptor.
+/// 
+/// For semantics and required privileges, see [`chown`].
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::fs;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let f = std::fs::File::open("/file")?;
+///     fs::fchown(&f, Some(0), Some(0))?;
+///     Ok(())
+/// }
+/// ```
 #[cfg(unix)]
-pub fn chown_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( dir : P , uid : core :: option :: Option < u32 > , gid : core :: option :: Option < u32 > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let dir = dir.as_ref();
-    std :: os :: unix :: fs :: chown(dir, uid, gid)
-        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::fs::chown", dir, uid, gid))
+pub fn fchown_wc < F : std :: os :: fd :: AsFd > ( fd : F , uid : core :: option :: Option < u32 > , gid : core :: option :: Option < u32 > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    let fd = fd.as_fd();
+    std :: os :: unix :: fs :: fchown(fd, uid, gid)
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::fs::fchown", fd, uid, gid))
 }
-#[cfg(unix)]
-pub fn chroot_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( dir : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let dir = dir.as_ref();
-    std :: os :: unix :: fs :: chroot(dir)
-        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::fs::chroot", dir))
-}
+/// Change the owner and group of the specified path, without dereferencing symbolic links.
+/// 
+/// Identical to [`chown`], except that if called on a symbolic link, this will change the owner
+/// and group of the link itself rather than the owner and group of the link target.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::fs;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     fs::lchown("/symlink", Some(0), Some(0))?;
+///     Ok(())
+/// }
+/// ```
 #[cfg(unix)]
 pub fn lchown_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( dir : P , uid : core :: option :: Option < u32 > , gid : core :: option :: Option < u32 > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let dir = dir.as_ref();
     std :: os :: unix :: fs :: lchown(dir, uid, gid)
         .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::fs::lchown", dir, uid, gid))
 }
+/// Change the owner and group of the specified path.
+/// 
+/// Specifying either the uid or gid as `None` will leave it unchanged.
+/// 
+/// Changing the owner typically requires privileges, such as root or a specific capability.
+/// Changing the group typically requires either being the owner and a member of the group, or
+/// having privileges.
+/// 
+/// If called on a symbolic link, this will change the owner and group of the link target. To
+/// change the owner and group of the link itself, see [`lchown`].
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::fs;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     fs::chown("/sandbox", Some(0), Some(0))?;
+///     Ok(())
+/// }
+/// ```
+#[cfg(unix)]
+pub fn chown_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( dir : P , uid : core :: option :: Option < u32 > , gid : core :: option :: Option < u32 > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    let dir = dir.as_ref();
+    std :: os :: unix :: fs :: chown(dir, uid, gid)
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::fs::chown", dir, uid, gid))
+}
+/// Change the root directory of the current process to the specified path.
+/// 
+/// This typically requires privileges, such as root or a specific capability.
+/// 
+/// This does not change the current working directory; you should call
+/// [`std::env::set_current_dir`][`crate::env::set_current_dir`] afterwards.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::fs;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     fs::chroot("/sandbox")?;
+///     std::env::set_current_dir("/")?;
+///     // continue working in sandbox
+///     Ok(())
+/// }
+/// ```
+#[cfg(unix)]
+pub fn chroot_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( dir : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    let dir = dir.as_ref();
+    std :: os :: unix :: fs :: chroot(dir)
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::fs::chroot", dir))
+}
+/// Creates a new symbolic link on the filesystem.
+/// 
+/// The `link` path will be a symbolic link pointing to the `original` path.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::fs;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     fs::symlink("a.txt", "b.txt")?;
+///     Ok(())
+/// }
+/// ```
 #[cfg(unix)]
 pub fn symlink_wc < P : core :: convert :: AsRef < std :: path :: Path > , Q : core :: convert :: AsRef < std :: path :: Path > > ( original : P , link : Q ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     let original = original.as_ref();
     let link = link.as_ref();
     std :: os :: unix :: fs :: symlink(original, link)
         .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::fs::symlink", original, link))
-}
-#[cfg(unix)]
-pub fn fchown_wc < F : std :: os :: fd :: AsFd > ( fd : F , uid : core :: option :: Option < u32 > , gid : core :: option :: Option < u32 > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let fd = fd.as_fd();
-    std :: os :: unix :: fs :: fchown(fd, uid, gid)
-        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::fs::fchown", fd, uid, gid))
 }

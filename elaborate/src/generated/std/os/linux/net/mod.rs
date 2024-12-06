@@ -7,15 +7,63 @@ use anyhow::Context;
 
 #[cfg(target_os = "linux")]
 pub trait SocketAddrExtContext: std :: os :: linux :: net :: SocketAddrExt {
-fn as_abstract_name_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & [ u8 ] > ) {
-    < Self as :: std :: os :: linux :: net :: SocketAddrExt > :: as_abstract_name(self)
-        .with_context(|| crate::call_failed!(Some(self), "as_abstract_name"))
-}
+/// Creates a Unix socket address in the abstract namespace.
+/// 
+/// The abstract namespace is a Linux-specific extension that allows Unix
+/// sockets to be bound without creating an entry in the filesystem.
+/// Abstract sockets are unaffected by filesystem layout or permissions,
+/// and no cleanup is necessary when the socket is closed.
+/// 
+/// An abstract socket address name may contain any bytes, including zero.
+/// 
+/// # Errors
+/// 
+/// Returns an error if the name is longer than `SUN_LEN - 1`.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::{UnixListener, SocketAddr};
+/// use std::os::linux::net::SocketAddrExt;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let addr = SocketAddr::from_abstract_name(b"hidden")?;
+///     let listener = match UnixListener::bind_addr(&addr) {
+///         Ok(sock) => sock,
+///         Err(err) => {
+///             println!("Couldn't bind: {err:?}");
+///             return Err(err);
+///         }
+///     };
+///     Ok(())
+/// }
+/// ```
 #[cfg(unix)]
 fn from_abstract_name_wc < N > ( name : N ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: os :: unix :: net :: SocketAddr > ) where N : core :: convert :: AsRef < [ u8 ] > {
     let name = name.as_ref();
     < Self as :: std :: os :: linux :: net :: SocketAddrExt > :: from_abstract_name(name)
         .with_context(|| crate::call_failed!(None::<()>, "< Self as :: std :: os :: linux :: net :: SocketAddrExt > :: from_abstract_name", name))
+}
+/// Returns the contents of this address if it is in the abstract namespace.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::os::unix::net::{UnixListener, SocketAddr};
+/// use std::os::linux::net::SocketAddrExt;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let name = b"hidden";
+///     let name_addr = SocketAddr::from_abstract_name(name)?;
+///     let socket = UnixListener::bind_addr(&name_addr)?;
+///     let local_addr = socket.local_addr().expect("Couldn't get local address");
+///     assert_eq!(local_addr.as_abstract_name(), Some(&name[..]));
+///     Ok(())
+/// }
+/// ```
+fn as_abstract_name_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & [ u8 ] > ) {
+    < Self as :: std :: os :: linux :: net :: SocketAddrExt > :: as_abstract_name(self)
+        .with_context(|| crate::call_failed!(Some(self), "as_abstract_name"))
 }
 }
 
@@ -24,25 +72,98 @@ impl<T> SocketAddrExtContext for T where T: std :: os :: linux :: net :: SocketA
 #[cfg(feature = "tcp_quickack")]
 #[cfg(target_os = "linux")]
 pub trait TcpStreamExtContext: std :: os :: linux :: net :: TcpStreamExt {
-#[cfg(feature = "tcp_deferaccept")]
-fn deferaccept_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u32 > ) {
-    < Self as :: std :: os :: linux :: net :: TcpStreamExt > :: deferaccept(self)
-        .with_context(|| crate::call_failed!(Some(self), "deferaccept"))
-}
+/// A socket listener will be awakened solely when data arrives.
+/// 
+/// The `accept` argument set the delay in seconds until the
+/// data is available to read, reducing the number of short lived
+/// connections without data to process.
+/// Contrary to other platforms `SO_ACCEPTFILTER` feature equivalent, there is
+/// no necessity to set it after the `listen` call.
+/// 
+/// See [`man 7 tcp`](https://man7.org/linux/man-pages/man7/tcp.7.html)
+/// 
+/// # Examples
+/// 
+/// ```no run
+/// #![feature(tcp_deferaccept)]
+/// use std::net::TcpStream;
+/// use std::os::linux::net::TcpStreamExt;
+/// 
+/// let stream = TcpStream::connect("127.0.0.1:8080")
+///         .expect("Couldn't connect to the server...");
+/// stream.set_deferaccept(1).expect("set_deferaccept call failed");
+/// ```
 #[cfg(feature = "tcp_deferaccept")]
 fn set_deferaccept_wc ( & self , accept : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: os :: linux :: net :: TcpStreamExt > :: set_deferaccept(self, accept)
         .with_context(|| crate::call_failed!(Some(self), "set_deferaccept", accept))
 }
-#[cfg(feature = "tcp_quickack")]
-fn quickack_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
-    < Self as :: std :: os :: linux :: net :: TcpStreamExt > :: quickack(self)
-        .with_context(|| crate::call_failed!(Some(self), "quickack"))
-}
+/// Enable or disable `TCP_QUICKACK`.
+/// 
+/// This flag causes Linux to eagerly send ACKs rather than delaying them.
+/// Linux may reset this flag after further operations on the socket.
+/// 
+/// See [`man 7 tcp`](https://man7.org/linux/man-pages/man7/tcp.7.html) and
+/// [TCP delayed acknowledgement](https://en.wikipedia.org/wiki/TCP_delayed_acknowledgment)
+/// for more information.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(tcp_quickack)]
+/// use std::net::TcpStream;
+/// use std::os::linux::net::TcpStreamExt;
+/// 
+/// let stream = TcpStream::connect("127.0.0.1:8080")
+///         .expect("Couldn't connect to the server...");
+/// stream.set_quickack(true).expect("set_quickack call failed");
+/// ```
 #[cfg(feature = "tcp_quickack")]
 fn set_quickack_wc ( & self , quickack : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: os :: linux :: net :: TcpStreamExt > :: set_quickack(self, quickack)
         .with_context(|| crate::call_failed!(Some(self), "set_quickack", quickack))
+}
+/// Gets the accept delay value (in seconds) of the `TCP_DEFER_ACCEPT` option.
+/// 
+/// For more information about this option, see [`TcpStreamExt::set_deferaccept`].
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(tcp_deferaccept)]
+/// use std::net::TcpStream;
+/// use std::os::linux::net::TcpStreamExt;
+/// 
+/// let stream = TcpStream::connect("127.0.0.1:8080")
+///         .expect("Couldn't connect to the server...");
+/// stream.set_deferaccept(1).expect("set_deferaccept call failed");
+/// assert_eq!(stream.deferaccept().unwrap_or(0), 1);
+/// ```
+#[cfg(feature = "tcp_deferaccept")]
+fn deferaccept_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u32 > ) {
+    < Self as :: std :: os :: linux :: net :: TcpStreamExt > :: deferaccept(self)
+        .with_context(|| crate::call_failed!(Some(self), "deferaccept"))
+}
+/// Gets the value of the `TCP_QUICKACK` option on this socket.
+/// 
+/// For more information about this option, see [`TcpStreamExt::set_quickack`].
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(tcp_quickack)]
+/// use std::net::TcpStream;
+/// use std::os::linux::net::TcpStreamExt;
+/// 
+/// let stream = TcpStream::connect("127.0.0.1:8080")
+///         .expect("Couldn't connect to the server...");
+/// stream.set_quickack(true).expect("set_quickack call failed");
+/// assert_eq!(stream.quickack().unwrap_or(false), true);
+/// ```
+#[cfg(feature = "tcp_quickack")]
+fn quickack_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
+    < Self as :: std :: os :: linux :: net :: TcpStreamExt > :: quickack(self)
+        .with_context(|| crate::call_failed!(Some(self), "quickack"))
 }
 }
 
@@ -52,13 +173,34 @@ impl<T> TcpStreamExtContext for T where T: std :: os :: linux :: net :: TcpStrea
 #[cfg(feature = "unix_socket_ancillary_data")]
 #[cfg(target_os = "linux")]
 pub trait UnixSocketExtContext: std :: os :: linux :: net :: UnixSocketExt {
-fn passcred_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
-    < Self as :: std :: os :: linux :: net :: UnixSocketExt > :: passcred(self)
-        .with_context(|| crate::call_failed!(Some(self), "passcred"))
-}
+/// Enable or disable socket option `SO_PASSCRED`.
+/// 
+/// This option enables the credentials of the sending process to be
+/// received as a control message in [`AncillaryData`].
+/// 
+/// [`AncillaryData`]: net::AncillaryData
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(unix_socket_ancillary_data)]
+/// use std::os::linux::net::UnixSocketExt;
+/// use std::os::unix::net::UnixDatagram;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let sock = UnixDatagram::unbound()?;
+///     sock.set_passcred(true).expect("set_passcred failed");
+///     Ok(())
+/// }
+/// ```
 fn set_passcred_wc ( & self , passcred : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: os :: linux :: net :: UnixSocketExt > :: set_passcred(self, passcred)
         .with_context(|| crate::call_failed!(Some(self), "set_passcred", passcred))
+}
+/// Query the current setting of socket option `SO_PASSCRED`.
+fn passcred_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
+    < Self as :: std :: os :: linux :: net :: UnixSocketExt > :: passcred(self)
+        .with_context(|| crate::call_failed!(Some(self), "passcred"))
 }
 }
 

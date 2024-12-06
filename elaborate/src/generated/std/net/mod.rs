@@ -6,6 +6,13 @@ use anyhow::Context;
 
 
 pub trait ToSocketAddrsContext: std :: net :: ToSocketAddrs {
+/// Converts this object to an iterator of resolved [`SocketAddr`]s.
+/// 
+/// The returned iterator might not actually yield any values depending on the
+/// outcome of any resolution performed.
+/// 
+/// Note that this function may block the current thread while resolution is
+/// performed.
 fn to_socket_addrs_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self :: Iter > ) {
     < Self as :: std :: net :: ToSocketAddrs > :: to_socket_addrs(self)
         .with_context(|| crate::call_failed!(Some(self), "to_socket_addrs"))
@@ -15,18 +22,198 @@ fn to_socket_addrs_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :
 impl<T> ToSocketAddrsContext for T where T: std :: net :: ToSocketAddrs {}
 
 pub trait TcpListenerContext: Sized {
-fn accept_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( std :: net :: TcpStream , core :: net :: SocketAddr ) > );
-fn bind_wc < A : std :: net :: ToSocketAddrs > ( addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
-fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > );
 fn only_v6_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > );
-fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
 fn set_only_v6_wc ( & self , only_v6 : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn set_ttl_wc ( & self , ttl : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > );
+/// Accept a new incoming connection from this listener.
+/// 
+/// This function will block the calling thread until a new TCP connection
+/// is established. When established, the corresponding [`TcpStream`] and the
+/// remote peer's address will be returned.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::TcpListener;
+/// 
+/// let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
+/// match listener.accept() {
+///     Ok((_socket, addr)) => println!("new client: {addr:?}"),
+///     Err(e) => println!("couldn't get client: {e:?}"),
+/// }
+/// ```
+fn accept_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( std :: net :: TcpStream , core :: net :: SocketAddr ) > );
+/// Creates a new `TcpListener` which will be bound to the specified
+/// address.
+/// 
+/// The returned listener is ready for accepting connections.
+/// 
+/// Binding with a port number of 0 will request that the OS assigns a port
+/// to this listener. The port allocated can be queried via the
+/// [`TcpListener::local_addr`] method.
+/// 
+/// The address type can be any implementor of [`ToSocketAddrs`] trait. See
+/// its documentation for concrete examples.
+/// 
+/// If `addr` yields multiple addresses, `bind` will be attempted with
+/// each of the addresses until one succeeds and returns the listener. If
+/// none of the addresses succeed in creating a listener, the error returned
+/// from the last attempt (the last address) is returned.
+/// 
+/// # Examples
+/// 
+/// Creates a TCP listener bound to `127.0.0.1:80`:
+/// 
+/// ```no_run
+/// use std::net::TcpListener;
+/// 
+/// let listener = TcpListener::bind("127.0.0.1:80").unwrap();
+/// ```
+/// 
+/// Creates a TCP listener bound to `127.0.0.1:80`. If that fails, create a
+/// TCP listener bound to `127.0.0.1:443`:
+/// 
+/// ```no_run
+/// use std::net::{SocketAddr, TcpListener};
+/// 
+/// let addrs = [
+///     SocketAddr::from(([127, 0, 0, 1], 80)),
+///     SocketAddr::from(([127, 0, 0, 1], 443)),
+/// ];
+/// let listener = TcpListener::bind(&addrs[..]).unwrap();
+/// ```
+/// 
+/// Creates a TCP listener bound to a port assigned by the operating system
+/// at `127.0.0.1`.
+/// 
+/// ```no_run
+/// use std::net::TcpListener;
+/// 
+/// let socket = TcpListener::bind("127.0.0.1:0").unwrap();
+/// ```
+fn bind_wc < A : std :: net :: ToSocketAddrs > ( addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+/// Creates a new independently owned handle to the underlying socket.
+/// 
+/// The returned [`TcpListener`] is a reference to the same socket that this
+/// object references. Both handles can be used to accept incoming
+/// connections and options set on one listener will affect the other.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::TcpListener;
+/// 
+/// let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
+/// let listener_clone = listener.try_clone().unwrap();
+/// ```
 fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+/// Gets the value of the `IP_TTL` option for this socket.
+/// 
+/// For more information about this option, see [`TcpListener::set_ttl`].
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::TcpListener;
+/// 
+/// let listener = TcpListener::bind("127.0.0.1:80").unwrap();
+/// listener.set_ttl(100).expect("could not set TTL");
+/// assert_eq!(listener.ttl().unwrap_or(0), 100);
+/// ```
 fn ttl_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u32 > );
+/// Gets the value of the `SO_ERROR` option on this socket.
+/// 
+/// This will retrieve the stored error in the underlying socket, clearing
+/// the field in the process. This can be useful for checking errors between
+/// calls.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::TcpListener;
+/// 
+/// let listener = TcpListener::bind("127.0.0.1:80").unwrap();
+/// listener.take_error().expect("No error was expected");
+/// ```
+fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > );
+/// Moves this TCP stream into or out of nonblocking mode.
+/// 
+/// This will result in the `accept` operation becoming nonblocking,
+/// i.e., immediately returning from their calls. If the IO operation is
+/// successful, `Ok` is returned and no further action is required. If the
+/// IO operation could not be completed and needs to be retried, an error
+/// with kind [`io::ErrorKind::WouldBlock`] is returned.
+/// 
+/// On Unix platforms, calling this method corresponds to calling `fcntl`
+/// `FIONBIO`. On Windows calling this method corresponds to calling
+/// `ioctlsocket` `FIONBIO`.
+/// 
+/// # Examples
+/// 
+/// Bind a TCP listener to an address, listen for connections, and read
+/// bytes in nonblocking mode:
+/// 
+/// ```no_run
+/// use std::io;
+/// use std::net::TcpListener;
+/// 
+/// let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+/// listener.set_nonblocking(true).expect("Cannot set non-blocking");
+/// 
+/// # fn wait_for_fd() { unimplemented!() }
+/// # fn handle_connection(stream: std::net::TcpStream) { unimplemented!() }
+/// for stream in listener.incoming() {
+///     match stream {
+///         Ok(s) => {
+///             // do something with the TcpStream
+///             handle_connection(s);
+///         }
+///         Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+///             // wait until network socket is ready, typically implemented
+///             // via platform-specific APIs such as epoll or IOCP
+///             wait_for_fd();
+///             continue;
+///         }
+///         Err(e) => panic!("encountered IO error: {e}"),
+///     }
+/// }
+/// ```
+fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Returns the local socket address of this listener.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener};
+/// 
+/// let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
+/// assert_eq!(listener.local_addr().unwrap(),
+///            SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 8080)));
+/// ```
+fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > );
+/// Sets the value for the `IP_TTL` option on this socket.
+/// 
+/// This value sets the time-to-live field that is used in every packet sent
+/// from this socket.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::TcpListener;
+/// 
+/// let listener = TcpListener::bind("127.0.0.1:80").unwrap();
+/// listener.set_ttl(100).expect("could not set TTL");
+/// ```
+fn set_ttl_wc ( & self , ttl : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
 }
 impl TcpListenerContext for std :: net :: TcpListener {
+fn only_v6_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
+    std :: net :: TcpListener :: only_v6(self)
+        .with_context(|| crate::call_failed!(Some(self), "only_v6"))
+}
+fn set_only_v6_wc ( & self , only_v6 : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: TcpListener :: set_only_v6(self, only_v6)
+        .with_context(|| crate::call_failed!(Some(self), "set_only_v6", only_v6))
+}
 fn accept_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( std :: net :: TcpStream , core :: net :: SocketAddr ) > ) {
     std :: net :: TcpListener :: accept(self)
         .with_context(|| crate::call_failed!(Some(self), "accept"))
@@ -34,30 +221,6 @@ fn accept_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result 
 fn bind_wc < A : std :: net :: ToSocketAddrs > ( addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     std :: net :: TcpListener :: bind(addr)
         .with_context(|| crate::call_failed!(None::<()>, "std::net::TcpListener::bind", crate::CustomDebugMessage("value of type impl ToSocketAddrs")))
-}
-fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > ) {
-    std :: net :: TcpListener :: local_addr(self)
-        .with_context(|| crate::call_failed!(Some(self), "local_addr"))
-}
-fn only_v6_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
-    std :: net :: TcpListener :: only_v6(self)
-        .with_context(|| crate::call_failed!(Some(self), "only_v6"))
-}
-fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    std :: net :: TcpListener :: set_nonblocking(self, nonblocking)
-        .with_context(|| crate::call_failed!(Some(self), "set_nonblocking", nonblocking))
-}
-fn set_only_v6_wc ( & self , only_v6 : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    std :: net :: TcpListener :: set_only_v6(self, only_v6)
-        .with_context(|| crate::call_failed!(Some(self), "set_only_v6", only_v6))
-}
-fn set_ttl_wc ( & self , ttl : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    std :: net :: TcpListener :: set_ttl(self, ttl)
-        .with_context(|| crate::call_failed!(Some(self), "set_ttl", ttl))
-}
-fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > ) {
-    std :: net :: TcpListener :: take_error(self)
-        .with_context(|| crate::call_failed!(Some(self), "take_error"))
 }
 fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     std :: net :: TcpListener :: try_clone(self)
@@ -67,31 +230,472 @@ fn ttl_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u
     std :: net :: TcpListener :: ttl(self)
         .with_context(|| crate::call_failed!(Some(self), "ttl"))
 }
+fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > ) {
+    std :: net :: TcpListener :: take_error(self)
+        .with_context(|| crate::call_failed!(Some(self), "take_error"))
+}
+fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: TcpListener :: set_nonblocking(self, nonblocking)
+        .with_context(|| crate::call_failed!(Some(self), "set_nonblocking", nonblocking))
+}
+fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > ) {
+    std :: net :: TcpListener :: local_addr(self)
+        .with_context(|| crate::call_failed!(Some(self), "local_addr"))
+}
+fn set_ttl_wc ( & self , ttl : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: TcpListener :: set_ttl(self, ttl)
+        .with_context(|| crate::call_failed!(Some(self), "set_ttl", ttl))
+}
 }
 pub trait TcpStreamContext: Sized {
-fn connect_timeout_wc ( addr : & core :: net :: SocketAddr , timeout : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
-fn connect_wc < A : std :: net :: ToSocketAddrs > ( addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
-fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > );
-fn nodelay_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > );
-fn peek_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
-fn peer_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > );
-fn read_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > );
-fn set_nodelay_wc ( & self , nodelay : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn set_read_timeout_wc ( & self , dur : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn set_ttl_wc ( & self , ttl : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn set_write_timeout_wc ( & self , dur : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn shutdown_wc ( & self , how : std :: net :: Shutdown ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > );
+/// Creates a new independently owned handle to the underlying socket.
+/// 
+/// The returned `TcpStream` is a reference to the same stream that this
+/// object references. Both handles will read and write the same stream of
+/// data, and options set on one stream will be propagated to the other
+/// stream.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::TcpStream;
+/// 
+/// let stream = TcpStream::connect("127.0.0.1:8080")
+///                        .expect("Couldn't connect to the server...");
+/// let stream_clone = stream.try_clone().expect("clone failed...");
+/// ```
 fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+/// Gets the value of the `IP_TTL` option for this socket.
+/// 
+/// For more information about this option, see [`TcpStream::set_ttl`].
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::TcpStream;
+/// 
+/// let stream = TcpStream::connect("127.0.0.1:8080")
+///                        .expect("Couldn't connect to the server...");
+/// stream.set_ttl(100).expect("set_ttl call failed");
+/// assert_eq!(stream.ttl().unwrap_or(0), 100);
+/// ```
 fn ttl_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u32 > );
-fn write_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > );
+/// Gets the value of the `SO_ERROR` option on this socket.
+/// 
+/// This will retrieve the stored error in the underlying socket, clearing
+/// the field in the process. This can be useful for checking errors between
+/// calls.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::TcpStream;
+/// 
+/// let stream = TcpStream::connect("127.0.0.1:8080")
+///                        .expect("Couldn't connect to the server...");
+/// stream.take_error().expect("No error was expected...");
+/// ```
+fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > );
+/// Gets the value of the `SO_LINGER` option on this socket.
+/// 
+/// For more information about this option, see [`TcpStream::set_linger`].
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(tcp_linger)]
+/// 
+/// use std::net::TcpStream;
+/// use std::time::Duration;
+/// 
+/// let stream = TcpStream::connect("127.0.0.1:8080")
+///                        .expect("Couldn't connect to the server...");
+/// stream.set_linger(Some(Duration::from_secs(0))).expect("set_linger call failed");
+/// assert_eq!(stream.linger().unwrap(), Some(Duration::from_secs(0)));
+/// ```
 #[cfg(feature = "tcp_linger")]
 fn linger_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > );
+/// Gets the value of the `TCP_NODELAY` option on this socket.
+/// 
+/// For more information about this option, see [`TcpStream::set_nodelay`].
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::TcpStream;
+/// 
+/// let stream = TcpStream::connect("127.0.0.1:8080")
+///                        .expect("Couldn't connect to the server...");
+/// stream.set_nodelay(true).expect("set_nodelay call failed");
+/// assert_eq!(stream.nodelay().unwrap_or(false), true);
+/// ```
+fn nodelay_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > );
+/// Moves this TCP stream into or out of nonblocking mode.
+/// 
+/// This will result in `read`, `write`, `recv` and `send` system operations
+/// becoming nonblocking, i.e., immediately returning from their calls.
+/// If the IO operation is successful, `Ok` is returned and no further
+/// action is required. If the IO operation could not be completed and needs
+/// to be retried, an error with kind [`io::ErrorKind::WouldBlock`] is
+/// returned.
+/// 
+/// On Unix platforms, calling this method corresponds to calling `fcntl`
+/// `FIONBIO`. On Windows calling this method corresponds to calling
+/// `ioctlsocket` `FIONBIO`.
+/// 
+/// # Examples
+/// 
+/// Reading bytes from a TCP stream in non-blocking mode:
+/// 
+/// ```no_run
+/// use std::io::{self, Read};
+/// use std::net::TcpStream;
+/// 
+/// let mut stream = TcpStream::connect("127.0.0.1:7878")
+///     .expect("Couldn't connect to the server...");
+/// stream.set_nonblocking(true).expect("set_nonblocking call failed");
+/// 
+/// # fn wait_for_fd() { unimplemented!() }
+/// let mut buf = vec![];
+/// loop {
+///     match stream.read_to_end(&mut buf) {
+///         Ok(_) => break,
+///         Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+///             // wait until network socket is ready, typically implemented
+///             // via platform-specific APIs such as epoll or IOCP
+///             wait_for_fd();
+///         }
+///         Err(e) => panic!("encountered IO error: {e}"),
+///     };
+/// };
+/// println!("bytes: {buf:?}");
+/// ```
+fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Opens a TCP connection to a remote host with a timeout.
+/// 
+/// Unlike `connect`, `connect_timeout` takes a single [`SocketAddr`] since
+/// timeout must be applied to individual addresses.
+/// 
+/// It is an error to pass a zero `Duration` to this function.
+/// 
+/// Unlike other methods on `TcpStream`, this does not correspond to a
+/// single system call. It instead calls `connect` in nonblocking mode and
+/// then uses an OS-specific mechanism to await the completion of the
+/// connection request.
+fn connect_timeout_wc ( addr : & core :: net :: SocketAddr , timeout : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+/// Opens a TCP connection to a remote host.
+/// 
+/// `addr` is an address of the remote host. Anything which implements
+/// [`ToSocketAddrs`] trait can be supplied for the address; see this trait
+/// documentation for concrete examples.
+/// 
+/// If `addr` yields multiple addresses, `connect` will be attempted with
+/// each of the addresses until a connection is successful. If none of
+/// the addresses result in a successful connection, the error returned from
+/// the last connection attempt (the last address) is returned.
+/// 
+/// # Examples
+/// 
+/// Open a TCP connection to `127.0.0.1:8080`:
+/// 
+/// ```no_run
+/// use std::net::TcpStream;
+/// 
+/// if let Ok(stream) = TcpStream::connect("127.0.0.1:8080") {
+///     println!("Connected to the server!");
+/// } else {
+///     println!("Couldn't connect to server...");
+/// }
+/// ```
+/// 
+/// Open a TCP connection to `127.0.0.1:8080`. If the connection fails, open
+/// a TCP connection to `127.0.0.1:8081`:
+/// 
+/// ```no_run
+/// use std::net::{SocketAddr, TcpStream};
+/// 
+/// let addrs = [
+///     SocketAddr::from(([127, 0, 0, 1], 8080)),
+///     SocketAddr::from(([127, 0, 0, 1], 8081)),
+/// ];
+/// if let Ok(stream) = TcpStream::connect(&addrs[..]) {
+///     println!("Connected to the server!");
+/// } else {
+///     println!("Couldn't connect to server...");
+/// }
+/// ```
+fn connect_wc < A : std :: net :: ToSocketAddrs > ( addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+/// Receives data on the socket from the remote address to which it is
+/// connected, without removing that data from the queue. On success,
+/// returns the number of bytes peeked.
+/// 
+/// Successive calls return the same data. This is accomplished by passing
+/// `MSG_PEEK` as a flag to the underlying `recv` system call.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::TcpStream;
+/// 
+/// let stream = TcpStream::connect("127.0.0.1:8000")
+///                        .expect("Couldn't connect to the server...");
+/// let mut buf = [0; 10];
+/// let len = stream.peek(&mut buf).expect("peek failed");
+/// ```
+fn peek_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
+/// Returns the read timeout of this socket.
+/// 
+/// If the timeout is [`None`], then [`read`] calls will block indefinitely.
+/// 
+/// # Platform-specific behavior
+/// 
+/// Some platforms do not provide access to the current timeout.
+/// 
+/// [`read`]: Read::read
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::TcpStream;
+/// 
+/// let stream = TcpStream::connect("127.0.0.1:8080")
+///                        .expect("Couldn't connect to the server...");
+/// stream.set_read_timeout(None).expect("set_read_timeout call failed");
+/// assert_eq!(stream.read_timeout().unwrap(), None);
+/// ```
+fn read_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > );
+/// Returns the socket address of the local half of this TCP connection.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::{IpAddr, Ipv4Addr, TcpStream};
+/// 
+/// let stream = TcpStream::connect("127.0.0.1:8080")
+///                        .expect("Couldn't connect to the server...");
+/// assert_eq!(stream.local_addr().unwrap().ip(),
+///            IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
+/// ```
+fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > );
+/// Returns the socket address of the remote peer of this TCP connection.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpStream};
+/// 
+/// let stream = TcpStream::connect("127.0.0.1:8080")
+///                        .expect("Couldn't connect to the server...");
+/// assert_eq!(stream.peer_addr().unwrap(),
+///            SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 8080)));
+/// ```
+fn peer_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > );
+/// Returns the write timeout of this socket.
+/// 
+/// If the timeout is [`None`], then [`write`] calls will block indefinitely.
+/// 
+/// # Platform-specific behavior
+/// 
+/// Some platforms do not provide access to the current timeout.
+/// 
+/// [`write`]: Write::write
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::TcpStream;
+/// 
+/// let stream = TcpStream::connect("127.0.0.1:8080")
+///                        .expect("Couldn't connect to the server...");
+/// stream.set_write_timeout(None).expect("set_write_timeout call failed");
+/// assert_eq!(stream.write_timeout().unwrap(), None);
+/// ```
+fn write_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > );
+/// Sets the read timeout to the timeout specified.
+/// 
+/// If the value specified is [`None`], then [`read`] calls will block
+/// indefinitely. An [`Err`] is returned if the zero [`Duration`] is
+/// passed to this method.
+/// 
+/// # Platform-specific behavior
+/// 
+/// Platforms may return a different error code whenever a read times out as
+/// a result of setting this option. For example Unix typically returns an
+/// error of the kind [`WouldBlock`], but Windows may return [`TimedOut`].
+/// 
+/// [`read`]: Read::read
+/// [`WouldBlock`]: io::ErrorKind::WouldBlock
+/// [`TimedOut`]: io::ErrorKind::TimedOut
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::TcpStream;
+/// 
+/// let stream = TcpStream::connect("127.0.0.1:8080")
+///                        .expect("Couldn't connect to the server...");
+/// stream.set_read_timeout(None).expect("set_read_timeout call failed");
+/// ```
+/// 
+/// An [`Err`] is returned if the zero [`Duration`] is passed to this
+/// method:
+/// 
+/// ```no_run
+/// use std::io;
+/// use std::net::TcpStream;
+/// use std::time::Duration;
+/// 
+/// let stream = TcpStream::connect("127.0.0.1:8080").unwrap();
+/// let result = stream.set_read_timeout(Some(Duration::new(0, 0)));
+/// let err = result.unwrap_err();
+/// assert_eq!(err.kind(), io::ErrorKind::InvalidInput)
+/// ```
+fn set_read_timeout_wc ( & self , dur : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Sets the value for the `IP_TTL` option on this socket.
+/// 
+/// This value sets the time-to-live field that is used in every packet sent
+/// from this socket.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::TcpStream;
+/// 
+/// let stream = TcpStream::connect("127.0.0.1:8080")
+///                        .expect("Couldn't connect to the server...");
+/// stream.set_ttl(100).expect("set_ttl call failed");
+/// ```
+fn set_ttl_wc ( & self , ttl : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Sets the value of the `SO_LINGER` option on this socket.
+/// 
+/// This value controls how the socket is closed when data remains
+/// to be sent. If `SO_LINGER` is set, the socket will remain open
+/// for the specified duration as the system attempts to send pending data.
+/// Otherwise, the system may close the socket immediately, or wait for a
+/// default timeout.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(tcp_linger)]
+/// 
+/// use std::net::TcpStream;
+/// use std::time::Duration;
+/// 
+/// let stream = TcpStream::connect("127.0.0.1:8080")
+///                        .expect("Couldn't connect to the server...");
+/// stream.set_linger(Some(Duration::from_secs(0))).expect("set_linger call failed");
+/// ```
 #[cfg(feature = "tcp_linger")]
 fn set_linger_wc ( & self , linger : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Sets the value of the `TCP_NODELAY` option on this socket.
+/// 
+/// If set, this option disables the Nagle algorithm. This means that
+/// segments are always sent as soon as possible, even if there is only a
+/// small amount of data. When not set, data is buffered until there is a
+/// sufficient amount to send out, thereby avoiding the frequent sending of
+/// small packets.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::TcpStream;
+/// 
+/// let stream = TcpStream::connect("127.0.0.1:8080")
+///                        .expect("Couldn't connect to the server...");
+/// stream.set_nodelay(true).expect("set_nodelay call failed");
+/// ```
+fn set_nodelay_wc ( & self , nodelay : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Sets the write timeout to the timeout specified.
+/// 
+/// If the value specified is [`None`], then [`write`] calls will block
+/// indefinitely. An [`Err`] is returned if the zero [`Duration`] is
+/// passed to this method.
+/// 
+/// # Platform-specific behavior
+/// 
+/// Platforms may return a different error code whenever a write times out
+/// as a result of setting this option. For example Unix typically returns
+/// an error of the kind [`WouldBlock`], but Windows may return [`TimedOut`].
+/// 
+/// [`write`]: Write::write
+/// [`WouldBlock`]: io::ErrorKind::WouldBlock
+/// [`TimedOut`]: io::ErrorKind::TimedOut
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::TcpStream;
+/// 
+/// let stream = TcpStream::connect("127.0.0.1:8080")
+///                        .expect("Couldn't connect to the server...");
+/// stream.set_write_timeout(None).expect("set_write_timeout call failed");
+/// ```
+/// 
+/// An [`Err`] is returned if the zero [`Duration`] is passed to this
+/// method:
+/// 
+/// ```no_run
+/// use std::io;
+/// use std::net::TcpStream;
+/// use std::time::Duration;
+/// 
+/// let stream = TcpStream::connect("127.0.0.1:8080").unwrap();
+/// let result = stream.set_write_timeout(Some(Duration::new(0, 0)));
+/// let err = result.unwrap_err();
+/// assert_eq!(err.kind(), io::ErrorKind::InvalidInput)
+/// ```
+fn set_write_timeout_wc ( & self , dur : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Shuts down the read, write, or both halves of this connection.
+/// 
+/// This function will cause all pending and future I/O on the specified
+/// portions to return immediately with an appropriate value (see the
+/// documentation of [`Shutdown`]).
+/// 
+/// # Platform-specific behavior
+/// 
+/// Calling this function multiple times may result in different behavior,
+/// depending on the operating system. On Linux, the second call will
+/// return `Ok(())`, but on macOS, it will return `ErrorKind::NotConnected`.
+/// This may change in the future.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::{Shutdown, TcpStream};
+/// 
+/// let stream = TcpStream::connect("127.0.0.1:8080")
+///                        .expect("Couldn't connect to the server...");
+/// stream.shutdown(Shutdown::Both).expect("shutdown call failed");
+/// ```
+fn shutdown_wc ( & self , how : std :: net :: Shutdown ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
 }
 impl TcpStreamContext for std :: net :: TcpStream {
+fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
+    std :: net :: TcpStream :: try_clone(self)
+        .with_context(|| crate::call_failed!(Some(self), "try_clone"))
+}
+fn ttl_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u32 > ) {
+    std :: net :: TcpStream :: ttl(self)
+        .with_context(|| crate::call_failed!(Some(self), "ttl"))
+}
+fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > ) {
+    std :: net :: TcpStream :: take_error(self)
+        .with_context(|| crate::call_failed!(Some(self), "take_error"))
+}
+#[cfg(feature = "tcp_linger")]
+fn linger_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
+    std :: net :: TcpStream :: linger(self)
+        .with_context(|| crate::call_failed!(Some(self), "linger"))
+}
+fn nodelay_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
+    std :: net :: TcpStream :: nodelay(self)
+        .with_context(|| crate::call_failed!(Some(self), "nodelay"))
+}
+fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: TcpStream :: set_nonblocking(self, nonblocking)
+        .with_context(|| crate::call_failed!(Some(self), "set_nonblocking", nonblocking))
+}
 fn connect_timeout_wc ( addr : & core :: net :: SocketAddr , timeout : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     std :: net :: TcpStream :: connect_timeout(addr, timeout)
         .with_context(|| crate::call_failed!(None::<()>, "std::net::TcpStream::connect_timeout", addr, timeout))
@@ -100,33 +704,25 @@ fn connect_wc < A : std :: net :: ToSocketAddrs > ( addr : A ) -> crate :: rewri
     std :: net :: TcpStream :: connect(addr)
         .with_context(|| crate::call_failed!(None::<()>, "std::net::TcpStream::connect", crate::CustomDebugMessage("value of type impl ToSocketAddrs")))
 }
-fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > ) {
-    std :: net :: TcpStream :: local_addr(self)
-        .with_context(|| crate::call_failed!(Some(self), "local_addr"))
-}
-fn nodelay_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
-    std :: net :: TcpStream :: nodelay(self)
-        .with_context(|| crate::call_failed!(Some(self), "nodelay"))
-}
 fn peek_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     std :: net :: TcpStream :: peek(self, buf)
         .with_context(|| crate::call_failed!(Some(self), "peek", buf))
-}
-fn peer_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > ) {
-    std :: net :: TcpStream :: peer_addr(self)
-        .with_context(|| crate::call_failed!(Some(self), "peer_addr"))
 }
 fn read_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
     std :: net :: TcpStream :: read_timeout(self)
         .with_context(|| crate::call_failed!(Some(self), "read_timeout"))
 }
-fn set_nodelay_wc ( & self , nodelay : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    std :: net :: TcpStream :: set_nodelay(self, nodelay)
-        .with_context(|| crate::call_failed!(Some(self), "set_nodelay", nodelay))
+fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > ) {
+    std :: net :: TcpStream :: local_addr(self)
+        .with_context(|| crate::call_failed!(Some(self), "local_addr"))
 }
-fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    std :: net :: TcpStream :: set_nonblocking(self, nonblocking)
-        .with_context(|| crate::call_failed!(Some(self), "set_nonblocking", nonblocking))
+fn peer_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > ) {
+    std :: net :: TcpStream :: peer_addr(self)
+        .with_context(|| crate::call_failed!(Some(self), "peer_addr"))
+}
+fn write_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
+    std :: net :: TcpStream :: write_timeout(self)
+        .with_context(|| crate::call_failed!(Some(self), "write_timeout"))
 }
 fn set_read_timeout_wc ( & self , dur : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     std :: net :: TcpStream :: set_read_timeout(self, dur)
@@ -136,6 +732,15 @@ fn set_ttl_wc ( & self , ttl : u32 ) -> crate :: rewrite_output_type ! ( std :: 
     std :: net :: TcpStream :: set_ttl(self, ttl)
         .with_context(|| crate::call_failed!(Some(self), "set_ttl", ttl))
 }
+#[cfg(feature = "tcp_linger")]
+fn set_linger_wc ( & self , linger : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: TcpStream :: set_linger(self, linger)
+        .with_context(|| crate::call_failed!(Some(self), "set_linger", linger))
+}
+fn set_nodelay_wc ( & self , nodelay : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: TcpStream :: set_nodelay(self, nodelay)
+        .with_context(|| crate::call_failed!(Some(self), "set_nodelay", nodelay))
+}
 fn set_write_timeout_wc ( & self , dur : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     std :: net :: TcpStream :: set_write_timeout(self, dur)
         .with_context(|| crate::call_failed!(Some(self), "set_write_timeout", dur))
@@ -144,134 +749,718 @@ fn shutdown_wc ( & self , how : std :: net :: Shutdown ) -> crate :: rewrite_out
     std :: net :: TcpStream :: shutdown(self, how)
         .with_context(|| crate::call_failed!(Some(self), "shutdown", how))
 }
-fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > ) {
-    std :: net :: TcpStream :: take_error(self)
-        .with_context(|| crate::call_failed!(Some(self), "take_error"))
-}
-fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
-    std :: net :: TcpStream :: try_clone(self)
-        .with_context(|| crate::call_failed!(Some(self), "try_clone"))
-}
-fn ttl_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u32 > ) {
-    std :: net :: TcpStream :: ttl(self)
-        .with_context(|| crate::call_failed!(Some(self), "ttl"))
-}
-fn write_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
-    std :: net :: TcpStream :: write_timeout(self)
-        .with_context(|| crate::call_failed!(Some(self), "write_timeout"))
-}
-#[cfg(feature = "tcp_linger")]
-fn linger_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
-    std :: net :: TcpStream :: linger(self)
-        .with_context(|| crate::call_failed!(Some(self), "linger"))
-}
-#[cfg(feature = "tcp_linger")]
-fn set_linger_wc ( & self , linger : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    std :: net :: TcpStream :: set_linger(self, linger)
-        .with_context(|| crate::call_failed!(Some(self), "set_linger", linger))
-}
 }
 pub trait UdpSocketContext: Sized {
-fn bind_wc < A : std :: net :: ToSocketAddrs > ( addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
-fn broadcast_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > );
+/// Connects this UDP socket to a remote address, allowing the `send` and
+/// `recv` syscalls to be used to send data and also applies filters to only
+/// receive data from the specified address.
+/// 
+/// If `addr` yields multiple addresses, `connect` will be attempted with
+/// each of the addresses until the underlying OS function returns no
+/// error. Note that usually, a successful `connect` call does not specify
+/// that there is a remote server listening on the port, rather, such an
+/// error would only be detected after the first send. If the OS returns an
+/// error for each of the specified addresses, the error returned from the
+/// last connection attempt (the last address) is returned.
+/// 
+/// # Examples
+/// 
+/// Creates a UDP socket bound to `127.0.0.1:3400` and connect the socket to
+/// `127.0.0.1:8080`:
+/// 
+/// ```no_run
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:3400").expect("couldn't bind to address");
+/// socket.connect("127.0.0.1:8080").expect("connect function failed");
+/// ```
+/// 
+/// Unlike in the TCP case, passing an array of addresses to the `connect`
+/// function of a UDP socket is not a useful thing to do: The OS will be
+/// unable to determine whether something is listening on the remote
+/// address without the application sending data.
+/// 
+/// If your first `connect` is to a loopback address, subsequent
+/// `connect`s to non-loopback addresses might fail, depending
+/// on the platform.
 fn connect_wc < A : std :: net :: ToSocketAddrs > ( & self , addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn join_multicast_v4_wc ( & self , multiaddr : & core :: net :: Ipv4Addr , interface : & core :: net :: Ipv4Addr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn join_multicast_v6_wc ( & self , multiaddr : & core :: net :: Ipv6Addr , interface : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn leave_multicast_v4_wc ( & self , multiaddr : & core :: net :: Ipv4Addr , interface : & core :: net :: Ipv4Addr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn leave_multicast_v6_wc ( & self , multiaddr : & core :: net :: Ipv6Addr , interface : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > );
-fn multicast_loop_v4_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > );
-fn multicast_loop_v6_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > );
-fn multicast_ttl_v4_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u32 > );
-fn peek_from_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , core :: net :: SocketAddr ) > );
-fn peek_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
-fn peer_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > );
-fn read_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > );
-fn recv_from_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , core :: net :: SocketAddr ) > );
-fn recv_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
-fn send_to_wc < A : std :: net :: ToSocketAddrs > ( & self , buf : & [ u8 ] , addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
-fn send_wc ( & self , buf : & [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
-fn set_broadcast_wc ( & self , broadcast : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn set_multicast_loop_v4_wc ( & self , multicast_loop_v4 : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn set_multicast_loop_v6_wc ( & self , multicast_loop_v6 : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn set_multicast_ttl_v4_wc ( & self , multicast_ttl_v4 : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn set_read_timeout_wc ( & self , dur : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn set_ttl_wc ( & self , ttl : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn set_write_timeout_wc ( & self , dur : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
-fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > );
+/// Creates a UDP socket from the given address.
+/// 
+/// The address type can be any implementor of [`ToSocketAddrs`] trait. See
+/// its documentation for concrete examples.
+/// 
+/// If `addr` yields multiple addresses, `bind` will be attempted with
+/// each of the addresses until one succeeds and returns the socket. If none
+/// of the addresses succeed in creating a socket, the error returned from
+/// the last attempt (the last address) is returned.
+/// 
+/// # Examples
+/// 
+/// Creates a UDP socket bound to `127.0.0.1:3400`:
+/// 
+/// ```no_run
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:3400").expect("couldn't bind to address");
+/// ```
+/// 
+/// Creates a UDP socket bound to `127.0.0.1:3400`. If the socket cannot be
+/// bound to that address, create a UDP socket bound to `127.0.0.1:3401`:
+/// 
+/// ```no_run
+/// use std::net::{SocketAddr, UdpSocket};
+/// 
+/// let addrs = [
+///     SocketAddr::from(([127, 0, 0, 1], 3400)),
+///     SocketAddr::from(([127, 0, 0, 1], 3401)),
+/// ];
+/// let socket = UdpSocket::bind(&addrs[..]).expect("couldn't bind to address");
+/// ```
+/// 
+/// Creates a UDP socket bound to a port assigned by the operating system
+/// at `127.0.0.1`.
+/// 
+/// ```no_run
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:0").unwrap();
+/// ```
+/// 
+/// Note that `bind` declares the scope of your network connection.
+/// You can only receive datagrams from and send datagrams to
+/// participants in that view of the network.
+/// For instance, binding to a loopback address as in the example
+/// above will prevent you from sending datagrams to another device
+/// in your local network.
+/// 
+/// In order to limit your view of the network the least, `bind` to
+/// [`Ipv4Addr::UNSPECIFIED`] or [`Ipv6Addr::UNSPECIFIED`].
+fn bind_wc < A : std :: net :: ToSocketAddrs > ( addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+/// Creates a new independently owned handle to the underlying socket.
+/// 
+/// The returned `UdpSocket` is a reference to the same socket that this
+/// object references. Both handles will read and write the same port, and
+/// options set on one socket will be propagated to the other.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").expect("couldn't bind to address");
+/// let socket_clone = socket.try_clone().expect("couldn't clone the socket");
+/// ```
 fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+/// Executes an operation of the `IPV6_ADD_MEMBERSHIP` type.
+/// 
+/// This function specifies a new multicast group for this socket to join.
+/// The address must be a valid multicast address, and `interface` is the
+/// index of the interface to join/leave (or 0 to indicate any interface).
+fn join_multicast_v6_wc ( & self , multiaddr : & core :: net :: Ipv6Addr , interface : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Executes an operation of the `IPV6_DROP_MEMBERSHIP` type.
+/// 
+/// For more information about this option, see [`UdpSocket::join_multicast_v6`].
+fn leave_multicast_v6_wc ( & self , multiaddr : & core :: net :: Ipv6Addr , interface : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Executes an operation of the `IP_ADD_MEMBERSHIP` type.
+/// 
+/// This function specifies a new multicast group for this socket to join.
+/// The address must be a valid multicast address, and `interface` is the
+/// address of the local interface with which the system should join the
+/// multicast group. If it's equal to [`UNSPECIFIED`](Ipv4Addr::UNSPECIFIED)
+/// then an appropriate interface is chosen by the system.
+fn join_multicast_v4_wc ( & self , multiaddr : & core :: net :: Ipv4Addr , interface : & core :: net :: Ipv4Addr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Executes an operation of the `IP_DROP_MEMBERSHIP` type.
+/// 
+/// For more information about this option, see [`UdpSocket::join_multicast_v4`].
+fn leave_multicast_v4_wc ( & self , multiaddr : & core :: net :: Ipv4Addr , interface : & core :: net :: Ipv4Addr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Gets the value of the `IPV6_MULTICAST_LOOP` option for this socket.
+/// 
+/// For more information about this option, see [`UdpSocket::set_multicast_loop_v6`].
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").expect("couldn't bind to address");
+/// socket.set_multicast_loop_v6(false).expect("set_multicast_loop_v6 call failed");
+/// assert_eq!(socket.multicast_loop_v6().unwrap(), false);
+/// ```
+fn multicast_loop_v6_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > );
+/// Gets the value of the `IP_MULTICAST_LOOP` option for this socket.
+/// 
+/// For more information about this option, see [`UdpSocket::set_multicast_loop_v4`].
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").expect("couldn't bind to address");
+/// socket.set_multicast_loop_v4(false).expect("set_multicast_loop_v4 call failed");
+/// assert_eq!(socket.multicast_loop_v4().unwrap(), false);
+/// ```
+fn multicast_loop_v4_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > );
+/// Gets the value of the `IP_MULTICAST_TTL` option for this socket.
+/// 
+/// For more information about this option, see [`UdpSocket::set_multicast_ttl_v4`].
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").expect("couldn't bind to address");
+/// socket.set_multicast_ttl_v4(42).expect("set_multicast_ttl_v4 call failed");
+/// assert_eq!(socket.multicast_ttl_v4().unwrap(), 42);
+/// ```
+fn multicast_ttl_v4_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u32 > );
+/// Gets the value of the `IP_TTL` option for this socket.
+/// 
+/// For more information about this option, see [`UdpSocket::set_ttl`].
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").expect("couldn't bind to address");
+/// socket.set_ttl(42).expect("set_ttl call failed");
+/// assert_eq!(socket.ttl().unwrap(), 42);
+/// ```
 fn ttl_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u32 > );
+/// Gets the value of the `SO_BROADCAST` option for this socket.
+/// 
+/// For more information about this option, see [`UdpSocket::set_broadcast`].
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").expect("couldn't bind to address");
+/// socket.set_broadcast(false).expect("set_broadcast call failed");
+/// assert_eq!(socket.broadcast().unwrap(), false);
+/// ```
+fn broadcast_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > );
+/// Gets the value of the `SO_ERROR` option on this socket.
+/// 
+/// This will retrieve the stored error in the underlying socket, clearing
+/// the field in the process. This can be useful for checking errors between
+/// calls.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").expect("couldn't bind to address");
+/// match socket.take_error() {
+///     Ok(Some(error)) => println!("UdpSocket error: {error:?}"),
+///     Ok(None) => println!("No error"),
+///     Err(error) => println!("UdpSocket.take_error failed: {error:?}"),
+/// }
+/// ```
+fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > );
+/// Moves this UDP socket into or out of nonblocking mode.
+/// 
+/// This will result in `recv`, `recv_from`, `send`, and `send_to` system
+/// operations becoming nonblocking, i.e., immediately returning from their
+/// calls. If the IO operation is successful, `Ok` is returned and no
+/// further action is required. If the IO operation could not be completed
+/// and needs to be retried, an error with kind
+/// [`io::ErrorKind::WouldBlock`] is returned.
+/// 
+/// On Unix platforms, calling this method corresponds to calling `fcntl`
+/// `FIONBIO`. On Windows calling this method corresponds to calling
+/// `ioctlsocket` `FIONBIO`.
+/// 
+/// # Examples
+/// 
+/// Creates a UDP socket bound to `127.0.0.1:7878` and read bytes in
+/// nonblocking mode:
+/// 
+/// ```no_run
+/// use std::io;
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:7878").unwrap();
+/// socket.set_nonblocking(true).unwrap();
+/// 
+/// # fn wait_for_fd() { unimplemented!() }
+/// let mut buf = [0; 10];
+/// let (num_bytes_read, _) = loop {
+///     match socket.recv_from(&mut buf) {
+///         Ok(n) => break n,
+///         Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+///             // wait until network socket is ready, typically implemented
+///             // via platform-specific APIs such as epoll or IOCP
+///             wait_for_fd();
+///         }
+///         Err(e) => panic!("encountered IO error: {e}"),
+///     }
+/// };
+/// println!("bytes: {:?}", &buf[..num_bytes_read]);
+/// ```
+fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Receives a single datagram message on the socket from the remote address to
+/// which it is connected. On success, returns the number of bytes read.
+/// 
+/// The function must be called with valid byte array `buf` of sufficient size to
+/// hold the message bytes. If a message is too long to fit in the supplied buffer,
+/// excess bytes may be discarded.
+/// 
+/// [`UdpSocket::connect`] will connect this socket to a remote address. This
+/// method will fail if the socket is not connected.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").expect("couldn't bind to address");
+/// socket.connect("127.0.0.1:8080").expect("connect function failed");
+/// let mut buf = [0; 10];
+/// match socket.recv(&mut buf) {
+///     Ok(received) => println!("received {received} bytes {:?}", &buf[..received]),
+///     Err(e) => println!("recv function failed: {e:?}"),
+/// }
+/// ```
+fn recv_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
+/// Receives a single datagram message on the socket, without removing it from the
+/// queue. On success, returns the number of bytes read and the origin.
+/// 
+/// The function must be called with valid byte array `buf` of sufficient size to
+/// hold the message bytes. If a message is too long to fit in the supplied buffer,
+/// excess bytes may be discarded.
+/// 
+/// Successive calls return the same data. This is accomplished by passing
+/// `MSG_PEEK` as a flag to the underlying `recvfrom` system call.
+/// 
+/// Do not use this function to implement busy waiting, instead use `libc::poll` to
+/// synchronize IO events on one or more sockets.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").expect("couldn't bind to address");
+/// let mut buf = [0; 10];
+/// let (number_of_bytes, src_addr) = socket.peek_from(&mut buf)
+///                                         .expect("Didn't receive data");
+/// let filled_buf = &mut buf[..number_of_bytes];
+/// ```
+fn peek_from_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , core :: net :: SocketAddr ) > );
+/// Receives a single datagram message on the socket. On success, returns the number
+/// of bytes read and the origin.
+/// 
+/// The function must be called with valid byte array `buf` of sufficient size to
+/// hold the message bytes. If a message is too long to fit in the supplied buffer,
+/// excess bytes may be discarded.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").expect("couldn't bind to address");
+/// let mut buf = [0; 10];
+/// let (number_of_bytes, src_addr) = socket.recv_from(&mut buf)
+///                                         .expect("Didn't receive data");
+/// let filled_buf = &mut buf[..number_of_bytes];
+/// ```
+fn recv_from_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , core :: net :: SocketAddr ) > );
+/// Receives single datagram on the socket from the remote address to which it is
+/// connected, without removing the message from input queue. On success, returns
+/// the number of bytes peeked.
+/// 
+/// The function must be called with valid byte array `buf` of sufficient size to
+/// hold the message bytes. If a message is too long to fit in the supplied buffer,
+/// excess bytes may be discarded.
+/// 
+/// Successive calls return the same data. This is accomplished by passing
+/// `MSG_PEEK` as a flag to the underlying `recv` system call.
+/// 
+/// Do not use this function to implement busy waiting, instead use `libc::poll` to
+/// synchronize IO events on one or more sockets.
+/// 
+/// [`UdpSocket::connect`] will connect this socket to a remote address. This
+/// method will fail if the socket is not connected.
+/// 
+/// # Errors
+/// 
+/// This method will fail if the socket is not connected. The `connect` method
+/// will connect this socket to a remote address.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").expect("couldn't bind to address");
+/// socket.connect("127.0.0.1:8080").expect("connect function failed");
+/// let mut buf = [0; 10];
+/// match socket.peek(&mut buf) {
+///     Ok(received) => println!("received {received} bytes"),
+///     Err(e) => println!("peek function failed: {e:?}"),
+/// }
+/// ```
+fn peek_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
+/// Returns the read timeout of this socket.
+/// 
+/// If the timeout is [`None`], then [`read`] calls will block indefinitely.
+/// 
+/// [`read`]: io::Read::read
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").expect("couldn't bind to address");
+/// socket.set_read_timeout(None).expect("set_read_timeout call failed");
+/// assert_eq!(socket.read_timeout().unwrap(), None);
+/// ```
+fn read_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > );
+/// Returns the socket address of the remote peer this socket was connected to.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, UdpSocket};
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").expect("couldn't bind to address");
+/// socket.connect("192.168.0.1:41203").expect("couldn't connect to address");
+/// assert_eq!(socket.peer_addr().unwrap(),
+///            SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(192, 168, 0, 1), 41203)));
+/// ```
+/// 
+/// If the socket isn't connected, it will return a [`NotConnected`] error.
+/// 
+/// [`NotConnected`]: io::ErrorKind::NotConnected
+/// 
+/// ```no_run
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").expect("couldn't bind to address");
+/// assert_eq!(socket.peer_addr().unwrap_err().kind(),
+///            std::io::ErrorKind::NotConnected);
+/// ```
+fn peer_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > );
+/// Returns the socket address that this socket was created from.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, UdpSocket};
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").expect("couldn't bind to address");
+/// assert_eq!(socket.local_addr().unwrap(),
+///            SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 34254)));
+/// ```
+fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > );
+/// Returns the write timeout of this socket.
+/// 
+/// If the timeout is [`None`], then [`write`] calls will block indefinitely.
+/// 
+/// [`write`]: io::Write::write
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").expect("couldn't bind to address");
+/// socket.set_write_timeout(None).expect("set_write_timeout call failed");
+/// assert_eq!(socket.write_timeout().unwrap(), None);
+/// ```
 fn write_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > );
+/// Sends data on the socket to the given address. On success, returns the
+/// number of bytes written. Note that the operating system may refuse
+/// buffers larger than 65507. However, partial writes are not possible
+/// until buffer sizes above `i32::MAX`.
+/// 
+/// Address type can be any implementor of [`ToSocketAddrs`] trait. See its
+/// documentation for concrete examples.
+/// 
+/// It is possible for `addr` to yield multiple addresses, but `send_to`
+/// will only send data to the first address yielded by `addr`.
+/// 
+/// This will return an error when the IP version of the local socket
+/// does not match that returned from [`ToSocketAddrs`].
+/// 
+/// See [Issue #34202] for more details.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").expect("couldn't bind to address");
+/// socket.send_to(&[0; 10], "127.0.0.1:4242").expect("couldn't send data");
+/// ```
+/// 
+/// [Issue #34202]: https://github.com/rust-lang/rust/issues/34202
+fn send_to_wc < A : std :: net :: ToSocketAddrs > ( & self , buf : & [ u8 ] , addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
+/// Sends data on the socket to the remote address to which it is connected.
+/// On success, returns the number of bytes written. Note that the operating
+/// system may refuse buffers larger than 65507. However, partial writes are
+/// not possible until buffer sizes above `i32::MAX`.
+/// 
+/// [`UdpSocket::connect`] will connect this socket to a remote address. This
+/// method will fail if the socket is not connected.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").expect("couldn't bind to address");
+/// socket.connect("127.0.0.1:8080").expect("connect function failed");
+/// socket.send(&[0, 1, 2]).expect("couldn't send message");
+/// ```
+fn send_wc ( & self , buf : & [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > );
+/// Sets the read timeout to the timeout specified.
+/// 
+/// If the value specified is [`None`], then [`read`] calls will block
+/// indefinitely. An [`Err`] is returned if the zero [`Duration`] is
+/// passed to this method.
+/// 
+/// # Platform-specific behavior
+/// 
+/// Platforms may return a different error code whenever a read times out as
+/// a result of setting this option. For example Unix typically returns an
+/// error of the kind [`WouldBlock`], but Windows may return [`TimedOut`].
+/// 
+/// [`read`]: io::Read::read
+/// [`WouldBlock`]: io::ErrorKind::WouldBlock
+/// [`TimedOut`]: io::ErrorKind::TimedOut
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").expect("couldn't bind to address");
+/// socket.set_read_timeout(None).expect("set_read_timeout call failed");
+/// ```
+/// 
+/// An [`Err`] is returned if the zero [`Duration`] is passed to this
+/// method:
+/// 
+/// ```no_run
+/// use std::io;
+/// use std::net::UdpSocket;
+/// use std::time::Duration;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").unwrap();
+/// let result = socket.set_read_timeout(Some(Duration::new(0, 0)));
+/// let err = result.unwrap_err();
+/// assert_eq!(err.kind(), io::ErrorKind::InvalidInput)
+/// ```
+fn set_read_timeout_wc ( & self , dur : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Sets the value for the `IP_TTL` option on this socket.
+/// 
+/// This value sets the time-to-live field that is used in every packet sent
+/// from this socket.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").expect("couldn't bind to address");
+/// socket.set_ttl(42).expect("set_ttl call failed");
+/// ```
+fn set_ttl_wc ( & self , ttl : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Sets the value of the `IPV6_MULTICAST_LOOP` option for this socket.
+/// 
+/// Controls whether this socket sees the multicast packets it sends itself.
+/// Note that this might not have any affect on IPv4 sockets.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").expect("couldn't bind to address");
+/// socket.set_multicast_loop_v6(false).expect("set_multicast_loop_v6 call failed");
+/// ```
+fn set_multicast_loop_v6_wc ( & self , multicast_loop_v6 : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Sets the value of the `IP_MULTICAST_LOOP` option for this socket.
+/// 
+/// If enabled, multicast packets will be looped back to the local socket.
+/// Note that this might not have any effect on IPv6 sockets.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").expect("couldn't bind to address");
+/// socket.set_multicast_loop_v4(false).expect("set_multicast_loop_v4 call failed");
+/// ```
+fn set_multicast_loop_v4_wc ( & self , multicast_loop_v4 : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Sets the value of the `IP_MULTICAST_TTL` option for this socket.
+/// 
+/// Indicates the time-to-live value of outgoing multicast packets for
+/// this socket. The default value is 1 which means that multicast packets
+/// don't leave the local network unless explicitly requested.
+/// 
+/// Note that this might not have any effect on IPv6 sockets.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").expect("couldn't bind to address");
+/// socket.set_multicast_ttl_v4(42).expect("set_multicast_ttl_v4 call failed");
+/// ```
+fn set_multicast_ttl_v4_wc ( & self , multicast_ttl_v4 : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Sets the value of the `SO_BROADCAST` option for this socket.
+/// 
+/// When enabled, this socket is allowed to send packets to a broadcast
+/// address.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").expect("couldn't bind to address");
+/// socket.set_broadcast(false).expect("set_broadcast call failed");
+/// ```
+fn set_broadcast_wc ( & self , broadcast : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Sets the write timeout to the timeout specified.
+/// 
+/// If the value specified is [`None`], then [`write`] calls will block
+/// indefinitely. An [`Err`] is returned if the zero [`Duration`] is
+/// passed to this method.
+/// 
+/// # Platform-specific behavior
+/// 
+/// Platforms may return a different error code whenever a write times out
+/// as a result of setting this option. For example Unix typically returns
+/// an error of the kind [`WouldBlock`], but Windows may return [`TimedOut`].
+/// 
+/// [`write`]: io::Write::write
+/// [`WouldBlock`]: io::ErrorKind::WouldBlock
+/// [`TimedOut`]: io::ErrorKind::TimedOut
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// use std::net::UdpSocket;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").expect("couldn't bind to address");
+/// socket.set_write_timeout(None).expect("set_write_timeout call failed");
+/// ```
+/// 
+/// An [`Err`] is returned if the zero [`Duration`] is passed to this
+/// method:
+/// 
+/// ```no_run
+/// use std::io;
+/// use std::net::UdpSocket;
+/// use std::time::Duration;
+/// 
+/// let socket = UdpSocket::bind("127.0.0.1:34254").unwrap();
+/// let result = socket.set_write_timeout(Some(Duration::new(0, 0)));
+/// let err = result.unwrap_err();
+/// assert_eq!(err.kind(), io::ErrorKind::InvalidInput)
+/// ```
+fn set_write_timeout_wc ( & self , dur : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
 }
 impl UdpSocketContext for std :: net :: UdpSocket {
-fn bind_wc < A : std :: net :: ToSocketAddrs > ( addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
-    std :: net :: UdpSocket :: bind(addr)
-        .with_context(|| crate::call_failed!(None::<()>, "std::net::UdpSocket::bind", crate::CustomDebugMessage("value of type impl ToSocketAddrs")))
-}
-fn broadcast_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
-    std :: net :: UdpSocket :: broadcast(self)
-        .with_context(|| crate::call_failed!(Some(self), "broadcast"))
-}
 fn connect_wc < A : std :: net :: ToSocketAddrs > ( & self , addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     std :: net :: UdpSocket :: connect(self, addr)
         .with_context(|| crate::call_failed!(Some(self), "connect", crate::CustomDebugMessage("value of type impl ToSocketAddrs")))
 }
-fn join_multicast_v4_wc ( & self , multiaddr : & core :: net :: Ipv4Addr , interface : & core :: net :: Ipv4Addr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    std :: net :: UdpSocket :: join_multicast_v4(self, multiaddr, interface)
-        .with_context(|| crate::call_failed!(Some(self), "join_multicast_v4", multiaddr, interface))
+fn bind_wc < A : std :: net :: ToSocketAddrs > ( addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
+    std :: net :: UdpSocket :: bind(addr)
+        .with_context(|| crate::call_failed!(None::<()>, "std::net::UdpSocket::bind", crate::CustomDebugMessage("value of type impl ToSocketAddrs")))
+}
+fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
+    std :: net :: UdpSocket :: try_clone(self)
+        .with_context(|| crate::call_failed!(Some(self), "try_clone"))
 }
 fn join_multicast_v6_wc ( & self , multiaddr : & core :: net :: Ipv6Addr , interface : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     std :: net :: UdpSocket :: join_multicast_v6(self, multiaddr, interface)
         .with_context(|| crate::call_failed!(Some(self), "join_multicast_v6", multiaddr, interface))
 }
-fn leave_multicast_v4_wc ( & self , multiaddr : & core :: net :: Ipv4Addr , interface : & core :: net :: Ipv4Addr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    std :: net :: UdpSocket :: leave_multicast_v4(self, multiaddr, interface)
-        .with_context(|| crate::call_failed!(Some(self), "leave_multicast_v4", multiaddr, interface))
-}
 fn leave_multicast_v6_wc ( & self , multiaddr : & core :: net :: Ipv6Addr , interface : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     std :: net :: UdpSocket :: leave_multicast_v6(self, multiaddr, interface)
         .with_context(|| crate::call_failed!(Some(self), "leave_multicast_v6", multiaddr, interface))
 }
-fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > ) {
-    std :: net :: UdpSocket :: local_addr(self)
-        .with_context(|| crate::call_failed!(Some(self), "local_addr"))
+fn join_multicast_v4_wc ( & self , multiaddr : & core :: net :: Ipv4Addr , interface : & core :: net :: Ipv4Addr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: UdpSocket :: join_multicast_v4(self, multiaddr, interface)
+        .with_context(|| crate::call_failed!(Some(self), "join_multicast_v4", multiaddr, interface))
 }
-fn multicast_loop_v4_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
-    std :: net :: UdpSocket :: multicast_loop_v4(self)
-        .with_context(|| crate::call_failed!(Some(self), "multicast_loop_v4"))
+fn leave_multicast_v4_wc ( & self , multiaddr : & core :: net :: Ipv4Addr , interface : & core :: net :: Ipv4Addr ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: UdpSocket :: leave_multicast_v4(self, multiaddr, interface)
+        .with_context(|| crate::call_failed!(Some(self), "leave_multicast_v4", multiaddr, interface))
 }
 fn multicast_loop_v6_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
     std :: net :: UdpSocket :: multicast_loop_v6(self)
         .with_context(|| crate::call_failed!(Some(self), "multicast_loop_v6"))
 }
+fn multicast_loop_v4_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
+    std :: net :: UdpSocket :: multicast_loop_v4(self)
+        .with_context(|| crate::call_failed!(Some(self), "multicast_loop_v4"))
+}
 fn multicast_ttl_v4_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u32 > ) {
     std :: net :: UdpSocket :: multicast_ttl_v4(self)
         .with_context(|| crate::call_failed!(Some(self), "multicast_ttl_v4"))
+}
+fn ttl_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u32 > ) {
+    std :: net :: UdpSocket :: ttl(self)
+        .with_context(|| crate::call_failed!(Some(self), "ttl"))
+}
+fn broadcast_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
+    std :: net :: UdpSocket :: broadcast(self)
+        .with_context(|| crate::call_failed!(Some(self), "broadcast"))
+}
+fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > ) {
+    std :: net :: UdpSocket :: take_error(self)
+        .with_context(|| crate::call_failed!(Some(self), "take_error"))
+}
+fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: UdpSocket :: set_nonblocking(self, nonblocking)
+        .with_context(|| crate::call_failed!(Some(self), "set_nonblocking", nonblocking))
+}
+fn recv_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
+    std :: net :: UdpSocket :: recv(self, buf)
+        .with_context(|| crate::call_failed!(Some(self), "recv", buf))
 }
 fn peek_from_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , core :: net :: SocketAddr ) > ) {
     std :: net :: UdpSocket :: peek_from(self, buf)
         .with_context(|| crate::call_failed!(Some(self), "peek_from", buf))
 }
+fn recv_from_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , core :: net :: SocketAddr ) > ) {
+    std :: net :: UdpSocket :: recv_from(self, buf)
+        .with_context(|| crate::call_failed!(Some(self), "recv_from", buf))
+}
 fn peek_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     std :: net :: UdpSocket :: peek(self, buf)
         .with_context(|| crate::call_failed!(Some(self), "peek", buf))
-}
-fn peer_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > ) {
-    std :: net :: UdpSocket :: peer_addr(self)
-        .with_context(|| crate::call_failed!(Some(self), "peer_addr"))
 }
 fn read_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
     std :: net :: UdpSocket :: read_timeout(self)
         .with_context(|| crate::call_failed!(Some(self), "read_timeout"))
 }
-fn recv_from_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( usize , core :: net :: SocketAddr ) > ) {
-    std :: net :: UdpSocket :: recv_from(self, buf)
-        .with_context(|| crate::call_failed!(Some(self), "recv_from", buf))
+fn peer_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > ) {
+    std :: net :: UdpSocket :: peer_addr(self)
+        .with_context(|| crate::call_failed!(Some(self), "peer_addr"))
 }
-fn recv_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-    std :: net :: UdpSocket :: recv(self, buf)
-        .with_context(|| crate::call_failed!(Some(self), "recv", buf))
+fn local_addr_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: net :: SocketAddr > ) {
+    std :: net :: UdpSocket :: local_addr(self)
+        .with_context(|| crate::call_failed!(Some(self), "local_addr"))
+}
+fn write_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
+    std :: net :: UdpSocket :: write_timeout(self)
+        .with_context(|| crate::call_failed!(Some(self), "write_timeout"))
 }
 fn send_to_wc < A : std :: net :: ToSocketAddrs > ( & self , buf : & [ u8 ] , addr : A ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     std :: net :: UdpSocket :: send_to(self, buf, addr)
@@ -281,26 +1470,6 @@ fn send_wc ( & self , buf : & [ u8 ] ) -> crate :: rewrite_output_type ! ( std :
     std :: net :: UdpSocket :: send(self, buf)
         .with_context(|| crate::call_failed!(Some(self), "send", buf))
 }
-fn set_broadcast_wc ( & self , broadcast : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    std :: net :: UdpSocket :: set_broadcast(self, broadcast)
-        .with_context(|| crate::call_failed!(Some(self), "set_broadcast", broadcast))
-}
-fn set_multicast_loop_v4_wc ( & self , multicast_loop_v4 : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    std :: net :: UdpSocket :: set_multicast_loop_v4(self, multicast_loop_v4)
-        .with_context(|| crate::call_failed!(Some(self), "set_multicast_loop_v4", multicast_loop_v4))
-}
-fn set_multicast_loop_v6_wc ( & self , multicast_loop_v6 : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    std :: net :: UdpSocket :: set_multicast_loop_v6(self, multicast_loop_v6)
-        .with_context(|| crate::call_failed!(Some(self), "set_multicast_loop_v6", multicast_loop_v6))
-}
-fn set_multicast_ttl_v4_wc ( & self , multicast_ttl_v4 : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    std :: net :: UdpSocket :: set_multicast_ttl_v4(self, multicast_ttl_v4)
-        .with_context(|| crate::call_failed!(Some(self), "set_multicast_ttl_v4", multicast_ttl_v4))
-}
-fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    std :: net :: UdpSocket :: set_nonblocking(self, nonblocking)
-        .with_context(|| crate::call_failed!(Some(self), "set_nonblocking", nonblocking))
-}
 fn set_read_timeout_wc ( & self , dur : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     std :: net :: UdpSocket :: set_read_timeout(self, dur)
         .with_context(|| crate::call_failed!(Some(self), "set_read_timeout", dur))
@@ -309,25 +1478,25 @@ fn set_ttl_wc ( & self , ttl : u32 ) -> crate :: rewrite_output_type ! ( std :: 
     std :: net :: UdpSocket :: set_ttl(self, ttl)
         .with_context(|| crate::call_failed!(Some(self), "set_ttl", ttl))
 }
+fn set_multicast_loop_v6_wc ( & self , multicast_loop_v6 : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: UdpSocket :: set_multicast_loop_v6(self, multicast_loop_v6)
+        .with_context(|| crate::call_failed!(Some(self), "set_multicast_loop_v6", multicast_loop_v6))
+}
+fn set_multicast_loop_v4_wc ( & self , multicast_loop_v4 : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: UdpSocket :: set_multicast_loop_v4(self, multicast_loop_v4)
+        .with_context(|| crate::call_failed!(Some(self), "set_multicast_loop_v4", multicast_loop_v4))
+}
+fn set_multicast_ttl_v4_wc ( & self , multicast_ttl_v4 : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: UdpSocket :: set_multicast_ttl_v4(self, multicast_ttl_v4)
+        .with_context(|| crate::call_failed!(Some(self), "set_multicast_ttl_v4", multicast_ttl_v4))
+}
+fn set_broadcast_wc ( & self , broadcast : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: UdpSocket :: set_broadcast(self, broadcast)
+        .with_context(|| crate::call_failed!(Some(self), "set_broadcast", broadcast))
+}
 fn set_write_timeout_wc ( & self , dur : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     std :: net :: UdpSocket :: set_write_timeout(self, dur)
         .with_context(|| crate::call_failed!(Some(self), "set_write_timeout", dur))
-}
-fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > ) {
-    std :: net :: UdpSocket :: take_error(self)
-        .with_context(|| crate::call_failed!(Some(self), "take_error"))
-}
-fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
-    std :: net :: UdpSocket :: try_clone(self)
-        .with_context(|| crate::call_failed!(Some(self), "try_clone"))
-}
-fn ttl_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u32 > ) {
-    std :: net :: UdpSocket :: ttl(self)
-        .with_context(|| crate::call_failed!(Some(self), "ttl"))
-}
-fn write_timeout_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
-    std :: net :: UdpSocket :: write_timeout(self)
-        .with_context(|| crate::call_failed!(Some(self), "write_timeout"))
 }
 }
 

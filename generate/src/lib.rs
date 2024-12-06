@@ -199,7 +199,9 @@ impl Generator {
                 continue;
             };
 
-            self.import_function(krate, &public_item_map, id, function);
+            let docs = krate.index.get(&id).and_then(|item| item.docs.as_deref());
+
+            self.import_function(krate, &public_item_map, id, docs, function);
         }
     }
 
@@ -209,6 +211,7 @@ impl Generator {
         krate: &Crate,
         public_item_map: &PublicItemMap,
         id: Id,
+        docs: Option<&str>,
         function: &Function,
     ) {
         let parent_id = public_item_map.parent_id(id).unwrap();
@@ -336,7 +339,7 @@ impl Generator {
         );
 
         self.module
-            .add_fn(&fn_path, &qualified_type_wrapper, &attrs, &sig, &body);
+            .add_fn(&fn_path, &qualified_type_wrapper, docs, &attrs, &sig, &body);
 
         self.disallow(&qualified_type, &fn_path, fn_tokens);
     }

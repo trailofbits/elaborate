@@ -8,6 +8,17 @@ use anyhow::Context;
 #[cfg(feature = "linux_pidfd")]
 #[cfg(target_os = "linux")]
 pub trait ChildExtContext: std :: os :: linux :: process :: ChildExt {
+/// Obtains a reference to the [`PidFd`] created for this [`Child`], if available.
+/// 
+/// A pidfd will only be available if its creation was requested with
+/// [`create_pidfd`] when the corresponding [`Command`] was created.
+/// 
+/// Even if requested, a pidfd may not be available due to an older
+/// version of Linux being in use, or if some other error occurred.
+/// 
+/// [`Command`]: process::Command
+/// [`create_pidfd`]: CommandExt::create_pidfd
+/// [`Child`]: process::Child
 fn pidfd_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < & std :: os :: linux :: process :: PidFd > ) {
     < Self as :: std :: os :: linux :: process :: ChildExt > :: pidfd(self)
         .with_context(|| crate::call_failed!(Some(self), "pidfd"))
@@ -21,20 +32,40 @@ impl<T> ChildExtContext for T where T: std :: os :: linux :: process :: ChildExt
 #[cfg(feature = "linux_pidfd")]
 #[cfg(target_os = "linux")]
 pub trait PidFdContext {
-fn kill_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Attempts to collect the exit status of the child if it has already exited.
+/// 
+/// Unlike [`Child::try_wait`] this method will return an Error
+/// if the child has already been reaped.
+/// 
+/// [`Child::try_wait`]: process::Child::try_wait
 fn try_wait_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: process :: ExitStatus > > );
+/// Forces the child process to exit.
+/// 
+/// Unlike [`Child::kill`] it is possible to attempt to kill
+/// reaped children since PidFd does not suffer from pid recycling
+/// races. But doing so will return an Error.
+/// 
+/// [`Child::kill`]: process::Child::kill
+fn kill_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Waits for the child to exit completely, returning the status that it exited with.
+/// 
+/// Unlike [`Child::wait`] it does not ensure that the stdin handle is closed.
+/// Additionally it will not return an `ExitStatus` if the child
+/// has already been reaped. Instead an error will be returned.
+/// 
+/// [`Child::wait`]: process::Child::wait
 fn wait_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: process :: ExitStatus > );
 }
 #[cfg(feature = "linux_pidfd")]
 #[cfg(target_os = "linux")]
 impl PidFdContext for std :: os :: linux :: process :: PidFd {
-fn kill_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    std :: os :: linux :: process :: PidFd :: kill(self)
-        .with_context(|| crate::call_failed!(Some(self), "kill"))
-}
 fn try_wait_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: process :: ExitStatus > > ) {
     std :: os :: linux :: process :: PidFd :: try_wait(self)
         .with_context(|| crate::call_failed!(Some(self), "try_wait"))
+}
+fn kill_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: os :: linux :: process :: PidFd :: kill(self)
+        .with_context(|| crate::call_failed!(Some(self), "kill"))
 }
 fn wait_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: process :: ExitStatus > ) {
     std :: os :: linux :: process :: PidFd :: wait(self)
