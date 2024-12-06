@@ -241,29 +241,10 @@ impl Module {
 
     fn write_fns(&self, file: &mut File) -> Result<()> {
         for (qualified_struct_wrapper, fns) in &self.fns {
+            assert!(qualified_struct_wrapper.is_empty());
             writeln!(file)?;
-            let common_attrs = if qualified_struct_wrapper.is_empty() {
-                Vec::new()
-            } else {
-                self.common_attrs(qualified_struct_wrapper)
-            };
-            if !qualified_struct_wrapper.is_empty() {
-                let attrs = self
-                    .struct_wrappers
-                    .get(qualified_struct_wrapper)
-                    .map(|struct_wrapper| struct_wrapper.attrs.clone())
-                    .unwrap_or_default();
-                let (_, struct_wrapper) = qualified_struct_wrapper.extract_initial_path();
-                let attrs = join_attrs(attrs.iter().chain(&common_attrs));
-                writeln!(
-                    file,
-                    "{attrs}impl {} for {} {{",
-                    struct_wrapper.to_string(),
-                    qualified_struct_wrapper.to_string(),
-                )?;
-            }
             for Fn { attrs, sig, body } in fns {
-                let attrs = join_attrs(&remove_common_attrs(attrs.clone(), &common_attrs));
+                let attrs = join_attrs(attrs);
                 writeln!(file, "{attrs}{sig} {{{body}}}")?;
             }
             if !qualified_struct_wrapper.is_empty() {
