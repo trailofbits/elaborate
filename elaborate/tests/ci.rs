@@ -41,6 +41,7 @@ fn clippy() {
         .success();
 }
 
+#[cfg(unix)]
 #[test]
 fn clippy_toml() {
     let output = Command::new("cargo")
