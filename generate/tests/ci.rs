@@ -2,16 +2,9 @@ use assert_cmd::Command;
 
 #[test]
 fn hack_feature_powerset_udeps() {
-    Command::new("rustup")
+    Command::new("cargo")
         .env("RUSTFLAGS", "-D warnings")
-        .args([
-            "run",
-            "nightly",
-            "cargo",
-            "hack",
-            "--feature-powerset",
-            "udeps",
-        ])
+        .args(["hack", "--feature-powerset", "udeps"])
         .assert()
         .success();
 }

@@ -18,7 +18,7 @@ fn initialize() {
 #[test]
 fn check_all_features() {
     Command::new("cargo")
-        .args(["+nightly", "check", "--all-features"])
+        .args(["check", "--all-features"])
         .env("RUSTFLAGS", "--deny=warnings")
         .assert()
         .success();
@@ -30,13 +30,7 @@ fn clippy() {
         // smoelius: Remove `CARGO` environment variable to work around:
         // https://github.com/rust-lang/rust/pull/131729
         .env_remove("CARGO")
-        .args([
-            "+nightly",
-            "clippy",
-            "--all-targets",
-            "--",
-            "--deny=warnings",
-        ])
+        .args(["clippy", "--all-targets", "--", "--deny=warnings"])
         .assert()
         .success();
 }
