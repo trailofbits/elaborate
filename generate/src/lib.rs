@@ -218,7 +218,7 @@ impl Generator {
         let parent_item = krate.index.get(&parent_id).unwrap();
 
         let has_sealed_trait_bound = match &parent_item.inner {
-            ItemEnum::Trait(trait_) => trait_.bounds.has_trait_bound_with_name("Sealed"),
+            ItemEnum::Trait(trait_) => trait_.bounds.has_trait_bound_with_path("Sealed"),
             ItemEnum::Impl(impl_) => {
                 // smoelius: Ignore impls for primitive types.
                 if matches!(impl_.for_, Type::Primitive(_)) {
@@ -370,14 +370,14 @@ impl Generator {
 
         let has_result_output = if_chain! {
             if let Some(Type::ResolvedPath(path)) = &function.sig.output;
-            if path.name.ends_with("Result");
+            if path.path.ends_with("Result");
             // smoelius: `std::sync::BarrierWaitResult` is not a `std::result::Result`.
-            if path.name != "BarrierWaitResult";
+            if path.path != "BarrierWaitResult";
             // smoelius: The problem is not `std::sync::LockResult` itself, but how it is used. In
             // many cases, it is instantiated with a type that is not `Send`, which
             // `anyhow::Result` requires. `std::sync::Mutex::lock` provides an example:
             // https://doc.rust-lang.org/beta/std/sync/struct.Mutex.html#method.lock
-            if path.name != "LockResult";
+            if path.path != "LockResult";
             then {
                 true
             } else {
@@ -387,7 +387,7 @@ impl Generator {
 
         let has_option_output = if_chain! {
             if let Some(Type::ResolvedPath(path)) = &function.sig.output;
-            if path.name == "Option";
+            if path.path == "Option";
             then {
                 true
             } else {
