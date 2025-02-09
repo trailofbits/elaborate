@@ -4,7 +4,7 @@ members = ["elaborate", "generate"]
 resolver = "2"
 
 [workspace.lints.rust.unexpected_cfgs]
-level = "warn"
+level = "deny"
 check-cfg = ["cfg(dylint_lib, values(any()))"]
 
 [workspace.lints.clippy]
