@@ -23,7 +23,10 @@ use util::{
     FunctionExt, GenericBoundsExt, TokenExt, TokensExt,
 };
 
-pub const COMMIT: &str = "4392847410ddd67f6734dd9845f9742ff9e85c83";
+// smoelius: `COMMIT` should be the commit returned by `rustc --version` with the toolchain in
+// rust-toolchain. That commit should be after when the currently used version of `rustdoc-types`
+// was merged into the `rust` repository.
+pub const COMMIT: &str = "1e9b0177da38e3f421a3b9b1942f1777d166e06a";
 
 #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
 static STD_JSON: Lazy<PathBuf> =
@@ -70,6 +73,10 @@ static GENERIC_STRUCTS: Lazy<Vec<Vec<Token>>> = Lazy::new(|| {
         (&["std", "io"], "BufReader"),
         (&["std", "io"], "BufWriter"),
         (&["std", "io"], "LineWriter"),
+        (
+            &["std", "os", "windows", "process"],
+            "ProcThreadAttributeListBuilder",
+        ),
         (&["std", "panic"], "PanicHookInfo"),
         (&["std", "sync"], "LazyLock"),
         (&["std", "sync"], "MappedMutexGuard"),

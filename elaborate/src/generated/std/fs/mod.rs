@@ -112,6 +112,181 @@ fn metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Resul
 }
 }
 pub trait FileContext: Sized + std::io::Write {
+/// Acquire a shared advisory lock on the file.
+/// Returns `Ok(false)` if the file is exclusively locked.
+/// 
+/// This acquires a shared advisory lock; more than one file handle may hold a shared lock, but
+/// none may hold an exclusive lock.
+/// 
+/// If this file handle, or a clone of it, already holds an advisory lock, the exact behavior is
+/// unspecified and platform dependent, including the possibility that it will deadlock.
+/// However, if this method returns, then a shared lock is held.
+/// 
+/// Note, this is an advisory lock meant to interact with [`lock`], [`try_lock`],
+/// [`try_lock`], and [`unlock`]. Its interactions with other methods, such as [`read`]
+/// and [`write`] are platform specific, and it may or may not cause non-lockholders to block.
+/// 
+/// # Platform-specific behavior
+/// 
+/// This function currently corresponds to the `flock` function on Unix with the `LOCK_SH` and
+/// `LOCK_NB` flags, and the `LockFileEx` function on Windows with the
+/// `LOCKFILE_FAIL_IMMEDIATELY` flag. Note that, this
+/// [may change in the future][changes].
+/// 
+/// [changes]: io#platform-specific-behavior
+/// 
+/// [`lock`]: File::lock
+/// [`lock_shared`]: File::lock_shared
+/// [`try_lock`]: File::try_lock
+/// [`unlock`]: File::unlock
+/// [`read`]: Read::read
+/// [`write`]: Write::write
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(file_lock)]
+/// use std::fs::File;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let f = File::open("foo.txt")?;
+///     f.try_lock_shared()?;
+///     Ok(())
+/// }
+/// ```
+#[cfg(feature = "file_lock")]
+fn try_lock_shared_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > );
+/// Acquire a shared advisory lock on the file. Blocks until the lock can be acquired.
+/// 
+/// This acquires a shared advisory lock; more than one file handle may hold a shared lock, but
+/// none may hold an exclusive lock.
+/// 
+/// If this file handle, or a clone of it, already holds an advisory lock, the exact behavior is
+/// unspecified and platform dependent, including the possibility that it will deadlock.
+/// However, if this method returns, then a shared lock is held.
+/// 
+/// Note, this is an advisory lock meant to interact with [`lock`], [`try_lock`],
+/// [`try_lock_shared`], and [`unlock`]. Its interactions with other methods, such as [`read`]
+/// and [`write`] are platform specific, and it may or may not cause non-lockholders to block.
+/// 
+/// # Platform-specific behavior
+/// 
+/// This function currently corresponds to the `flock` function on Unix with the `LOCK_SH` flag,
+/// and the `LockFileEx` function on Windows. Note that, this
+/// [may change in the future][changes].
+/// 
+/// [changes]: io#platform-specific-behavior
+/// 
+/// [`lock`]: File::lock
+/// [`try_lock`]: File::try_lock
+/// [`try_lock_shared`]: File::try_lock_shared
+/// [`unlock`]: File::unlock
+/// [`read`]: Read::read
+/// [`write`]: Write::write
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(file_lock)]
+/// use std::fs::File;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let f = File::open("foo.txt")?;
+///     f.lock_shared()?;
+///     Ok(())
+/// }
+/// ```
+#[cfg(feature = "file_lock")]
+fn lock_shared_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Acquire an exclusive advisory lock on the file. Blocks until the lock can be acquired.
+/// 
+/// This acquires an exclusive advisory lock; no other file handle to this file may acquire
+/// another lock.
+/// 
+/// If this file handle, or a clone of it, already holds an advisory lock the exact behavior is
+/// unspecified and platform dependent, including the possibility that it will deadlock.
+/// However, if this method returns, then an exclusive lock is held.
+/// 
+/// If the file not open for writing, it is unspecified whether this function returns an error.
+/// 
+/// Note, this is an advisory lock meant to interact with [`lock_shared`], [`try_lock`],
+/// [`try_lock_shared`], and [`unlock`]. Its interactions with other methods, such as [`read`]
+/// and [`write`] are platform specific, and it may or may not cause non-lockholders to block.
+/// 
+/// # Platform-specific behavior
+/// 
+/// This function currently corresponds to the `flock` function on Unix with the `LOCK_EX` flag,
+/// and the `LockFileEx` function on Windows with the `LOCKFILE_EXCLUSIVE_LOCK` flag. Note that,
+/// this [may change in the future][changes].
+/// 
+/// [changes]: io#platform-specific-behavior
+/// 
+/// [`lock_shared`]: File::lock_shared
+/// [`try_lock`]: File::try_lock
+/// [`try_lock_shared`]: File::try_lock_shared
+/// [`unlock`]: File::unlock
+/// [`read`]: Read::read
+/// [`write`]: Write::write
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(file_lock)]
+/// use std::fs::File;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let f = File::open("foo.txt")?;
+///     f.lock()?;
+///     Ok(())
+/// }
+/// ```
+#[cfg(feature = "file_lock")]
+fn lock_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Acquire an exclusive advisory lock on the file. Returns `Ok(false)` if the file is locked.
+/// 
+/// This acquires an exclusive advisory lock; no other file handle to this file may acquire
+/// another lock.
+/// 
+/// If this file handle, or a clone of it, already holds an advisory lock, the exact behavior is
+/// unspecified and platform dependent, including the possibility that it will deadlock.
+/// However, if this method returns, then an exclusive lock is held.
+/// 
+/// If the file not open for writing, it is unspecified whether this function returns an error.
+/// 
+/// Note, this is an advisory lock meant to interact with [`lock`], [`lock_shared`],
+/// [`try_lock_shared`], and [`unlock`]. Its interactions with other methods, such as [`read`]
+/// and [`write`] are platform specific, and it may or may not cause non-lockholders to block.
+/// 
+/// # Platform-specific behavior
+/// 
+/// This function currently corresponds to the `flock` function on Unix with the `LOCK_EX` and
+/// `LOCK_NB` flags, and the `LockFileEx` function on Windows with the `LOCKFILE_EXCLUSIVE_LOCK`
+/// and `LOCKFILE_FAIL_IMMEDIATELY` flags. Note that, this
+/// [may change in the future][changes].
+/// 
+/// [changes]: io#platform-specific-behavior
+/// 
+/// [`lock`]: File::lock
+/// [`lock_shared`]: File::lock_shared
+/// [`try_lock_shared`]: File::try_lock_shared
+/// [`unlock`]: File::unlock
+/// [`read`]: Read::read
+/// [`write`]: Write::write
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(file_lock)]
+/// use std::fs::File;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let f = File::open("foo.txt")?;
+///     f.try_lock()?;
+///     Ok(())
+/// }
+/// ```
+#[cfg(feature = "file_lock")]
+fn try_lock_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > );
 /// Attempts to open a file in read-only mode with buffering.
 /// 
 /// See the [`OpenOptions::open`] method, the [`BufReader`][io::BufReader] type,
@@ -416,6 +591,33 @@ fn create_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P
 /// }
 /// ```
 fn metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > );
+/// Release all locks on the file.
+/// 
+/// All remaining locks are released when the file handle, and all clones of it, are dropped.
+/// 
+/// # Platform-specific behavior
+/// 
+/// This function currently corresponds to the `flock` function on Unix with the `LOCK_UN` flag,
+/// and the `UnlockFile` function on Windows. Note that, this
+/// [may change in the future][changes].
+/// 
+/// [changes]: io#platform-specific-behavior
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(file_lock)]
+/// use std::fs::File;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let f = File::open("foo.txt")?;
+///     f.lock()?;
+///     f.unlock()?;
+///     Ok(())
+/// }
+/// ```
+#[cfg(feature = "file_lock")]
+fn unlock_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
 /// This function is similar to [`sync_all`], except that it might not
 /// synchronize file metadata to the filesystem.
 /// 
@@ -479,6 +681,26 @@ fn sync_data_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Resu
 fn set_len_wc ( & self , size : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
 }
 impl FileContext for std :: fs :: File {
+#[cfg(feature = "file_lock")]
+fn try_lock_shared_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
+    std :: fs :: File :: try_lock_shared(self)
+        .with_context(|| crate::call_failed!(Some(self), "try_lock_shared"))
+}
+#[cfg(feature = "file_lock")]
+fn lock_shared_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: fs :: File :: lock_shared(self)
+        .with_context(|| crate::call_failed!(Some(self), "lock_shared"))
+}
+#[cfg(feature = "file_lock")]
+fn lock_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: fs :: File :: lock(self)
+        .with_context(|| crate::call_failed!(Some(self), "lock"))
+}
+#[cfg(feature = "file_lock")]
+fn try_lock_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
+    std :: fs :: File :: try_lock(self)
+        .with_context(|| crate::call_failed!(Some(self), "try_lock"))
+}
 #[cfg(feature = "file_buffered")]
 fn open_buffered_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: io :: BufReader < Self > > ) {
     let path = path.as_ref();
@@ -530,6 +752,11 @@ fn create_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P
 fn metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
     std :: fs :: File :: metadata(self)
         .with_context(|| crate::call_failed!(Some(self), "metadata"))
+}
+#[cfg(feature = "file_lock")]
+fn unlock_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: fs :: File :: unlock(self)
+        .with_context(|| crate::call_failed!(Some(self), "unlock"))
 }
 fn sync_data_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     std :: fs :: File :: sync_data(self)
@@ -1144,8 +1371,9 @@ pub fn create_dir_all_wc < P : core :: convert :: AsRef < std :: path :: Path > 
 /// 
 /// See [`fs::remove_file`] and [`fs::remove_dir`].
 /// 
-/// `remove_dir_all` will fail if `remove_dir` or `remove_file` fail on any constituent paths, including the root path.
+/// `remove_dir_all` will fail if `remove_dir` or `remove_file` fail on any constituent paths, including the root `path`.
 /// As a result, the directory you are deleting must exist, meaning that this function is not idempotent.
+/// Additionally, `remove_dir_all` will also fail if the `path` is not a directory.
 /// 
 /// Consider ignoring the error if validating the removal is not required for your use case.
 /// 
@@ -1214,6 +1442,10 @@ pub fn remove_file_wc < P : core :: convert :: AsRef < std :: path :: Path > > (
 }
 /// Removes an empty directory.
 /// 
+/// If you want to remove a directory that is not empty, as well as all
+/// of its contents recursively, consider using [`remove_dir_all`]
+/// instead.
+/// 
 /// # Platform-specific behavior
 /// 
 /// This function currently corresponds to the `rmdir` function on Unix
@@ -1260,12 +1492,14 @@ pub fn remove_dir_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( 
 /// # Platform-specific behavior
 /// 
 /// This function currently corresponds to the `rename` function on Unix
-/// and the `MoveFileEx` function with the `MOVEFILE_REPLACE_EXISTING` flag on Windows.
+/// and the `SetFileInformationByHandle` function on Windows.
 /// 
 /// Because of this, the behavior when both `from` and `to` exist differs. On
 /// Unix, if `from` is a directory, `to` must also be an (empty) directory. If
-/// `from` is not a directory, `to` must also be not a directory. In contrast,
-/// on Windows, `from` can be anything, but `to` must *not* be a directory.
+/// `from` is not a directory, `to` must also be not a directory. The behavior
+/// on Windows is the same on Windows 10 1607 and higher if `FileRenameInfoEx`
+/// is supported by the filesystem; otherwise, `from` can be anything, but
+/// `to` must *not* be a directory.
 /// 
 /// Note that, this [may change in the future][changes].
 /// 

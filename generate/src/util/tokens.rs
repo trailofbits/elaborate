@@ -229,8 +229,13 @@ impl TokensExt for [Token] {
     /// tokens are generated. However, that would require modifying the Rustdoc JSON before it is
     /// converted to [`public_api::PublicItem`]s.
     fn remove_sealed(&self) -> Vec<Token> {
-        static COLON_SEALED: Lazy<Vec<Token>> =
-            Lazy::new(|| vec![Token::symbol(":"), Token::type_("Sealed")]);
+        static COLON_SEALED: Lazy<Vec<Token>> = Lazy::new(|| {
+            [
+                &[Token::symbol(":")],
+                qualified_type(&["std", "sealed"], "Sealed").as_slice(),
+            ]
+            .concat()
+        });
 
         let (tokens, replacements) = self.replace(&COLON_SEALED, &[]);
 

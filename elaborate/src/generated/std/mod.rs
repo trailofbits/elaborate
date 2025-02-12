@@ -12,7 +12,6 @@ pub mod net;
 pub mod os;
 pub mod panic;
 pub mod path;
-pub mod pipe;
 pub mod process;
 pub mod thread;
 pub mod time;

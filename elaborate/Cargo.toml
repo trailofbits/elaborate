@@ -15,6 +15,7 @@ regex = "1.11"
 tempfile = "3.16"
 toml = "0.8"
 
+# smoelius: If you add features below, please also add them near the top of src/lib.rs.
 [features]
 anonymous_pipe = []
 buf_read_has_data_left = []
@@ -22,6 +23,7 @@ bufread_skip_until = []
 core_io_borrowed_buf = []
 exit_status_error = []
 file_buffered = []
+file_lock = []
 junction_point = []
 linux_pidfd = []
 panic_backtrace_config = []
@@ -41,6 +43,7 @@ unix_socket_peek = []
 wasi_ext = []
 windows_by_handle = []
 windows_change_time = []
+windows_process_extensions_raw_attribute = []
 write_all_vectored = []
 
 [lints]
