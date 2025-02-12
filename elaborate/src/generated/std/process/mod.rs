@@ -27,7 +27,7 @@ pub trait ChildContext {
 /// ```no_run
 /// use std::process::Command;
 /// 
-/// let mut child = Command::new("ls").spawn().unwrap();
+/// let mut child = Command::new("ls").spawn()?;
 /// 
 /// match child.try_wait() {
 ///     Ok(Some(status)) => println!("exited with: {status}"),
@@ -38,6 +38,7 @@ pub trait ChildContext {
 ///     }
 ///     Err(e) => println!("error attempting to wait: {e}"),
 /// }
+/// # std::io::Result::Ok(())
 /// ```
 fn try_wait_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: process :: ExitStatus > > );
 /// Forces the child process to exit. If the child has already exited, `Ok(())`
@@ -187,14 +188,14 @@ fn spawn_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Resu
 /// use std::io::{self, Write};
 /// let output = Command::new("/bin/cat")
 ///     .arg("file.txt")
-///     .output()
-///     .expect("failed to execute process");
+///     .output()?;
 /// 
 /// println!("status: {}", output.status);
-/// io::stdout().write_all(&output.stdout).unwrap();
-/// io::stderr().write_all(&output.stderr).unwrap();
+/// io::stdout().write_all(&output.stdout)?;
+/// io::stderr().write_all(&output.stderr)?;
 /// 
 /// assert!(output.status.success());
+/// # io::Result::Ok(())
 /// ```
 fn output_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: process :: Output > );
 /// Returns the working directory for the child process.

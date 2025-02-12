@@ -196,6 +196,7 @@ fn try_exists_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Res
 /// assert_eq!(path.strip_prefix("/test/haha/foo.txt/"), Ok(Path::new("")));
 /// 
 /// assert!(path.strip_prefix("test").is_err());
+/// assert!(path.strip_prefix("/te").is_err());
 /// assert!(path.strip_prefix("/haha").is_err());
 /// 
 /// let prefix = PathBuf::from("/test/");
