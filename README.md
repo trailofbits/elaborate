@@ -115,6 +115,21 @@ warning: use of a disallowed method `std::fs::create_dir`
 
 **Wrapper structs**, e.g., a struct `File` that wraps a [`std::fs::File`], so that calling a method on the wrapper struct calls the underlying method with [`anyhow::Context::with_context`]. This idea works to a degree but has several problems. Most significantly, the wrapper struct must implement every trait the wrapped struct does. There are many ways a wrapped struct could implement a trait. For example, if a trait provides a default implementation, the wrapped struct could use the default implementation or provide its own. Such facts complicate automatic code generation. Hence, this idea seems untenable.
 
+## Semantic versioning policy
+
+We reserve the right to update the nightly toolchain with which `elaborate` is associated, and to release such changes with only a minor version bump.
+
+Such a policy should not affect users of stable Rust.
+
+However, if you are using nightly Rust and require a specific nightly toolchain, then we recommend using a [tilde requirement] to specify `elaborate` as a dependency.
+
+Example:
+
+```toml
+[dependencies]
+elaborate = "~1.0"
+```
+
 ## Credits
 
 Elaborate uses [`public-api`] and [`rustdoc-types`] to generate wrappers, and [`anyhow`] to generate error messages.
@@ -125,3 +140,4 @@ Elaborate uses [`public-api`] and [`rustdoc-types`] to generate wrappers, and [`
 [`public-api`]: https://github.com/cargo-public-api/cargo-public-api/tree/main/public-api
 [`rustdoc-types`]: https://github.com/aDotInTheVoid/rustdoc-types
 [`std::fs::File`]: https://doc.rust-lang.org/std/fs/struct.File.html
+[tilde requirement]: https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#tilde-requirements
