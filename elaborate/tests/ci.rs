@@ -44,16 +44,15 @@ fn clippy_toml() {
         .current_dir("fixtures/create_dir")
         .output()
         .unwrap();
-    assert!(output.status.success());
+    assert!(output.status.success(), "Command failed: {output:?}");
     let stderr = String::from_utf8(output.stderr).unwrap();
     assert_eq!("\
 warning: use of a disallowed method `std::fs::create_dir`
  --> src/main.rs:4:5
   |
 4 |     create_dir(\"/dir\")?;
-  |     ^^^^^^^^^^
+  |     ^^^^^^^^^^ help: use: `elaborate::std::fs::create_dir_wc`
   |
-  = note: use `elaborate::std::fs::create_dir_wc`
   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#disallowed_methods
   = note: `#[warn(clippy::disallowed_methods)]` on by default
 
