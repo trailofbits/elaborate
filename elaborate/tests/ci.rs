@@ -1,11 +1,11 @@
 use assert_cmd::Command;
-use once_cell::sync::Lazy;
 use regex::Regex;
 use std::{
     collections::BTreeSet,
     env::{remove_var, set_current_dir},
     fs::read_to_string,
     path::Path,
+    sync::LazyLock,
 };
 use walkdir::WalkDir;
 
@@ -92,8 +92,8 @@ fn features_are_used() {
     }
 }
 
-static FEATURE_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r#"#\[cfg\(feature = "([^"]*)"\)\]"#).unwrap());
+static FEATURE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"#\[cfg\(feature = "([^"]*)"\)\]"#).unwrap());
 
 fn collect_features_used() -> BTreeSet<String> {
     let mut features = BTreeSet::new();
