@@ -1157,15 +1157,15 @@ pub trait PipeReaderContext: Sized {
 /// # #[cfg(miri)] fn main() {}
 /// # #[cfg(not(miri))]
 /// # fn main() -> std::io::Result<()> {
-/// # use std::fs;
-/// # use std::io::Write;
-/// # use std::process::Command;
+/// use std::fs;
+/// use std::io::{pipe, Write};
+/// use std::process::Command;
 /// const NUM_SLOT: u8 = 2;
 /// const NUM_PROC: u8 = 5;
 /// const OUTPUT: &str = "work.txt";
 /// 
 /// let mut jobs = vec![];
-/// let (reader, mut writer) = std::io::pipe()?;
+/// let (reader, mut writer) = pipe()?;
 /// 
 /// // Write NUM_SLOT characters the pipe.
 /// writer.write_all(&[b'|'; NUM_SLOT as usize])?;
@@ -1221,9 +1221,9 @@ pub trait PipeWriterContext: Sized {
 /// # #[cfg(miri)] fn main() {}
 /// # #[cfg(not(miri))]
 /// # fn main() -> std::io::Result<()> {
-/// # use std::process::Command;
-/// # use std::io::Read;
-/// let (mut reader, writer) = std::io::pipe()?;
+/// use std::process::Command;
+/// use std::io::{pipe, Read};
+/// let (mut reader, writer) = pipe()?;
 /// 
 /// // Spawn a process that writes to stdout and stderr.
 /// let mut peer = Command::new("bash")
@@ -1349,18 +1349,33 @@ pub fn copy_wc < R , W > ( reader : & mut R , writer : & mut W ) -> crate :: rew
     std :: io :: copy(reader, writer)
         .with_context(|| crate::call_failed!(None::<()>, "std::io::copy", reader, writer))
 }
-/// Create anonymous pipe that is close-on-exec and blocking.
+/// Create an anonymous pipe.
 /// 
 /// # Behavior
 /// 
-/// A pipe is a synchronous, unidirectional data channel between two or more processes, like an
-/// interprocess [`mpsc`](crate::sync::mpsc) provided by the OS. In particular:
+/// A pipe is a one-way data channel provided by the OS, which works across processes. A pipe is
+/// typically used to communicate between two or more separate processes, as there are better,
+/// faster ways to communicate within a single process.
+/// 
+/// In particular:
 /// 
 /// * A read on a [`PipeReader`] blocks until the pipe is non-empty.
 /// * A write on a [`PipeWriter`] blocks when the pipe is full.
 /// * When all copies of a [`PipeWriter`] are closed, a read on the corresponding [`PipeReader`]
 ///   returns EOF.
-/// * [`PipeReader`] can be shared, but only one process will consume the data in the pipe.
+/// * [`PipeWriter`] can be shared, and multiple processes or threads can write to it at once, but
+///   writes (above a target-specific threshold) may have their data interleaved.
+/// * [`PipeReader`] can be shared, and multiple processes or threads can read it at once. Any
+///   given byte will only get consumed by one reader. There are no guarantees about data
+///   interleaving.
+/// * Portable applications cannot assume any atomicity of messages larger than a single byte.
+/// 
+/// # Platform-specific behavior
+/// 
+/// This function currently corresponds to the `pipe` function on Unix and the
+/// `CreatePipe` function on Windows.
+/// 
+/// Note that this [may change in the future][changes].
 /// 
 /// # Capacity
 /// 
@@ -1377,10 +1392,10 @@ pub fn copy_wc < R , W > ( reader : & mut R , writer : & mut W ) -> crate :: rew
 /// # #[cfg(miri)] fn main() {}
 /// # #[cfg(not(miri))]
 /// # fn main() -> std::io::Result<()> {
-/// # use std::process::Command;
-/// # use std::io::{Read, Write};
-/// let (ping_rx, mut ping_tx) = std::io::pipe()?;
-/// let (mut pong_rx, pong_tx) = std::io::pipe()?;
+/// use std::process::Command;
+/// use std::io::{pipe, Read, Write};
+/// let (ping_rx, mut ping_tx) = pipe()?;
+/// let (mut pong_rx, pong_tx) = pipe()?;
 /// 
 /// // Spawn a process that echoes its input.
 /// let mut echo_server = Command::new("cat").stdin(ping_rx).stdout(pong_tx).spawn()?;
@@ -1398,8 +1413,7 @@ pub fn copy_wc < R , W > ( reader : & mut R , writer : & mut W ) -> crate :: rew
 /// # Ok(())
 /// # }
 /// ```
-/// [pipe]: https://man7.org/linux/man-pages/man2/pipe.2.html
-/// [CreatePipe]: https://learn.microsoft.com/en-us/windows/win32/api/namedpipeapi/nf-namedpipeapi-createpipe
+/// [changes]: io#platform-specific-behavior
 /// [man page]: https://man7.org/linux/man-pages/man7/pipe.7.html
 #[cfg(feature = "anonymous_pipe")]
 pub fn pipe_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( std :: io :: PipeReader , std :: io :: PipeWriter ) > ) {

@@ -144,7 +144,7 @@ pub fn var_wc < K : core :: convert :: AsRef < std :: ffi :: OsStr > > ( key : K
 ///         let mut paths = env::split_paths(&path).collect::<Vec<_>>();
 ///         paths.push(PathBuf::from("/home/xyz/bin"));
 ///         let new_path = env::join_paths(paths)?;
-///         env::set_var("PATH", &new_path);
+///         unsafe { env::set_var("PATH", &new_path); }
 ///     }
 /// 
 ///     Ok(())

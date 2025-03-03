@@ -153,14 +153,6 @@ fn metadata_at_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & s
     < Self as :: std :: os :: wasi :: fs :: FileExt > :: metadata_at(self, lookup_flags, path)
         .with_context(|| crate::call_failed!(Some(self), "metadata_at", lookup_flags, path))
 }
-/// Returns the current position within the file.
-/// 
-/// This corresponds to the `fd_tell` syscall and is similar to
-/// `seek` where you offset 0 bytes from the current position.
-fn tell_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u64 > ) {
-    < Self as :: std :: os :: wasi :: fs :: FileExt > :: tell(self)
-        .with_context(|| crate::call_failed!(Some(self), "tell"))
-}
 /// Unlinks a file.
 /// 
 /// This corresponds to the `path_unlink_file` syscall.

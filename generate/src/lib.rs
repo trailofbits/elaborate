@@ -26,7 +26,7 @@ use util::{
 // smoelius: `COMMIT` should be the commit returned by `rustc --version` with the toolchain in
 // rust-toolchain. That commit should be after when the currently used version of `rustdoc-types`
 // was merged into the `rust` repository.
-pub const COMMIT: &str = "1e9b0177da38e3f421a3b9b1942f1777d166e06a";
+pub const COMMIT: &str = "f4a216d28ee635afce685b4206e713579f66e130";
 
 #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
 static STD_JSON: LazyLock<PathBuf> =
@@ -514,8 +514,31 @@ impl Generator {
     }
 }
 
+#[cfg(any())]
 static UNSTABLE_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r#"#!?\[unstable\([^)]*(\<feature = "[^"]*")[^)]*\)]"#).unwrap());
+
+static UNSTABLE_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(
+        r#"#!?\[attr="Stability\{stability:\sStability\{level:\sUnstable\{[^}]*\}feature:\s([^}]*)"#,
+    )
+    .unwrap()
+});
+
+#[test]
+fn unstable_re() {
+    const CASES: &[&str] = &[
+        "#[attr=\"Stability{stability: Stability{level: Unstable{reason: \
+         Noneissue:\n127154is_soft: falseimplied_by: }feature: anonymous_pipe}span: }\")]\n",
+        "#[attr=\"Stability{stability: Stability{level: Unstable{reason:\nSome(recently \
+         added)issue: 86423is_soft: falseimplied_by: }feature:\nbuf_read_has_data_left}span: \
+         }\")]\n",
+    ];
+    for case in CASES {
+        let caps = UNSTABLE_RE.captures(case).unwrap();
+        assert_eq!(2, caps.len());
+    }
+}
 
 fn rewrite_attrs(attrs: &[String]) -> Vec<String> {
     attrs
@@ -523,7 +546,7 @@ fn rewrite_attrs(attrs: &[String]) -> Vec<String> {
         .filter_map(|attr| {
             if let Some(caps) = UNSTABLE_RE.captures(attr) {
                 assert_eq!(2, caps.len());
-                Some(format!("#[cfg({})]\n", &caps[1]))
+                Some(format!("#[cfg(feature = \"{}\")]\n", &caps[1]))
             } else {
                 None
             }
@@ -673,6 +696,7 @@ static SOCKET_ADDR_EXT_FROM_ABSTRACT_NAME: LazyLock<Vec<Token>> = LazyLock::new(
     ]
 });
 
+#[allow(clippy::format_push_string)]
 fn call_and_call_failed(
     function: &Function,
     qualified_trait: &[Token],
