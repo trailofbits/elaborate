@@ -8,7 +8,6 @@
 #![cfg_attr(feature = "core_io_borrowed_buf", feature(core_io_borrowed_buf))]
 #![cfg_attr(feature = "exit_status_error", feature(exit_status_error))]
 #![cfg_attr(feature = "file_buffered", feature(file_buffered))]
-#![cfg_attr(feature = "file_lock", feature(file_lock))]
 #![cfg_attr(feature = "panic_backtrace_config", feature(panic_backtrace_config))]
 #![cfg_attr(feature = "path_file_prefix", feature(path_file_prefix))]
 #![cfg_attr(feature = "raw_os_error_ty", feature(raw_os_error_ty))]

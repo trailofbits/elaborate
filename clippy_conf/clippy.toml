@@ -242,7 +242,6 @@ disallowed-methods = [
     { path = "std::os::wasi::fs::FileExt::read_vectored_at", reason = "use `elaborate::std::os::wasi::fs::FileExtContext::read_vectored_at_wc`" },
     { path = "std::os::wasi::fs::FileExt::remove_directory", reason = "use `elaborate::std::os::wasi::fs::FileExtContext::remove_directory_wc`" },
     { path = "std::os::wasi::fs::FileExt::remove_file", reason = "use `elaborate::std::os::wasi::fs::FileExtContext::remove_file_wc`" },
-    { path = "std::os::wasi::fs::FileExt::tell", reason = "use `elaborate::std::os::wasi::fs::FileExtContext::tell_wc`" },
     { path = "std::os::wasi::fs::FileExt::write_all_at", reason = "use `elaborate::std::os::wasi::fs::FileExtContext::write_all_at_wc`" },
     { path = "std::os::wasi::fs::FileExt::write_at", reason = "use `elaborate::std::os::wasi::fs::FileExtContext::write_at_wc`" },
     { path = "std::os::wasi::fs::FileExt::write_vectored_at", reason = "use `elaborate::std::os::wasi::fs::FileExtContext::write_vectored_at_wc`" },
