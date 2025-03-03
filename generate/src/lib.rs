@@ -1,6 +1,5 @@
 use anyhow::Result;
 use if_chain::if_chain;
-use once_cell::sync::Lazy;
 use public_api::tokens::Token;
 use regex::Regex;
 use rustdoc_types::{Crate, Function, Id, ItemEnum, Type};
@@ -9,6 +8,7 @@ use std::{
     fs::{create_dir_all, File, OpenOptions},
     io::Write,
     path::{Path, PathBuf},
+    sync::LazyLock,
 };
 
 mod public_item_map;
@@ -29,10 +29,10 @@ use util::{
 pub const COMMIT: &str = "1e9b0177da38e3f421a3b9b1942f1777d166e06a";
 
 #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
-static STD_JSON: Lazy<PathBuf> =
-    Lazy::new(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../assets/std.json"));
+static STD_JSON: LazyLock<PathBuf> =
+    LazyLock::new(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../assets/std.json"));
 
-static IGNORED_PATHS: Lazy<Vec<Vec<Token>>> = Lazy::new(|| {
+static IGNORED_PATHS: LazyLock<Vec<Vec<Token>>> = LazyLock::new(|| {
     const IGNORED_PATH_PREFIXES: &[&[&str]] = &[
         &["std", "io", "prelude"],
         &["std", "os", "unix", "prelude"],
@@ -65,7 +65,7 @@ static IGNORED_PATHS: Lazy<Vec<Vec<Token>>> = Lazy::new(|| {
 });
 
 // smoelius: Structs with generic params are currently unsupported.
-static GENERIC_STRUCTS: Lazy<Vec<Vec<Token>>> = Lazy::new(|| {
+static GENERIC_STRUCTS: LazyLock<Vec<Vec<Token>>> = LazyLock::new(|| {
     const INNER: &[(&[&str], &str)] = &[
         (&["std", "collections", "hash_map"], "HashMap"),
         (&["std", "collections", "hash_map"], "RawEntryBuilder"),
@@ -104,7 +104,7 @@ static GENERIC_STRUCTS: Lazy<Vec<Vec<Token>>> = Lazy::new(|| {
         .collect()
 });
 
-static REWRITABLE_PATHS: Lazy<Vec<(Vec<Token>, Vec<Token>)>> = Lazy::new(|| {
+static REWRITABLE_PATHS: LazyLock<Vec<(Vec<Token>, Vec<Token>)>> = LazyLock::new(|| {
     const SHORTENABLE_PATHS: &[&[&str]] = &[
         &["core", "io", "borrowed_buf"],
         &["core", "net", "ip_addr"],
@@ -514,8 +514,8 @@ impl Generator {
     }
 }
 
-static UNSTABLE_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r#"#!?\[unstable\([^)]*(\<feature = "[^"]*")[^)]*\)]"#).unwrap());
+static UNSTABLE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"#!?\[unstable\([^)]*(\<feature = "[^"]*")[^)]*\)]"#).unwrap());
 
 fn rewrite_attrs(attrs: &[String]) -> Vec<String> {
     attrs
@@ -652,7 +652,7 @@ fn fn_body(
 }
 
 // smoelius: The one case for which the `unwrap_or_else` is needed in `call_and_call_failed`.
-static SOCKET_ADDR_EXT_FROM_ABSTRACT_NAME: Lazy<Vec<Token>> = Lazy::new(|| {
+static SOCKET_ADDR_EXT_FROM_ABSTRACT_NAME: LazyLock<Vec<Token>> = LazyLock::new(|| {
     vec![
         Token::symbol("<"),
         Token::generic("Self"),

@@ -1,9 +1,9 @@
 use super::TokenExt;
 use itertools::intersperse;
-use once_cell::sync::Lazy;
 use public_api::tokens::Token;
+use std::sync::LazyLock;
 
-static GATED_PATHS: Lazy<Vec<(Vec<Token>, &str)>> = Lazy::new(|| {
+static GATED_PATHS: LazyLock<Vec<(Vec<Token>, &str)>> = LazyLock::new(|| {
     const GATED_OS_PATHS: &[(&[&str], &str)] = &[
         (&["std", "os", "fd"], "unix"),
         (&["std", "os", "linux"], r#"target_os = "linux""#),
@@ -229,7 +229,7 @@ impl TokensExt for [Token] {
     /// tokens are generated. However, that would require modifying the Rustdoc JSON before it is
     /// converted to [`public_api::PublicItem`]s.
     fn remove_sealed(&self) -> Vec<Token> {
-        static COLON_SEALED: Lazy<Vec<Token>> = Lazy::new(|| {
+        static COLON_SEALED: LazyLock<Vec<Token>> = LazyLock::new(|| {
             [
                 &[Token::symbol(":")],
                 qualified_type(&["std", "sealed"], "Sealed").as_slice(),
@@ -266,7 +266,7 @@ impl TokensExt for [Token] {
     }
 
     fn rewrite_output_type(&self) -> Vec<Token> {
-        static PREFIX: Lazy<Vec<Token>> = Lazy::new(|| {
+        static PREFIX: LazyLock<Vec<Token>> = LazyLock::new(|| {
             vec![
                 Token::keyword("crate"),
                 Token::symbol("::"),
@@ -275,7 +275,7 @@ impl TokensExt for [Token] {
                 Token::symbol("("),
             ]
         });
-        static SUFFIX: Lazy<Vec<Token>> = Lazy::new(|| vec![Token::symbol(")")]);
+        static SUFFIX: LazyLock<Vec<Token>> = LazyLock::new(|| vec![Token::symbol(")")]);
 
         let (start, end) = self.output_offsets().unwrap();
 
@@ -313,7 +313,7 @@ impl TokensExt for [Token] {
     }
 
     fn error_type_is_self(&self) -> bool {
-        static SUFFIX: Lazy<Vec<Token>> = Lazy::new(|| {
+        static SUFFIX: LazyLock<Vec<Token>> = LazyLock::new(|| {
             vec![
                 Token::symbol(","),
                 Token::generic("Self"),
