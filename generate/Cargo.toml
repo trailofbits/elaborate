@@ -10,7 +10,7 @@ if_chain = "1.0"
 itertools = "0.14"
 public-api = "0.44"
 regex = "1.11"
-rustdoc-types = "0.35"
+rustdoc-types = "0.36"
 serde_json = "1.0"
 
 [dev-dependencies]
