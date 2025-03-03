@@ -203,7 +203,7 @@ impl Generator {
                 .any(|parent_id| parents_of_wrappable_functions.contains(&parent_id))
             {
                 continue;
-            };
+            }
 
             let docs = krate.index.get(&id).and_then(|item| item.docs.as_deref());
 
