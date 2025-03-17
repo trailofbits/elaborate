@@ -11,7 +11,7 @@ assert_cmd = "2.0"
 ctor = "0.4"
 walkdir = "2.5"
 regex = "1.11"
-tempfile = "3.18"
+tempfile = "3.19"
 toml = "0.8"
 
 # smoelius: If you add features below, please also add them near the top of src/lib.rs.
