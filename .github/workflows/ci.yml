@@ -89,10 +89,11 @@ jobs:
         with:
           tool: cargo-audit, cargo-hack, cargo-sort, cargo-udeps
 
+      - name: Install Rust toolchain from `rust-toolchain` file
+        run: rustup install
+
       - name: Install tools
         run: |
-          rustup update          --no-self-update
-          export CARGO_TARGET_DIR="$(mktemp -d)"
           cargo install cargo-dylint dylint-link || true
           cargo install cargo-license            || true
           cargo install group-runner             || true
