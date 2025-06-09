@@ -14,6 +14,7 @@ missing_errors_doc = "allow"
 
 [[workspace.metadata.dylint.libraries]]
 git = "https://github.com/trailofbits/dylint"
+rev = "107a3332a7d488a64ad247576ad99b19a208aff2"
 pattern = [
     "examples/general",
     "examples/supplementary",
