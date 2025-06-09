@@ -27,9 +27,6 @@ fn check_all_features() {
 #[test]
 fn clippy() {
     Command::new("cargo")
-        // smoelius: Remove `CARGO` environment variable to work around:
-        // https://github.com/rust-lang/rust/pull/131729
-        .env_remove("CARGO")
         .args(["clippy", "--all-targets", "--", "--deny=warnings"])
         .assert()
         .success();
