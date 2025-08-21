@@ -1,3 +1,11 @@
+//! To update the source code in elaborate/src/generated, run `cargo run` in this
+//! directory.
+//!
+//! Note that the update will be performed using assets/std.json, not a checkout of the Rust
+//! repository.
+//!
+//! To update assets/std.json, run `BLESS=1 cargo test std_json` in this directory.
+
 use anyhow::Result;
 use std::{
     fs::remove_dir_all,
