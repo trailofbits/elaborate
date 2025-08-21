@@ -11,8 +11,10 @@ use walkdir::WalkDir;
 
 #[ctor::ctor]
 fn initialize() {
-    remove_var("CARGO_TERM_COLOR");
-    set_current_dir("..").unwrap();
+    unsafe {
+        remove_var("CARGO_TERM_COLOR");
+        set_current_dir("..").unwrap();
+    }
 }
 
 #[test]
