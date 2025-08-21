@@ -865,7 +865,6 @@ mod test {
         str::FromStr,
     };
 
-    const RUST_URL: &str = "https://github.com/rust-lang/rust";
     const RUST_DIR: &str = "checkouts/rust";
     const SUBMODULES: &[&str] = &["library/backtrace", "library/stdarch"];
     const TARGET: &str = "x86_64-unknown-linux-gnu";
@@ -917,14 +916,7 @@ mod test {
     #[cfg_attr(dylint_lib = "general", allow(non_thread_safe_call_in_test))]
     #[test]
     fn std_json() {
-        clone_or_update_rust();
-
-        let status = Command::new("git")
-            .args(["checkout", super::COMMIT])
-            .current_dir(RUST_DIR)
-            .status()
-            .unwrap();
-        assert!(status.success());
+        checkout_rust();
 
         for submodule in SUBMODULES {
             let status = Command::new("git")
@@ -981,25 +973,26 @@ mod test {
         }
     }
 
-    fn clone_or_update_rust() {
+    fn checkout_rust() {
+        const RUST_URL: &str = "https://github.com/rust-lang/rust";
+
         if !exists(RUST_DIR).unwrap() {
             let status = Command::new("git")
                 .args(["clone", RUST_URL, RUST_DIR])
                 .status()
                 .unwrap();
             assert!(status.success());
-            return;
         }
 
         let status = Command::new("git")
-            .args(["checkout", "master"])
+            .args(["fetch"])
             .current_dir(RUST_DIR)
             .status()
             .unwrap();
         assert!(status.success());
 
         let status = Command::new("git")
-            .args(["pull"])
+            .args(["checkout", super::COMMIT])
             .current_dir(RUST_DIR)
             .status()
             .unwrap();
