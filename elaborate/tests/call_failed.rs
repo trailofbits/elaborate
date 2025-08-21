@@ -6,8 +6,10 @@
 
 #[ctor::ctor]
 fn initialize() {
-    // smoelius: `RUST_BACKTRACE` adds to the error messages and interferes with the tests.
-    std::env::remove_var("RUST_BACKTRACE");
+    unsafe {
+        // smoelius: `RUST_BACKTRACE` adds to the error messages and interferes with the tests.
+        std::env::remove_var("RUST_BACKTRACE");
+    }
 }
 
 #[test]

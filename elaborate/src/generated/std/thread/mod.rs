@@ -161,8 +161,8 @@ fn spawn_wc < F , T > ( self , f : F ) -> crate :: rewrite_output_type ! ( std :
 }
 #[cfg(feature = "thread_spawn_unchecked")]
 unsafe fn spawn_unchecked_wc < F , T > ( self , f : F ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: thread :: JoinHandle < T > > ) where F : core :: ops :: FnOnce ( ) -> T + core :: marker :: Send , T : core :: marker :: Send {
-    std :: thread :: Builder :: spawn_unchecked(self, f)
-        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type std::thread::Builder")), "spawn_unchecked", crate::CustomDebugMessage("value of type impl FnOnce")))
+    unsafe { std :: thread :: Builder :: spawn_unchecked(self, f)
+        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type std::thread::Builder")), "spawn_unchecked", crate::CustomDebugMessage("value of type impl FnOnce"))) }
 }
 }
 pub trait ThreadContext {

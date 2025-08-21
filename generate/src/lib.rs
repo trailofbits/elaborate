@@ -665,12 +665,20 @@ fn fn_body(
         }
     }
 
+    let (unsafe_prefix, unsafe_suffix) = if function.header.is_unsafe {
+        ("unsafe { ", " }")
+    } else {
+        ("", "")
+    };
+
     format!(
         "
-{}    {call}
-        .with_context(|| {call_failed})
+{}    {}{call}
+        .with_context(|| {call_failed}){}
 ",
         redeclarations.join(""),
+        unsafe_prefix,
+        unsafe_suffix
     )
 }
 
