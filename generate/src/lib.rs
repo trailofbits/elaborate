@@ -866,7 +866,6 @@ mod test {
     };
 
     const RUST_DIR: &str = "checkouts/rust";
-    const SUBMODULES: &[&str] = &["library/backtrace", "library/stdarch"];
     const TARGET: &str = "x86_64-unknown-linux-gnu";
 
     #[test]
@@ -918,15 +917,6 @@ mod test {
     fn std_json() {
         checkout_rust();
 
-        for submodule in SUBMODULES {
-            let status = Command::new("git")
-                .args(["submodule", "update", "--init", submodule])
-                .current_dir(RUST_DIR)
-                .status()
-                .unwrap();
-            assert!(status.success());
-        }
-
         // smoelius:
         // https://github.com/cargo-public-api/cargo-public-api/blob/4b0482ef18ef564f088855320871fcedd159e384/public-api/src/lib.rs#L15-L17
         // ```sh
@@ -975,6 +965,7 @@ mod test {
 
     fn checkout_rust() {
         const RUST_URL: &str = "https://github.com/rust-lang/rust";
+        const SUBMODULES: &[&str] = &["library/backtrace", "library/stdarch"];
 
         if !exists(RUST_DIR).unwrap() {
             let status = Command::new("git")
@@ -997,6 +988,15 @@ mod test {
             .status()
             .unwrap();
         assert!(status.success());
+
+        for submodule in SUBMODULES {
+            let status = Command::new("git")
+                .args(["submodule", "update", "--init", submodule])
+                .current_dir(RUST_DIR)
+                .status()
+                .unwrap();
+            assert!(status.success());
+        }
     }
 
     fn strip_manifest_dir_from_filenames(value: &mut serde_json::Value) {
