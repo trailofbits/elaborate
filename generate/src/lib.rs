@@ -864,9 +864,6 @@ fn disallowable_qualified_fn(
     }
 }
 
-// smoelius: Run these tests on just Linux until the following questions are answered:
-// https://github.com/rust-lang/rustdoc-types/issues/44
-#[cfg(target_os = "linux")]
 #[cfg(test)]
 mod test {
     use similar_asserts::SimpleDiff;
@@ -912,6 +909,7 @@ mod test {
         );
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn target() {
         if var("CI").is_err() {
