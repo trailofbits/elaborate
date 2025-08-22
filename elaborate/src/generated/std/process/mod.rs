@@ -308,7 +308,7 @@ pub trait ExitStatusErrorContext {
 /// ```
 /// #![feature(exit_status_error)]
 /// 
-/// # if cfg!(unix) {
+/// # if cfg!(all(unix, not(target_os = "android"))) {
 /// use std::num::NonZero;
 /// use std::process::Command;
 /// 
@@ -340,7 +340,7 @@ fn code_nonzero_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option
 /// 
 /// ```
 /// #![feature(exit_status_error)]
-/// # #[cfg(unix)] {
+/// # #[cfg(all(unix, not(target_os = "android")))] {
 /// use std::process::Command;
 /// 
 /// let bad = Command::new("false").status().unwrap().exit_ok().unwrap_err();
@@ -358,6 +358,43 @@ fn code_nonzero_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option
 fn code_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < i32 > ) {
     std :: process :: ExitStatusError :: code(self)
         .with_context(|| crate::call_failed!(Some(self), "code"))
+}
+}
+#[cfg(feature = "exit_status_error")]
+pub trait OutputContext: Sized {
+/// Returns an error if a nonzero exit status was received.
+/// 
+/// If the [`Command`] exited successfully,
+/// `self` is returned.
+/// 
+/// This is equivalent to calling [`exit_ok`](ExitStatus::exit_ok)
+/// on [`Output.status`](Output::status).
+/// 
+/// Note that this will throw away the [`Output::stderr`] field in the error case.
+/// If the child process outputs useful informantion to stderr, you can:
+/// * Use `cmd.stderr(Stdio::inherit())` to forward the
+///   stderr child process to the parent's stderr,
+///   usually printing it to console where the user can see it.
+///   This is usually correct for command-line applications.
+/// * Capture `stderr` using a custom error type.
+///   This is usually correct for libraries.
+/// 
+/// # Examples
+/// 
+/// ```
+/// #![feature(exit_status_error)]
+/// # #[cfg(all(unix, not(target_os = "android")))] {
+/// use std::process::Command;
+/// assert!(Command::new("false").output().unwrap().exit_ok().is_err());
+/// # }
+/// ```
+fn exit_ok_wc ( self ) -> crate :: rewrite_output_type ! ( core :: result :: Result < Self , std :: process :: ExitStatusError > );
+}
+#[cfg(feature = "exit_status_error")]
+impl OutputContext for std :: process :: Output {
+fn exit_ok_wc ( self ) -> crate :: rewrite_output_type ! ( core :: result :: Result < Self , std :: process :: ExitStatusError > ) {
+    std :: process :: Output :: exit_ok(self)
+        .with_context(|| crate::call_failed!(Some(crate::CustomDebugMessage("value of type std::process::Output")), "exit_ok"))
 }
 }
 

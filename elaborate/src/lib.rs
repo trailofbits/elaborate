@@ -3,17 +3,21 @@
 #![allow(stable_features)]
 //
 // Unstable features
-#![cfg_attr(feature = "anonymous_pipe", feature(anonymous_pipe))]
 #![cfg_attr(feature = "buf_read_has_data_left", feature(buf_read_has_data_left))]
 #![cfg_attr(feature = "bufread_skip_until", feature(bufread_skip_until))]
 #![cfg_attr(feature = "core_io_borrowed_buf", feature(core_io_borrowed_buf))]
 #![cfg_attr(feature = "exit_status_error", feature(exit_status_error))]
 #![cfg_attr(feature = "file_buffered", feature(file_buffered))]
+#![cfg_attr(feature = "normalize_lexically", feature(normalize_lexically))]
 #![cfg_attr(feature = "panic_backtrace_config", feature(panic_backtrace_config))]
 #![cfg_attr(feature = "path_file_prefix", feature(path_file_prefix))]
 #![cfg_attr(feature = "raw_os_error_ty", feature(raw_os_error_ty))]
 #![cfg_attr(feature = "read_buf", feature(read_buf))]
 #![cfg_attr(feature = "seek_stream_len", feature(seek_stream_len))]
+#![cfg_attr(
+    feature = "set_permissions_nofollow",
+    feature(set_permissions_nofollow)
+)]
 #![cfg_attr(feature = "tcp_linger", feature(tcp_linger))]
 #![cfg_attr(feature = "thread_spawn_unchecked", feature(thread_spawn_unchecked))]
 #![cfg_attr(feature = "write_all_vectored", feature(write_all_vectored))]
@@ -26,10 +30,6 @@
 #![cfg_attr(
     all(target_os = "linux", feature = "tcp_deferaccept"),
     feature(tcp_deferaccept)
-)]
-#![cfg_attr(
-    all(target_os = "linux", feature = "tcp_quickack"),
-    feature(tcp_quickack)
 )]
 #![cfg_attr(
     all(target_os = "linux", feature = "unix_set_mark"),
@@ -49,6 +49,8 @@
     all(unix, feature = "unix_file_vectored_at"),
     feature(unix_file_vectored_at)
 )]
+#![cfg_attr(all(unix, feature = "unix_mkfifo"), feature(unix_mkfifo))]
+#![cfg_attr(all(unix, feature = "unix_send_signal"), feature(unix_send_signal))]
 #![cfg_attr(all(unix, feature = "unix_socket_peek"), feature(unix_socket_peek))]
 //
 // Windows-specific unstable features
@@ -71,6 +73,7 @@
 
 use ::std::{any::type_name, fmt::Debug};
 
+#[allow(unused_parens)]
 #[expect(
     deprecated,
     clippy::doc_lazy_continuation,

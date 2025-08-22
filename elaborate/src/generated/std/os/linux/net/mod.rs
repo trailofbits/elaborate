@@ -24,7 +24,10 @@ pub trait SocketAddrExtContext: std :: os :: linux :: net :: SocketAddrExt {
 /// 
 /// ```no_run
 /// use std::os::unix::net::{UnixListener, SocketAddr};
+/// #[cfg(target_os = "linux")]
 /// use std::os::linux::net::SocketAddrExt;
+/// #[cfg(target_os = "android")]
+/// use std::os::android::net::SocketAddrExt;
 /// 
 /// fn main() -> std::io::Result<()> {
 ///     let addr = SocketAddr::from_abstract_name(b"hidden")?;
@@ -50,7 +53,10 @@ fn from_abstract_name_wc < N > ( name : N ) -> crate :: rewrite_output_type ! ( 
 /// 
 /// ```no_run
 /// use std::os::unix::net::{UnixListener, SocketAddr};
+/// #[cfg(target_os = "linux")]
 /// use std::os::linux::net::SocketAddrExt;
+/// #[cfg(target_os = "android")]
+/// use std::os::android::net::SocketAddrExt;
 /// 
 /// fn main() -> std::io::Result<()> {
 ///     let name = b"hidden";
@@ -69,7 +75,6 @@ fn as_abstract_name_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: op
 
 #[cfg(target_os = "linux")]
 impl<T> SocketAddrExtContext for T where T: std :: os :: linux :: net :: SocketAddrExt {}
-#[cfg(feature = "tcp_quickack")]
 #[cfg(target_os = "linux")]
 pub trait TcpStreamExtContext: std :: os :: linux :: net :: TcpStreamExt {
 /// A socket listener will be awakened solely when data arrives.
@@ -110,15 +115,16 @@ fn set_deferaccept_wc ( & self , accept : u32 ) -> crate :: rewrite_output_type 
 /// # Examples
 /// 
 /// ```no_run
-/// #![feature(tcp_quickack)]
 /// use std::net::TcpStream;
+/// #[cfg(target_os = "linux")]
 /// use std::os::linux::net::TcpStreamExt;
+/// #[cfg(target_os = "android")]
+/// use std::os::android::net::TcpStreamExt;
 /// 
 /// let stream = TcpStream::connect("127.0.0.1:8080")
 ///         .expect("Couldn't connect to the server...");
 /// stream.set_quickack(true).expect("set_quickack call failed");
 /// ```
-#[cfg(feature = "tcp_quickack")]
 fn set_quickack_wc ( & self , quickack : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: os :: linux :: net :: TcpStreamExt > :: set_quickack(self, quickack)
         .with_context(|| crate::call_failed!(Some(self), "set_quickack", quickack))
@@ -151,23 +157,23 @@ fn deferaccept_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Re
 /// # Examples
 /// 
 /// ```no_run
-/// #![feature(tcp_quickack)]
 /// use std::net::TcpStream;
+/// #[cfg(target_os = "linux")]
 /// use std::os::linux::net::TcpStreamExt;
+/// #[cfg(target_os = "android")]
+/// use std::os::android::net::TcpStreamExt;
 /// 
 /// let stream = TcpStream::connect("127.0.0.1:8080")
 ///         .expect("Couldn't connect to the server...");
 /// stream.set_quickack(true).expect("set_quickack call failed");
 /// assert_eq!(stream.quickack().unwrap_or(false), true);
 /// ```
-#[cfg(feature = "tcp_quickack")]
 fn quickack_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
     < Self as :: std :: os :: linux :: net :: TcpStreamExt > :: quickack(self)
         .with_context(|| crate::call_failed!(Some(self), "quickack"))
 }
 }
 
-#[cfg(feature = "tcp_quickack")]
 #[cfg(target_os = "linux")]
 impl<T> TcpStreamExtContext for T where T: std :: os :: linux :: net :: TcpStreamExt {}
 #[cfg(feature = "unix_socket_ancillary_data")]
@@ -184,7 +190,10 @@ pub trait UnixSocketExtContext: std :: os :: linux :: net :: UnixSocketExt {
 /// 
 /// ```no_run
 /// #![feature(unix_socket_ancillary_data)]
+/// #[cfg(target_os = "linux")]
 /// use std::os::linux::net::UnixSocketExt;
+/// #[cfg(target_os = "android")]
+/// use std::os::android::net::UnixSocketExt;
 /// use std::os::unix::net::UnixDatagram;
 /// 
 /// fn main() -> std::io::Result<()> {

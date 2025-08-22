@@ -92,7 +92,7 @@ impl FunctionExt for Function {
         let input_type = &self.sig.inputs[i].1;
         if_chain! {
             if let Type::ResolvedPath(path) = input_type;
-            if path.path == "Permissions";
+            if path.path.split("::").last() == Some("Permissions");
             then {
                 true
             } else {

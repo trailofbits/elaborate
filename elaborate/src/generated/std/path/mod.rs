@@ -62,11 +62,12 @@ fn extension_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option ::
 /// # Examples
 /// 
 /// ```
-/// # #![feature(path_file_prefix)]
 /// use std::path::Path;
 /// 
 /// assert_eq!("foo", Path::new("foo.rs").file_prefix().unwrap());
 /// assert_eq!("foo", Path::new("foo.tar.gz").file_prefix().unwrap());
+/// assert_eq!(".config", Path::new(".config").file_prefix().unwrap());
+/// assert_eq!(".config", Path::new(".config.toml").file_prefix().unwrap());
 /// ```
 /// 
 /// # See Also
@@ -102,6 +103,22 @@ fn file_prefix_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option 
 /// 
 /// [`Path::file_prefix`]: Path::file_prefix
 fn file_stem_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > );
+/// Normalize a path, including `..` without traversing the filesystem.
+/// 
+/// Returns an error if normalization would leave leading `..` components.
+/// 
+/// <div class="warning">
+/// 
+/// This function always resolves `..` to the "lexical" parent.
+/// That is "a/b/../c" will always resolve to `a/c` which can change the meaning of the path.
+/// In particular, `a/c` and `a/b/../c` are distinct on many systems because `b` may be a symbolic link, so its parent isn't `a`.
+/// 
+/// </div>
+/// 
+/// [`path::absolute`](absolute) is an alternative that preserves `..`.
+/// Or [`Path::canonicalize`] can be used to resolve any `..` by querying the filesystem.
+#[cfg(feature = "normalize_lexically")]
+fn normalize_lexically_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: result :: Result < std :: path :: PathBuf , std :: path :: NormalizeError > );
 /// Queries the file system to get information about a file, directory, etc.
 /// 
 /// This function will traverse symbolic links to query information about the
@@ -158,7 +175,7 @@ fn read_link_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Resu
 /// permission is denied on one of the parent directories.
 /// 
 /// Note that while this avoids some pitfalls of the `exists()` method, it still can not
-/// prevent time-of-check to time-of-use (TOCTOU) bugs. You should only use it in scenarios
+/// prevent time-of-check to time-of-use ([TOCTOU]) bugs. You should only use it in scenarios
 /// where those bugs are not an issue.
 /// 
 /// This is an alias for [`std::fs::exists`](crate::fs::exists).
@@ -171,6 +188,7 @@ fn read_link_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Resu
 /// assert!(Path::new("/root/secret_file.txt").try_exists().is_err());
 /// ```
 /// 
+/// [TOCTOU]: fs#time-of-check-to-time-of-use-toctou
 /// [`exists()`]: Self::exists
 fn try_exists_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > );
 /// Returns a path that, when joined onto `base`, yields `self`.
@@ -319,6 +337,11 @@ fn file_stem_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option ::
     std :: path :: Path :: file_stem(self)
         .with_context(|| crate::call_failed!(Some(self), "file_stem"))
 }
+#[cfg(feature = "normalize_lexically")]
+fn normalize_lexically_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: result :: Result < std :: path :: PathBuf , std :: path :: NormalizeError > ) {
+    std :: path :: Path :: normalize_lexically(self)
+        .with_context(|| crate::call_failed!(Some(self), "normalize_lexically"))
+}
 fn metadata_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
     std :: path :: Path :: metadata(self)
         .with_context(|| crate::call_failed!(Some(self), "metadata"))
@@ -384,6 +407,11 @@ fn to_str_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Op
 /// paths, this is currently equivalent to calling
 /// [`GetFullPathNameW`][windows-path].
 /// 
+/// On Cygwin, this is currently equivalent to calling [`cygwin_conv_path`][cygwin-path]
+/// with mode `CCP_WIN_A_TO_POSIX`, and then being processed like other POSIX platforms.
+/// If a Windows path is given, it will be converted to an absolute POSIX path without
+/// keeping `..`.
+/// 
 /// Note that these [may change in the future][changes].
 /// 
 /// # Errors
@@ -441,6 +469,7 @@ fn to_str_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Op
 /// [changes]: io#platform-specific-behavior
 /// [posix-semantics]: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap04.html#tag_04_13
 /// [windows-path]: https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfullpathnamew
+/// [cygwin-path]: https://cygwin.com/cygwin-api/func-cygwin-conv-path.html
 pub fn absolute_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
     let path = path.as_ref();
     std :: path :: absolute(path)

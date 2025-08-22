@@ -322,6 +322,44 @@ pub fn chroot_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( dir 
     std :: os :: unix :: fs :: chroot(dir)
         .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::fs::chroot", dir))
 }
+/// Create a FIFO special file at the specified path with the specified mode.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// # #![feature(unix_mkfifo)]
+/// # #[cfg(not(unix))]
+/// # fn main() {}
+/// # #[cfg(unix)]
+/// # fn main() -> std::io::Result<()> {
+/// # use std::{
+/// #     os::unix::fs::{mkfifo, PermissionsExt},
+/// #     fs::{File, Permissions, remove_file},
+/// #     io::{Write, Read},
+/// # };
+/// # let _ = remove_file("/tmp/fifo");
+/// mkfifo("/tmp/fifo", Permissions::from_mode(0o774))?;
+/// 
+/// let mut wx = File::options().read(true).write(true).open("/tmp/fifo")?;
+/// let mut rx = File::open("/tmp/fifo")?;
+/// 
+/// wx.write_all(b"hello, world!")?;
+/// drop(wx);
+/// 
+/// let mut s = String::new();
+/// rx.read_to_string(&mut s)?;
+/// 
+/// assert_eq!(s, "hello, world!");
+/// # Ok(())
+/// # }
+/// ```
+#[cfg(feature = "unix_mkfifo")]
+#[cfg(unix)]
+pub fn mkfifo_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P , permissions : std :: fs :: Permissions ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    let path = path.as_ref();
+    std :: os :: unix :: fs :: mkfifo(path, permissions.clone())
+        .with_context(|| crate::call_failed!(None::<()>, "std::os::unix::fs::mkfifo", path, permissions))
+}
 /// Creates a new symbolic link on the filesystem.
 /// 
 /// The `link` path will be a symbolic link pointing to the `original` path.

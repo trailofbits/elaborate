@@ -6,14 +6,18 @@ use anyhow::Context;
 
 
 pub trait BufReadContext: std :: io :: BufRead {
-/// Checks if the underlying `Read` has any data left to be read.
+/// Checks if there is any data left to be `read`.
 /// 
 /// This function may fill the buffer to check for data,
-/// so this functions returns `Result<bool>`, not `bool`.
+/// so this function returns `Result<bool>`, not `bool`.
 /// 
-/// Default implementation calls `fill_buf` and checks that
+/// The default implementation calls `fill_buf` and checks that the
 /// returned slice is empty (which means that there is no data left,
 /// since EOF is reached).
+/// 
+/// # Errors
+/// 
+/// This function will return an I/O error if a `Read` method was called, but returned an error.
 /// 
 /// Examples
 /// 
@@ -163,24 +167,18 @@ fn read_line_wc ( & mut self , buf : & mut std :: string :: String ) -> crate ::
     < Self as :: std :: io :: BufRead > :: read_line(self, buf)
         .with_context(|| crate::call_failed!(Some(self), "read_line", buf))
 }
-/// Returns the contents of the internal buffer, filling it with more data
-/// from the inner reader if it is empty.
+/// Returns the contents of the internal buffer, filling it with more data, via `Read` methods, if empty.
 /// 
-/// This function is a lower-level call. It needs to be paired with the
-/// [`consume`] method to function properly. When calling this
-/// method, none of the contents will be "read" in the sense that later
-/// calling `read` may return the same contents. As such, [`consume`] must
-/// be called with the number of bytes that are consumed from this buffer to
-/// ensure that the bytes are never returned twice.
+/// This is a lower-level method and is meant to be used together with [`consume`],
+/// which can be used to mark bytes that should not be returned by subsequent calls to `read`.
 /// 
 /// [`consume`]: BufRead::consume
 /// 
-/// An empty buffer returned indicates that the stream has reached EOF.
+/// Returns an empty buffer when the stream has reached EOF.
 /// 
 /// # Errors
 /// 
-/// This function will return an I/O error if the underlying reader was
-/// read, but returned an error.
+/// This function will return an I/O error if a `Read` method was called, but returned an error.
 /// 
 /// # Examples
 /// 
@@ -198,7 +196,7 @@ fn read_line_wc ( & mut self , buf : & mut std :: string :: String ) -> crate ::
 /// // work with buffer
 /// println!("{buffer:?}");
 /// 
-/// // ensure the bytes we worked with aren't returned again later
+/// // mark the bytes we worked with as read
 /// let length = buffer.len();
 /// stdin.consume(length);
 /// # std::io::Result::Ok(())
@@ -213,7 +211,7 @@ fn fill_buf_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: R
 /// delimiter or EOF is found.
 /// 
 /// If successful, this function will return the total number of bytes read,
-/// including the delimiter byte.
+/// including the delimiter byte if found.
 /// 
 /// This is useful for efficiently skipping data such as NUL-terminated strings
 /// in binary file formats without buffering.
@@ -241,7 +239,7 @@ fn fill_buf_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: R
 /// ```
 /// use std::io::{self, BufRead};
 /// 
-/// let mut cursor = io::Cursor::new(b"Ferris\0Likes long walks on the beach\0Crustacean\0");
+/// let mut cursor = io::Cursor::new(b"Ferris\0Likes long walks on the beach\0Crustacean\0!");
 /// 
 /// // read name
 /// let mut name = Vec::new();
@@ -261,6 +259,11 @@ fn fill_buf_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: R
 ///     .expect("reading from cursor won't fail");
 /// assert_eq!(num_bytes, 11);
 /// assert_eq!(animal, b"Crustacean\0");
+/// 
+/// // reach EOF
+/// let num_bytes = cursor.skip_until(b'\0')
+///     .expect("reading from cursor won't fail");
+/// assert_eq!(num_bytes, 1);
 /// ```
 #[cfg(feature = "bufread_skip_until")]
 fn skip_until_wc ( & mut self , byte : u8 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
@@ -271,6 +274,157 @@ fn skip_until_wc ( & mut self , byte : u8 ) -> crate :: rewrite_output_type ! ( 
 
 impl<T> BufReadContext for T where T: std :: io :: BufRead {}
 pub trait ReadContext: std :: io :: Read {
+///  Reads all bytes until EOF in this source, appending them to `buf`.
+/// 
+///  If successful, this function returns the number of bytes which were read
+///  and appended to `buf`.
+/// 
+///  # Errors
+/// 
+///  If the data in this stream is *not* valid UTF-8 then an error is
+///  returned and `buf` is unchanged.
+/// 
+///  See [`read_to_end`] for other error semantics.
+/// 
+///  [`read_to_end`]: Read::read_to_end
+/// 
+///  # Examples
+/// 
+///  [`File`]s implement `Read`:
+/// 
+///  [`File`]: crate::fs::File
+/// 
+///  ```no_run
+///  use std::io;
+///  use std::io::prelude::*;
+///  use std::fs::File;
+/// 
+///  fn main() -> io::Result<()> {
+///      let mut f = File::open("foo.txt")?;
+///      let mut buffer = String::new();
+/// 
+///      f.read_to_string(&mut buffer)?;
+///      Ok(())
+///  }
+///  ```
+/// 
+///  (See also the [`std::fs::read_to_string`] convenience function for
+///  reading from a file.)
+/// 
+///  # Usage Notes
+/// 
+///  `read_to_string` attempts to read a source until EOF, but many sources are continuous streams
+///  that do not send EOF. In these cases, `read_to_string` will block indefinitely. Standard input
+///  is one such stream which may be finite if piped, but is typically continuous. For example,
+///  `cat file | my-rust-program` will correctly terminate with an `EOF` upon closure of cat.
+///  Reading user input or running programs that remain open indefinitely will never terminate
+///  the stream with `EOF` (e.g. `yes | my-rust-program`).
+/// 
+///  Using `.lines()` with a [`BufReader`] or using [`read`] can provide a better solution
+/// 
+/// [`read`]: Read::read
+/// 
+///  [`std::fs::read_to_string`]: crate::fs::read_to_string
+fn read_to_string_wc ( & mut self , buf : & mut std :: string :: String ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
+    < Self as :: std :: io :: Read > :: read_to_string(self, buf)
+        .with_context(|| crate::call_failed!(Some(self), "read_to_string", buf))
+}
+///  Reads all bytes until EOF in this source, placing them into `buf`.
+/// 
+///  All bytes read from this source will be appended to the specified buffer
+///  `buf`. This function will continuously call [`read()`] to append more data to
+///  `buf` until [`read()`] returns either [`Ok(0)`] or an error of
+///  non-[`ErrorKind::Interrupted`] kind.
+/// 
+///  If successful, this function will return the total number of bytes read.
+/// 
+///  # Errors
+/// 
+///  If this function encounters an error of the kind
+///  [`ErrorKind::Interrupted`] then the error is ignored and the operation
+///  will continue.
+/// 
+///  If any other read error is encountered then this function immediately
+///  returns. Any bytes which have already been read will be appended to
+///  `buf`.
+/// 
+///  # Examples
+/// 
+///  [`File`]s implement `Read`:
+/// 
+///  [`read()`]: Read::read
+///  [`Ok(0)`]: Ok
+///  [`File`]: crate::fs::File
+/// 
+///  ```no_run
+///  use std::io;
+///  use std::io::prelude::*;
+///  use std::fs::File;
+/// 
+///  fn main() -> io::Result<()> {
+///      let mut f = File::open("foo.txt")?;
+///      let mut buffer = Vec::new();
+/// 
+///      // read the whole file
+///      f.read_to_end(&mut buffer)?;
+///      Ok(())
+///  }
+///  ```
+/// 
+///  (See also the [`std::fs::read`] convenience function for reading from a
+///  file.)
+/// 
+///  [`std::fs::read`]: crate::fs::read
+/// 
+///  ## Implementing `read_to_end`
+/// 
+///  When implementing the `io::Read` trait, it is recommended to allocate
+///  memory using [`Vec::try_reserve`]. However, this behavior is not guaranteed
+///  by all implementations, and `read_to_end` may not handle out-of-memory
+///  situations gracefully.
+/// 
+///  ```no_run
+///  # use std::io::{self, BufRead};
+///  # struct Example { example_datasource: io::Empty } impl Example {
+///  # fn get_some_data_for_the_example(&self) -> &'static [u8] { &[] }
+///  fn read_to_end(&mut self, dest_vec: &mut Vec<u8>) -> io::Result<usize> {
+///      let initial_vec_len = dest_vec.len();
+///      loop {
+///          let src_buf = self.example_datasource.fill_buf()?;
+///          if src_buf.is_empty() {
+///              break;
+///          }
+///          dest_vec.try_reserve(src_buf.len())?;
+///          dest_vec.extend_from_slice(src_buf);
+/// 
+///          // Any irreversible side effects should happen after `try_reserve` succeeds,
+///          // to avoid losing data on allocation error.
+///          let read = src_buf.len();
+///          self.example_datasource.consume(read);
+///      }
+///      Ok(dest_vec.len() - initial_vec_len)
+///  }
+///  # }
+///  ```
+/// 
+///  # Usage Notes
+/// 
+///  `read_to_end` attempts to read a source until EOF, but many sources are continuous streams
+///  that do not send EOF. In these cases, `read_to_end` will block indefinitely. Standard input
+///  is one such stream which may be finite if piped, but is typically continuous. For example,
+///  `cat file | my-rust-program` will correctly terminate with an `EOF` upon closure of cat.
+///  Reading user input or running programs that remain open indefinitely will never terminate
+///  the stream with `EOF` (e.g. `yes | my-rust-program`).
+/// 
+///  Using `.lines()` with a [`BufReader`] or using [`read`] can provide a better solution
+/// 
+/// [`read`]: Read::read
+/// 
+///  [`Vec::try_reserve`]: crate::vec::Vec::try_reserve
+fn read_to_end_wc ( & mut self , buf : & mut std :: vec :: Vec < u8 > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
+    < Self as :: std :: io :: Read > :: read_to_end(self, buf)
+        .with_context(|| crate::call_failed!(Some(self), "read_to_end", buf))
+}
 /// Like `read`, except that it reads into a slice of buffers.
 /// 
 /// Data is copied to fill each buffer in order, with the final buffer
@@ -380,131 +534,6 @@ fn read_buf_wc ( & mut self , buf : core :: io :: BorrowedCursor < '_ > ) -> cra
     < Self as :: std :: io :: Read > :: read_buf(self, buf)
         .with_context(|| crate::call_failed!(Some(self), "read_buf", crate::CustomDebugMessage("value of type BorrowedCursor")))
 }
-/// Reads all bytes until EOF in this source, appending them to `buf`.
-/// 
-/// If successful, this function returns the number of bytes which were read
-/// and appended to `buf`.
-/// 
-/// # Errors
-/// 
-/// If the data in this stream is *not* valid UTF-8 then an error is
-/// returned and `buf` is unchanged.
-/// 
-/// See [`read_to_end`] for other error semantics.
-/// 
-/// [`read_to_end`]: Read::read_to_end
-/// 
-/// # Examples
-/// 
-/// [`File`]s implement `Read`:
-/// 
-/// [`File`]: crate::fs::File
-/// 
-/// ```no_run
-/// use std::io;
-/// use std::io::prelude::*;
-/// use std::fs::File;
-/// 
-/// fn main() -> io::Result<()> {
-///     let mut f = File::open("foo.txt")?;
-///     let mut buffer = String::new();
-/// 
-///     f.read_to_string(&mut buffer)?;
-///     Ok(())
-/// }
-/// ```
-/// 
-/// (See also the [`std::fs::read_to_string`] convenience function for
-/// reading from a file.)
-/// 
-/// [`std::fs::read_to_string`]: crate::fs::read_to_string
-fn read_to_string_wc ( & mut self , buf : & mut std :: string :: String ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-    < Self as :: std :: io :: Read > :: read_to_string(self, buf)
-        .with_context(|| crate::call_failed!(Some(self), "read_to_string", buf))
-}
-/// Reads all bytes until EOF in this source, placing them into `buf`.
-/// 
-/// All bytes read from this source will be appended to the specified buffer
-/// `buf`. This function will continuously call [`read()`] to append more data to
-/// `buf` until [`read()`] returns either [`Ok(0)`] or an error of
-/// non-[`ErrorKind::Interrupted`] kind.
-/// 
-/// If successful, this function will return the total number of bytes read.
-/// 
-/// # Errors
-/// 
-/// If this function encounters an error of the kind
-/// [`ErrorKind::Interrupted`] then the error is ignored and the operation
-/// will continue.
-/// 
-/// If any other read error is encountered then this function immediately
-/// returns. Any bytes which have already been read will be appended to
-/// `buf`.
-/// 
-/// # Examples
-/// 
-/// [`File`]s implement `Read`:
-/// 
-/// [`read()`]: Read::read
-/// [`Ok(0)`]: Ok
-/// [`File`]: crate::fs::File
-/// 
-/// ```no_run
-/// use std::io;
-/// use std::io::prelude::*;
-/// use std::fs::File;
-/// 
-/// fn main() -> io::Result<()> {
-///     let mut f = File::open("foo.txt")?;
-///     let mut buffer = Vec::new();
-/// 
-///     // read the whole file
-///     f.read_to_end(&mut buffer)?;
-///     Ok(())
-/// }
-/// ```
-/// 
-/// (See also the [`std::fs::read`] convenience function for reading from a
-/// file.)
-/// 
-/// [`std::fs::read`]: crate::fs::read
-/// 
-/// ## Implementing `read_to_end`
-/// 
-/// When implementing the `io::Read` trait, it is recommended to allocate
-/// memory using [`Vec::try_reserve`]. However, this behavior is not guaranteed
-/// by all implementations, and `read_to_end` may not handle out-of-memory
-/// situations gracefully.
-/// 
-/// ```no_run
-/// # use std::io::{self, BufRead};
-/// # struct Example { example_datasource: io::Empty } impl Example {
-/// # fn get_some_data_for_the_example(&self) -> &'static [u8] { &[] }
-/// fn read_to_end(&mut self, dest_vec: &mut Vec<u8>) -> io::Result<usize> {
-///     let initial_vec_len = dest_vec.len();
-///     loop {
-///         let src_buf = self.example_datasource.fill_buf()?;
-///         if src_buf.is_empty() {
-///             break;
-///         }
-///         dest_vec.try_reserve(src_buf.len())?;
-///         dest_vec.extend_from_slice(src_buf);
-/// 
-///         // Any irreversible side effects should happen after `try_reserve` succeeds,
-///         // to avoid losing data on allocation error.
-///         let read = src_buf.len();
-///         self.example_datasource.consume(read);
-///     }
-///     Ok(dest_vec.len() - initial_vec_len)
-/// }
-/// # }
-/// ```
-/// 
-/// [`Vec::try_reserve`]: crate::vec::Vec::try_reserve
-fn read_to_end_wc ( & mut self , buf : & mut std :: vec :: Vec < u8 > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
-    < Self as :: std :: io :: Read > :: read_to_end(self, buf)
-        .with_context(|| crate::call_failed!(Some(self), "read_to_end", buf))
-}
 /// Reads the exact number of bytes required to fill `buf`.
 /// 
 /// This function reads as many bytes as necessary to completely fill the
@@ -613,7 +642,7 @@ fn stream_position_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: 
 }
 /// Returns the length of this stream (in bytes).
 /// 
-/// This method is implemented using up to three seek operations. If this
+/// The default implementation uses up to three seek operations. If this
 /// method returns successfully, the seek position is unchanged (i.e. the
 /// position before calling this method is the same as afterwards).
 /// However, if this method returns an error, the seek position is
@@ -965,9 +994,9 @@ fn write_wc ( & mut self , buf : & [ u8 ] ) -> crate :: rewrite_output_type ! ( 
 ///     Ok(())
 /// }
 /// ```
-fn write_fmt_wc ( & mut self , fmt : core :: fmt :: Arguments < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    < Self as :: std :: io :: Write > :: write_fmt(self, fmt)
-        .with_context(|| crate::call_failed!(Some(self), "write_fmt", fmt))
+fn write_fmt_wc ( & mut self , args : core :: fmt :: Arguments < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    < Self as :: std :: io :: Write > :: write_fmt(self, args)
+        .with_context(|| crate::call_failed!(Some(self), "write_fmt", args))
 }
 }
 
@@ -1146,14 +1175,12 @@ fn raw_os_error_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option
         .with_context(|| crate::call_failed!(Some(self), "raw_os_error"))
 }
 }
-#[cfg(feature = "anonymous_pipe")]
 pub trait PipeReaderContext: Sized {
-/// Create a new [`PipeReader`] instance that shares the same underlying file description.
+/// Creates a new [`PipeReader`] instance that shares the same underlying file description.
 /// 
 /// # Examples
 /// 
 /// ```no_run
-/// #![feature(anonymous_pipe)]
 /// # #[cfg(miri)] fn main() {}
 /// # #[cfg(not(miri))]
 /// # fn main() -> std::io::Result<()> {
@@ -1203,21 +1230,18 @@ pub trait PipeReaderContext: Sized {
 /// ```
 fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
 }
-#[cfg(feature = "anonymous_pipe")]
 impl PipeReaderContext for std :: io :: PipeReader {
 fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     std :: io :: PipeReader :: try_clone(self)
         .with_context(|| crate::call_failed!(Some(self), "try_clone"))
 }
 }
-#[cfg(feature = "anonymous_pipe")]
 pub trait PipeWriterContext: Sized {
-/// Create a new [`PipeWriter`] instance that shares the same underlying file description.
+/// Creates a new [`PipeWriter`] instance that shares the same underlying file description.
 /// 
 /// # Examples
 /// 
 /// ```no_run
-/// #![feature(anonymous_pipe)]
 /// # #[cfg(miri)] fn main() {}
 /// # #[cfg(not(miri))]
 /// # fn main() -> std::io::Result<()> {
@@ -1247,7 +1271,6 @@ pub trait PipeWriterContext: Sized {
 /// ```
 fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
 }
-#[cfg(feature = "anonymous_pipe")]
 impl PipeWriterContext for std :: io :: PipeWriter {
 fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
     std :: io :: PipeWriter :: try_clone(self)
@@ -1296,6 +1319,67 @@ fn read_line_wc ( & self , buf : & mut std :: string :: String ) -> crate :: rew
 }
 
 
+///  Reads all bytes from a [reader][Read] into a new [`String`].
+/// 
+///  This is a convenience function for [`Read::read_to_string`]. Using this
+///  function avoids having to create a variable first and provides more type
+///  safety since you can only get the buffer out if there were no errors. (If you
+///  use [`Read::read_to_string`] you have to remember to check whether the read
+///  succeeded because otherwise your buffer will be empty or only partially full.)
+/// 
+///  # Performance
+/// 
+///  The downside of this function's increased ease of use and type safety is
+///  that it gives you less control over performance. For example, you can't
+///  pre-allocate memory like you can using [`String::with_capacity`] and
+///  [`Read::read_to_string`]. Also, you can't re-use the buffer if an error
+///  occurs while reading.
+/// 
+///  In many cases, this function's performance will be adequate and the ease of use
+///  and type safety tradeoffs will be worth it. However, there are cases where you
+///  need more control over performance, and in those cases you should definitely use
+///  [`Read::read_to_string`] directly.
+/// 
+///  Note that in some special cases, such as when reading files, this function will
+///  pre-allocate memory based on the size of the input it is reading. In those
+///  cases, the performance should be as good as if you had used
+///  [`Read::read_to_string`] with a manually pre-allocated buffer.
+/// 
+///  # Errors
+/// 
+///  This function forces you to handle errors because the output (the `String`)
+///  is wrapped in a [`Result`]. See [`Read::read_to_string`] for the errors
+///  that can occur. If any error occurs, you will get an [`Err`], so you
+///  don't have to worry about your buffer being empty or partially full.
+/// 
+///  # Examples
+/// 
+///  ```no_run
+///  # use std::io;
+///  fn main() -> io::Result<()> {
+///      let stdin = io::read_to_string(io::stdin())?;
+///      println!("Stdin was:");
+///      println!("{stdin}");
+///      Ok(())
+///  }
+///  ```
+/// 
+///  # Usage Notes
+/// 
+///  `read_to_string` attempts to read a source until EOF, but many sources are continuous streams
+///  that do not send EOF. In these cases, `read_to_string` will block indefinitely. Standard input
+///  is one such stream which may be finite if piped, but is typically continuous. For example,
+///  `cat file | my-rust-program` will correctly terminate with an `EOF` upon closure of cat.
+///  Reading user input or running programs that remain open indefinitely will never terminate
+///  the stream with `EOF` (e.g. `yes | my-rust-program`).
+/// 
+///  Using `.lines()` with a [`BufReader`] or using [`read`] can provide a better solution
+/// 
+/// [`read`]: Read::read
+pub fn read_to_string_wc < R : std :: io :: Read > ( reader : R ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: string :: String > ) {
+    std :: io :: read_to_string(reader)
+        .with_context(|| crate::call_failed!(None::<()>, "std::io::read_to_string", crate::CustomDebugMessage("value of type impl Read")))
+}
 /// Copies the entire contents of a reader into a writer.
 /// 
 /// This function will continuously read data from `reader` and then
@@ -1349,7 +1433,7 @@ pub fn copy_wc < R , W > ( reader : & mut R , writer : & mut W ) -> crate :: rew
     std :: io :: copy(reader, writer)
         .with_context(|| crate::call_failed!(None::<()>, "std::io::copy", reader, writer))
 }
-/// Create an anonymous pipe.
+/// Creates an anonymous pipe.
 /// 
 /// # Behavior
 /// 
@@ -1385,86 +1469,50 @@ pub fn copy_wc < R , W > ( reader : & mut R , writer : & mut W ) -> crate :: rew
 /// > not rely on a particular capacity: an application should be designed so that a reading process
 /// > consumes data as soon as it is available, so that a writing process does not remain blocked.
 /// 
-/// # Examples
+/// # Example
 /// 
 /// ```no_run
-/// #![feature(anonymous_pipe)]
 /// # #[cfg(miri)] fn main() {}
 /// # #[cfg(not(miri))]
 /// # fn main() -> std::io::Result<()> {
+/// use std::io::{Read, Write, pipe};
 /// use std::process::Command;
-/// use std::io::{pipe, Read, Write};
-/// let (ping_rx, mut ping_tx) = pipe()?;
-/// let (mut pong_rx, pong_tx) = pipe()?;
+/// let (ping_reader, mut ping_writer) = pipe()?;
+/// let (mut pong_reader, pong_writer) = pipe()?;
 /// 
-/// // Spawn a process that echoes its input.
-/// let mut echo_server = Command::new("cat").stdin(ping_rx).stdout(pong_tx).spawn()?;
+/// // Spawn a child process that echoes its input.
+/// let mut echo_command = Command::new("cat");
+/// echo_command.stdin(ping_reader);
+/// echo_command.stdout(pong_writer);
+/// let mut echo_child = echo_command.spawn()?;
 /// 
-/// ping_tx.write_all(b"hello")?;
-/// // Close to unblock echo_server's reader.
-/// drop(ping_tx);
+/// // Send input to the child process. Note that because we're writing all the input before we
+/// // read any output, this could deadlock if the child's input and output pipe buffers both
+/// // filled up. Those buffers are usually at least a few KB, so "hello" is fine, but for longer
+/// // inputs we'd need to read and write at the same time, e.g. using threads.
+/// ping_writer.write_all(b"hello")?;
+/// 
+/// // `cat` exits when it reads EOF from stdin, but that can't happen while any ping writer
+/// // remains open. We need to drop our ping writer, or read_to_string will deadlock below.
+/// drop(ping_writer);
+/// 
+/// // The pong reader can't report EOF while any pong writer remains open. Our Command object is
+/// // holding a pong writer, and again read_to_string will deadlock if we don't drop it.
+/// drop(echo_command);
 /// 
 /// let mut buf = String::new();
-/// // Block until echo_server's writer is closed.
-/// pong_rx.read_to_string(&mut buf)?;
+/// // Block until `cat` closes its stdout (a pong writer).
+/// pong_reader.read_to_string(&mut buf)?;
 /// assert_eq!(&buf, "hello");
 /// 
-/// echo_server.wait()?;
+/// // At this point we know `cat` has exited, but we still need to wait to clean up the "zombie".
+/// echo_child.wait()?;
 /// # Ok(())
 /// # }
 /// ```
 /// [changes]: io#platform-specific-behavior
 /// [man page]: https://man7.org/linux/man-pages/man7/pipe.7.html
-#[cfg(feature = "anonymous_pipe")]
 pub fn pipe_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( std :: io :: PipeReader , std :: io :: PipeWriter ) > ) {
     std :: io :: pipe()
         .with_context(|| crate::call_failed!(None::<()>, "std::io::pipe"))
-}
-/// Reads all bytes from a [reader][Read] into a new [`String`].
-/// 
-/// This is a convenience function for [`Read::read_to_string`]. Using this
-/// function avoids having to create a variable first and provides more type
-/// safety since you can only get the buffer out if there were no errors. (If you
-/// use [`Read::read_to_string`] you have to remember to check whether the read
-/// succeeded because otherwise your buffer will be empty or only partially full.)
-/// 
-/// # Performance
-/// 
-/// The downside of this function's increased ease of use and type safety is
-/// that it gives you less control over performance. For example, you can't
-/// pre-allocate memory like you can using [`String::with_capacity`] and
-/// [`Read::read_to_string`]. Also, you can't re-use the buffer if an error
-/// occurs while reading.
-/// 
-/// In many cases, this function's performance will be adequate and the ease of use
-/// and type safety tradeoffs will be worth it. However, there are cases where you
-/// need more control over performance, and in those cases you should definitely use
-/// [`Read::read_to_string`] directly.
-/// 
-/// Note that in some special cases, such as when reading files, this function will
-/// pre-allocate memory based on the size of the input it is reading. In those
-/// cases, the performance should be as good as if you had used
-/// [`Read::read_to_string`] with a manually pre-allocated buffer.
-/// 
-/// # Errors
-/// 
-/// This function forces you to handle errors because the output (the `String`)
-/// is wrapped in a [`Result`]. See [`Read::read_to_string`] for the errors
-/// that can occur. If any error occurs, you will get an [`Err`], so you
-/// don't have to worry about your buffer being empty or partially full.
-/// 
-/// # Examples
-/// 
-/// ```no_run
-/// # use std::io;
-/// fn main() -> io::Result<()> {
-///     let stdin = io::read_to_string(io::stdin())?;
-///     println!("Stdin was:");
-///     println!("{stdin}");
-///     Ok(())
-/// }
-/// ```
-pub fn read_to_string_wc < R : std :: io :: Read > ( reader : R ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: string :: String > ) {
-    std :: io :: read_to_string(reader)
-        .with_context(|| crate::call_failed!(None::<()>, "std::io::read_to_string", crate::CustomDebugMessage("value of type impl Read")))
 }
