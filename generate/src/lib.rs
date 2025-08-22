@@ -958,7 +958,7 @@ mod test {
 
         let mut value = serde_json::Value::from_str(&json_generated).unwrap();
 
-        strip_manifest_dir_from_filenames(&mut value);
+        normalize_filenames(&mut value);
 
         let json_normalized = serde_json::to_string_pretty(&value).unwrap();
 
@@ -1011,7 +1011,7 @@ mod test {
         }
     }
 
-    fn strip_manifest_dir_from_filenames(value: &mut serde_json::Value) {
+    fn normalize_filenames(value: &mut serde_json::Value) {
         match value {
             serde_json::Value::Null
             | serde_json::Value::Bool(_)
@@ -1019,7 +1019,7 @@ mod test {
             | serde_json::Value::String(_) => {}
             serde_json::Value::Array(array) => {
                 for value in array {
-                    strip_manifest_dir_from_filenames(value);
+                    normalize_filenames(value);
                 }
             }
             serde_json::Value::Object(object) => {
@@ -1031,10 +1031,11 @@ mod test {
                         *value = serde_json::Value::from(
                             path.strip_prefix(env!("CARGO_MANIFEST_DIR"))
                                 .unwrap_or(path)
-                                .to_string_lossy(),
+                                .to_string_lossy()
+                                .replace('\\', "/"),
                         );
                     }
-                    strip_manifest_dir_from_filenames(value);
+                    normalize_filenames(value);
                     true
                 });
             }
