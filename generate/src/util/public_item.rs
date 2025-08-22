@@ -1,4 +1,4 @@
-use public_api::{tokens::Token, PublicItem};
+use public_api::{PublicItem, tokens::Token};
 
 pub trait PublicItemExt {
     fn printable_tokens(&self) -> Vec<Token>;
