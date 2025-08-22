@@ -56,7 +56,7 @@ call failed:
             attributes: 0,
             share_mode: 7,
             security_qos_flags: 0,
-            security_attributes: 0x0000000000000000,
+            inherit_handle: false,
         },
     ).open(
         \"/nonexistent_file\",

@@ -2,7 +2,7 @@ use anyhow::Result;
 use if_chain::if_chain;
 use public_api::tokens::Token;
 use regex::Regex;
-use rustdoc_types::{Crate, Function, Id, ItemEnum, Type};
+use rustdoc_types::{Attribute, Crate, Function, Id, ItemEnum, Type};
 use std::{
     collections::{BTreeMap, HashSet},
     fs::{File, OpenOptions, create_dir_all},
@@ -93,6 +93,9 @@ static GENERIC_STRUCTS: LazyLock<Vec<Vec<Token>>> = LazyLock::new(|| {
         (&["std", "sync", "mpsc"], "Receiver"),
         (&["std", "sync", "mpsc"], "Sender"),
         (&["std", "sync", "mpsc"], "SyncSender"),
+        (&["std", "sync", "nonpoison"], "MappedMutexGuard"),
+        (&["std", "sync", "nonpoison"], "Mutex"),
+        (&["std", "sync", "nonpoison"], "MutexGuard"),
         (&["std", "thread"], "JoinHandle"),
         (&["std", "thread"], "LocalKey"),
         (&["std", "thread"], "ScopedJoinHandle"),
@@ -482,7 +485,7 @@ impl Generator {
         for (disallowable_qualified_fn, disallowable_qualified_fn_wrapper) in &self.disallowed {
             writeln!(
                 file,
-                r#"    {{ path = "{}", replacement = "elaborate::{}" }},"#,
+                r#"    {{ path = "{}", replacement = "elaborate::{}", allow-invalid = true }},"#,
                 disallowable_qualified_fn.to_string_compact().unwrap(),
                 disallowable_qualified_fn_wrapper
                     .to_string_compact()
@@ -520,7 +523,7 @@ static UNSTABLE_RE: LazyLock<Regex> =
 
 static UNSTABLE_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
-        r#"#!?\[attr="Stability\{stability:\sStability\{level:\sUnstable\{[^}]*\}feature:\s([^}]*)"#,
+        r#"#!?\[attr\s=\sStability\s\{stability:\sStability\s\{level:\sUnstable\s\{[^}]*\},\sfeature:\s"([^"]*)"#,
     )
     .unwrap()
 });
@@ -528,11 +531,12 @@ static UNSTABLE_RE: LazyLock<Regex> = LazyLock::new(|| {
 #[test]
 fn unstable_re() {
     const CASES: &[&str] = &[
-        "#[attr=\"Stability{stability: Stability{level: Unstable{reason: \
-         Noneissue:\n127154is_soft: falseimplied_by: }feature: anonymous_pipe}span: }\")]\n",
-        "#[attr=\"Stability{stability: Stability{level: Unstable{reason:\nSome(recently \
-         added)issue: 86423is_soft: falseimplied_by: }feature:\nbuf_read_has_data_left}span: \
-         }\")]\n",
+        "#[attr = Stability {stability: Stability {level: Unstable {reason: None,\nissue: 130804, \
+         is_soft: false}, feature: \"file_buffered\"}}]\n",
+        "#[attr = Stability {stability: Stability {level: Unstable {reason: None,\nissue: 59359, \
+         is_soft: false}, feature: \"seek_stream_len\"}}]\n",
+        "#[attr = Stability {stability: Stability {level: Unstable {reason: None,\nissue: 141607, \
+         is_soft: false}, feature: \"set_permissions_nofollow\"}}]\n",
     ];
     for case in CASES {
         let caps = UNSTABLE_RE.captures(case).unwrap();
@@ -540,11 +544,13 @@ fn unstable_re() {
     }
 }
 
-fn rewrite_attrs(attrs: &[String]) -> Vec<String> {
+fn rewrite_attrs(attrs: &[Attribute]) -> Vec<String> {
     attrs
         .iter()
         .filter_map(|attr| {
-            if let Some(caps) = UNSTABLE_RE.captures(attr) {
+            if let Attribute::Other(other) = attr
+                && let Some(caps) = UNSTABLE_RE.captures(other)
+            {
                 assert_eq!(2, caps.len());
                 Some(format!("#[cfg(feature = \"{}\")]\n", &caps[1]))
             } else {
@@ -837,7 +843,7 @@ fn disallowable_qualified_fn(
     assert!(!fn_tokens.is_empty());
     assert!(matches!(fn_tokens[0], Token::Function(_)));
     let fn_name = fn_tokens[0].clone();
-    let fn_wrapper_name = fn_wrapper_tokens(&[fn_name.clone()]);
+    let fn_wrapper_name = fn_wrapper_tokens(std::slice::from_ref(&fn_name));
     #[allow(clippy::if_not_else)]
     if !qualified_type.is_empty() {
         let qualified_type_wrapper = qualified_type_wrapper_tokens(qualified_type);

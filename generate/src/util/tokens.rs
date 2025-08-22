@@ -33,6 +33,10 @@ static GATED_PATHS: LazyLock<Vec<(Vec<Token>, &str)>> = LazyLock::new(|| {
         r#"feature = "raw_os_error_ty""#,
     )))
     .chain(std::iter::once((
+        qualified_type_function(&["std", "path"], "Path", "file_prefix"),
+        r#"feature = "path_file_prefix""#,
+    )))
+    .chain(std::iter::once((
         qualified_type_function(&["std", "thread"], "Builder", "spawn_unchecked"),
         r#"feature = "thread_spawn_unchecked""#,
     )))

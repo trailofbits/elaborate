@@ -1388,11 +1388,11 @@ fn set_read_timeout_wc ( & self , timeout : core :: option :: Option < core :: t
 /// 
 /// ```no_run
 /// use std::io;
-/// use std::net::UdpSocket;
+/// use std::os::unix::net::UnixStream;
 /// use std::time::Duration;
 /// 
 /// fn main() -> std::io::Result<()> {
-///     let socket = UdpSocket::bind("127.0.0.1:34254")?;
+///     let socket = UnixStream::connect("/tmp/sock")?;
 ///     let result = socket.set_write_timeout(Some(Duration::new(0, 0)));
 ///     let err = result.unwrap_err();
 ///     assert_eq!(err.kind(), io::ErrorKind::InvalidInput);

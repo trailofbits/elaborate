@@ -74,6 +74,9 @@ pub fn var_os_wc < K : core :: convert :: AsRef < std :: ffi :: OsStr > > ( key 
 /// Returns [`VarError::NotUnicode`] if the variable's value is not valid
 /// Unicode. If this is not desired, consider using [`var_os`].
 /// 
+/// Use [`env!`] or [`option_env!`] instead if you want to check environment
+/// variables at compile time.
+/// 
 /// # Examples
 /// 
 /// ```
@@ -257,7 +260,7 @@ pub fn current_exe_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Resul
 /// # Unix
 /// 
 /// - Returns the value of the 'HOME' environment variable if it is set
-///   (including to an empty string).
+///   (and not an empty string).
 /// - Otherwise, it tries to determine the home directory by invoking the `getpwuid_r` function
 ///   using the UID of the current user. An empty home directory field returned from the
 ///   `getpwuid_r` function is considered to be a valid value.

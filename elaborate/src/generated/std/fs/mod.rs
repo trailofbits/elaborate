@@ -122,7 +122,7 @@ pub trait FileContext: Sized + std::io::Write {
 /// other methods, such as [`read`] and [`write`] are platform specific, and it may or may not
 /// cause non-lockholders to block.
 /// 
-/// If this file handle/descriptor, or a clone of it, already holds an lock, the exact behavior
+/// If this file handle/descriptor, or a clone of it, already holds a lock, the exact behavior
 /// is unspecified and platform dependent, including the possibility that it will deadlock.
 /// However, if this method returns, then a shared lock is held.
 /// 
@@ -169,11 +169,11 @@ fn lock_shared_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Re
 /// other methods, such as [`read`] and [`write`] are platform specific, and it may or may not
 /// cause non-lockholders to block.
 /// 
-/// If this file handle/descriptor, or a clone of it, already holds an lock the exact behavior
+/// If this file handle/descriptor, or a clone of it, already holds a lock the exact behavior
 /// is unspecified and platform dependent, including the possibility that it will deadlock.
 /// However, if this method returns, then an exclusive lock is held.
 /// 
-/// If the file not open for writing, it is unspecified whether this function returns an error.
+/// If the file is not open for writing, it is unspecified whether this function returns an error.
 /// 
 /// The lock will be released when this file (along with any other file descriptors/handles
 /// duplicated or inherited from it) is closed, or if the [`unlock`] method is called.
@@ -344,6 +344,11 @@ fn set_permissions_wc ( & self , perm : std :: fs :: Permissions ) -> crate :: r
 /// `futimes` on macOS before 10.13) and the `SetFileTime` function on Windows. Note that this
 /// [may change in the future][changes].
 /// 
+/// On most platforms, including UNIX and Windows platforms, this function can also change the
+/// timestamps of a directory. To get a `File` representing a directory in order to call
+/// `set_times`, open the directory with `File::open` without attempting to obtain write
+/// permission.
+/// 
 /// [changes]: io#platform-specific-behavior
 /// 
 /// # Errors
@@ -361,7 +366,7 @@ fn set_permissions_wc ( & self , perm : std :: fs :: Permissions ) -> crate :: r
 ///     use std::fs::{self, File, FileTimes};
 /// 
 ///     let src = fs::metadata("src")?;
-///     let dest = File::options().write(true).open("dest")?;
+///     let dest = File::open("dest")?;
 ///     let times = FileTimes::new()
 ///         .set_accessed(src.accessed()?)
 ///         .set_modified(src.modified()?);
@@ -419,13 +424,14 @@ fn try_clone_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Resu
 /// non-exhaustive list of likely errors.
 /// 
 /// This option is useful because it is atomic. Otherwise between checking whether a file
-/// exists and creating a new one, the file may have been created by another process (a TOCTOU
+/// exists and creating a new one, the file may have been created by another process (a [TOCTOU]
 /// race condition / attack).
 /// 
 /// This can also be written using
 /// `File::options().read(true).write(true).create_new(true).open(...)`.
 /// 
 /// [`AlreadyExists`]: crate::io::ErrorKind::AlreadyExists
+/// [TOCTOU]: self#time-of-check-to-time-of-use-toctou
 /// 
 /// # Examples
 /// 
@@ -609,8 +615,8 @@ fn sync_data_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Resu
 fn set_len_wc ( & self , size : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
 /// Try to acquire a shared (non-exclusive) lock on the file.
 /// 
-/// Returns `Ok(false)` if an exclusive lock is already held on this file (via another
-/// handle/descriptor).
+/// Returns `Err(TryLockError::WouldBlock)` if a different lock is already held on this file
+/// (via another handle/descriptor).
 /// 
 /// This acquires a shared lock; more than one file handle may hold a shared lock, but none may
 /// hold an exclusive lock at the same time.
@@ -620,9 +626,9 @@ fn set_len_wc ( & self , size : u64 ) -> crate :: rewrite_output_type ! ( std ::
 /// other methods, such as [`read`] and [`write`] are platform specific, and it may or may not
 /// cause non-lockholders to block.
 /// 
-/// If this file handle, or a clone of it, already holds an lock, the exact behavior is
+/// If this file handle, or a clone of it, already holds a lock, the exact behavior is
 /// unspecified and platform dependent, including the possibility that it will deadlock.
-/// However, if this method returns `Ok(true)`, then it has acquired a shared lock.
+/// However, if this method returns `Ok(())`, then it has acquired a shared lock.
 /// 
 /// The lock will be released when this file (along with any other file descriptors/handles
 /// duplicated or inherited from it) is closed, or if the [`unlock`] method is called.
@@ -650,19 +656,27 @@ fn set_len_wc ( & self , size : u64 ) -> crate :: rewrite_output_type ! ( std ::
 /// # Examples
 /// 
 /// ```no_run
-/// use std::fs::File;
+/// use std::fs::{File, TryLockError};
 /// 
 /// fn main() -> std::io::Result<()> {
 ///     let f = File::open("foo.txt")?;
+///     // Explicit handling of the WouldBlock error
+///     match f.try_lock_shared() {
+///         Ok(_) => (),
+///         Err(TryLockError::WouldBlock) => (), // Lock not acquired
+///         Err(TryLockError::Error(err)) => return Err(err),
+///     }
+///     // Alternately, propagate the error as an io::Error
 ///     f.try_lock_shared()?;
+/// 
 ///     Ok(())
 /// }
 /// ```
-fn try_lock_shared_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > );
+fn try_lock_shared_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: result :: Result < ( ) , std :: fs :: TryLockError > );
 /// Try to acquire an exclusive lock on the file.
 /// 
-/// Returns `Ok(false)` if a different lock is already held on this file (via another
-/// handle/descriptor).
+/// Returns `Err(TryLockError::WouldBlock)` if a different lock is already held on this file
+/// (via another handle/descriptor).
 /// 
 /// This acquires an exclusive lock; no other file handle to this file may acquire another lock.
 /// 
@@ -671,11 +685,11 @@ fn try_lock_shared_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :
 /// other methods, such as [`read`] and [`write`] are platform specific, and it may or may not
 /// cause non-lockholders to block.
 /// 
-/// If this file handle/descriptor, or a clone of it, already holds an lock, the exact behavior
+/// If this file handle/descriptor, or a clone of it, already holds a lock, the exact behavior
 /// is unspecified and platform dependent, including the possibility that it will deadlock.
-/// However, if this method returns `Ok(true)`, then it has acquired an exclusive lock.
+/// However, if this method returns `Ok(())`, then it has acquired an exclusive lock.
 /// 
-/// If the file not open for writing, it is unspecified whether this function returns an error.
+/// If the file is not open for writing, it is unspecified whether this function returns an error.
 /// 
 /// The lock will be released when this file (along with any other file descriptors/handles
 /// duplicated or inherited from it) is closed, or if the [`unlock`] method is called.
@@ -703,15 +717,22 @@ fn try_lock_shared_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :
 /// # Examples
 /// 
 /// ```no_run
-/// use std::fs::File;
+/// use std::fs::{File, TryLockError};
 /// 
 /// fn main() -> std::io::Result<()> {
 ///     let f = File::create("foo.txt")?;
+///     // Explicit handling of the WouldBlock error
+///     match f.try_lock() {
+///         Ok(_) => (),
+///         Err(TryLockError::WouldBlock) => (), // Lock not acquired
+///         Err(TryLockError::Error(err)) => return Err(err),
+///     }
+///     // Alternately, propagate the error as an io::Error
 ///     f.try_lock()?;
 ///     Ok(())
 /// }
 /// ```
-fn try_lock_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > );
+fn try_lock_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: result :: Result < ( ) , std :: fs :: TryLockError > );
 }
 impl FileContext for std :: fs :: File {
 fn lock_shared_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
@@ -786,11 +807,11 @@ fn set_len_wc ( & self , size : u64 ) -> crate :: rewrite_output_type ! ( std ::
     std :: fs :: File :: set_len(self, size)
         .with_context(|| crate::call_failed!(Some(self), "set_len", size))
 }
-fn try_lock_shared_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
+fn try_lock_shared_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: result :: Result < ( ) , std :: fs :: TryLockError > ) {
     std :: fs :: File :: try_lock_shared(self)
         .with_context(|| crate::call_failed!(Some(self), "try_lock_shared"))
 }
-fn try_lock_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
+fn try_lock_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: result :: Result < ( ) , std :: fs :: TryLockError > ) {
     std :: fs :: File :: try_lock(self)
         .with_context(|| crate::call_failed!(Some(self), "try_lock"))
 }
@@ -960,6 +981,21 @@ fn open_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , p
 /// Note that, this [may change in the future][changes].
 /// 
 /// [changes]: io#platform-specific-behavior
+/// 
+/// ## Symlinks
+/// On UNIX-like systems, this function will update the permission bits
+/// of the file pointed to by the symlink.
+/// 
+/// Note that this behavior can lead to privilege escalation vulnerabilities,
+/// where the ability to create a symlink in one directory allows you to
+/// cause the permissions of another file or directory to be modified.
+/// 
+/// For this reason, using this function with symlinks should be avoided.
+/// When possible, permissions should be set at creation time instead.
+/// 
+/// # Rationale
+/// POSIX does not specify an `lchmod` function,
+/// and symlinks can be followed regardless of what permission bits are set.
 /// 
 /// # Errors
 /// 
@@ -1335,8 +1371,8 @@ pub fn read_to_string_wc < P : core :: convert :: AsRef < std :: path :: Path > 
 /// Recursively create a directory and all of its parent components if they
 /// are missing.
 /// 
-/// If this function returns an error, some of the parent components might have
-/// been created already.
+/// This function is not atomic. If it returns an error, any parent components it was able to create
+/// will remain.
 /// 
 /// If the empty path is passed to this function, it always succeeds without
 /// creating any directories.
@@ -1386,27 +1422,42 @@ pub fn create_dir_all_wc < P : core :: convert :: AsRef < std :: path :: Path > 
 /// 
 /// # Platform-specific behavior
 /// 
-/// This function currently corresponds to `openat`, `fdopendir`, `unlinkat` and `lstat` functions
-/// on Unix (except for REDOX) and the `CreateFileW`, `GetFileInformationByHandleEx`,
-/// `SetFileInformationByHandle`, and `NtCreateFile` functions on Windows. Note that, this
-/// [may change in the future][changes].
+/// These implementation details [may change in the future][changes].
 /// 
+/// - "Unix-like": By default, this function currently corresponds to
+/// `openat`, `fdopendir`, `unlinkat` and `lstat`
+/// on Unix-family platforms, except where noted otherwise.
+/// - "Windows": This function currently corresponds to `CreateFileW`,
+/// `GetFileInformationByHandleEx`, `SetFileInformationByHandle`, and `NtCreateFile`.
+/// 
+/// ## Time-of-check to time-of-use (TOCTOU) race conditions
+/// See the [module-level TOCTOU explanation](self#time-of-check-to-time-of-use-toctou).
+/// 
+/// On most platforms, `fs::remove_dir_all` protects against symlink TOCTOU races by default.
+/// However, on the following platforms, this protection is not provided and the function should
+/// not be used in security-sensitive contexts:
+/// - **Miri**: Even when emulating targets where the underlying implementation will protect against
+///   TOCTOU races, Miri will not do so.
+/// - **Redox OS**: This function does not protect against TOCTOU races, as Redox does not implement
+///   the required platform support to do so.
+/// 
+/// [TOCTOU]: self#time-of-check-to-time-of-use-toctou
 /// [changes]: io#platform-specific-behavior
-/// 
-/// On REDOX, as well as when running in Miri for any target, this function is not protected against
-/// time-of-check to time-of-use (TOCTOU) race conditions, and should not be used in
-/// security-sensitive code on those platforms. All other platforms are protected.
 /// 
 /// # Errors
 /// 
 /// See [`fs::remove_file`] and [`fs::remove_dir`].
 /// 
-/// `remove_dir_all` will fail if `remove_dir` or `remove_file` fail on any constituent paths, including the root `path`.
-/// As a result, the directory you are deleting must exist, meaning that this function is not idempotent.
-/// Additionally, `remove_dir_all` will also fail if the `path` is not a directory.
+/// [`remove_dir_all`] will fail if [`remove_dir`] or [`remove_file`] fail on *any* constituent
+/// paths, *including* the root `path`. Consequently,
+/// 
+/// - The directory you are deleting *must* exist, meaning that this function is *not idempotent*.
+/// - [`remove_dir_all`] will fail if the `path` is *not* a directory.
 /// 
 /// Consider ignoring the error if validating the removal is not required for your use case.
 /// 
+/// This function may return [`io::ErrorKind::DirectoryNotEmpty`] if the directory is concurrently
+/// written into, which typically indicates some contents were removed but not all.
 /// [`io::ErrorKind::NotFound`] is only returned if no removal occurs.
 /// 
 /// [`fs::remove_file`]: remove_file
@@ -1522,7 +1573,7 @@ pub fn remove_dir_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( 
 /// # Platform-specific behavior
 /// 
 /// This function currently corresponds to the `rename` function on Unix
-/// and the `SetFileInformationByHandle` function on Windows.
+/// and the `MoveFileExW` or `SetFileInformationByHandle` function on Windows.
 /// 
 /// Because of this, the behavior when both `from` and `to` exist differs. On
 /// Unix, if `from` is a directory, `to` must also be an (empty) directory. If
@@ -1571,7 +1622,7 @@ pub fn rename_wc < P : core :: convert :: AsRef < std :: path :: Path > , Q : co
 /// permission is denied on one of the parent directories.
 /// 
 /// Note that while this avoids some pitfalls of the `exists()` method, it still can not
-/// prevent time-of-check to time-of-use (TOCTOU) bugs. You should only use it in scenarios
+/// prevent time-of-check to time-of-use ([TOCTOU]) bugs. You should only use it in scenarios
 /// where those bugs are not an issue.
 /// 
 /// # Examples
@@ -1584,6 +1635,7 @@ pub fn rename_wc < P : core :: convert :: AsRef < std :: path :: Path > , Q : co
 /// ```
 /// 
 /// [`Path::exists`]: crate::path::Path::exists
+/// [TOCTOU]: self#time-of-check-to-time-of-use-toctou
 pub fn exists_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
     let path = path.as_ref();
     std :: fs :: exists(path)
@@ -1704,6 +1756,25 @@ pub fn canonicalize_wc < P : core :: convert :: AsRef < std :: path :: Path > > 
     let path = path.as_ref();
     std :: fs :: canonicalize(path)
         .with_context(|| crate::call_failed!(None::<()>, "std::fs::canonicalize", path))
+}
+/// Set the permissions of a file, unless it is a symlink.
+/// 
+/// Note that the non-final path elements are allowed to be symlinks.
+/// 
+/// # Platform-specific behavior
+/// 
+/// Currently unimplemented on Windows.
+/// 
+/// On Unix platforms, this results in a [`FilesystemLoop`] error if the last element is a symlink.
+/// 
+/// This behavior may change in the future.
+/// 
+/// [`FilesystemLoop`]: crate::io::ErrorKind::FilesystemLoop
+#[cfg(feature = "set_permissions_nofollow")]
+pub fn set_permissions_nofollow_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P , perm : std :: fs :: Permissions ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    let path = path.as_ref();
+    std :: fs :: set_permissions_nofollow(path, perm.clone())
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::set_permissions_nofollow", path, perm))
 }
 /// Writes a slice as the entire contents of a file.
 /// 
