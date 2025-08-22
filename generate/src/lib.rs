@@ -5,7 +5,7 @@ use regex::Regex;
 use rustdoc_types::{Crate, Function, Id, ItemEnum, Type};
 use std::{
     collections::{BTreeMap, HashSet},
-    fs::{create_dir_all, File, OpenOptions},
+    fs::{File, OpenOptions, create_dir_all},
     io::Write,
     path::{Path, PathBuf},
     sync::LazyLock,
@@ -19,8 +19,8 @@ use source_builder::Module;
 
 mod util;
 use util::{
-    path_prefix, qualified_function, qualified_type, qualified_type_function, simplified_self,
-    FunctionExt, GenericBoundsExt, TokenExt, TokensExt,
+    FunctionExt, GenericBoundsExt, TokenExt, TokensExt, path_prefix, qualified_function,
+    qualified_type, qualified_type_function, simplified_self,
 };
 
 // smoelius: `COMMIT` should be the commit returned by `rustc --version` with the toolchain in

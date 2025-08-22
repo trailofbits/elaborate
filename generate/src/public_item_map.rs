@@ -24,7 +24,7 @@
 use public_api::PublicItem;
 
 use crate::util::{PublicItemExt, TokensExt};
-use public_api::{tokens::Token, PublicApi};
+use public_api::{PublicApi, tokens::Token};
 use rustdoc_types::Id;
 use std::collections::{HashMap, HashSet};
 
