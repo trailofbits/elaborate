@@ -1,5 +1,4 @@
 use anyhow::Result;
-use if_chain::if_chain;
 use public_api::tokens::Token;
 use regex::Regex;
 use rustdoc_types::{Attribute, Crate, Function, Id, ItemEnum, Type};
@@ -378,45 +377,39 @@ impl Generator {
     fn is_function(krate: &Crate, id: Id) -> Option<(&Function, bool, bool)> {
         let function = Self::is_function_inner(krate, id)?;
 
-        let has_result_output = if_chain! {
-            if let Some(Type::ResolvedPath(path)) = &function.sig.output;
-            if path.path.ends_with("Result");
+        let has_result_output = if let Some(Type::ResolvedPath(path)) = &function.sig.output
+            && path.path.ends_with("Result")
             // smoelius: `std::sync::BarrierWaitResult` is not a `std::result::Result`.
-            if path.path != "BarrierWaitResult";
+            && path.path != "BarrierWaitResult"
             // smoelius: The problem is not `std::sync::LockResult` itself, but how it is used. In
             // many cases, it is instantiated with a type that is not `Send`, which
             // `anyhow::Result` requires. `std::sync::Mutex::lock` provides an example:
             // https://doc.rust-lang.org/beta/std/sync/struct.Mutex.html#method.lock
-            if path.path != "LockResult";
-            then {
-                true
-            } else {
-                false
-            }
+            && path.path != "LockResult"
+        {
+            true
+        } else {
+            false
         };
 
-        let has_option_output = if_chain! {
-            if let Some(Type::ResolvedPath(path)) = &function.sig.output;
-            if path.path == "Option";
-            then {
-                true
-            } else {
-                false
-            }
+        let has_option_output = if let Some(Type::ResolvedPath(path)) = &function.sig.output
+            && path.path == "Option"
+        {
+            true
+        } else {
+            false
         };
 
         Some((function, has_result_output, has_option_output))
     }
 
     fn is_function_inner(krate: &Crate, id: Id) -> Option<&Function> {
-        if_chain! {
-            if let Some(item) = krate.index.get(&id);
-            if let ItemEnum::Function(function) = &item.inner;
-            then {
-                Some(function)
-            } else {
-                None
-            }
+        if let Some(item) = krate.index.get(&id)
+            && let ItemEnum::Function(function) = &item.inner
+        {
+            Some(function)
+        } else {
+            None
         }
     }
 

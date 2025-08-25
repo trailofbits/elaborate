@@ -1,4 +1,3 @@
-use if_chain::if_chain;
 use rustdoc_types::{Function, GenericBound, GenericParamDefKind, Type, WherePredicate};
 
 pub trait FunctionExt {
@@ -23,12 +22,10 @@ impl FunctionExt for Function {
     }
 
     fn input_is_uncloneble(&self, i: usize) -> Option<String> {
-        if_chain! {
-            if let Type::ResolvedPath(path) = &self.sig.inputs[i].1;
-            if path.path == "BorrowedCursor";
-            then {
-                return Some(String::from("BorrowedCursor"));
-            }
+        if let Type::ResolvedPath(path) = &self.sig.inputs[i].1
+            && path.path == "BorrowedCursor"
+        {
+            return Some(String::from("BorrowedCursor"));
         }
 
         UNCLONEABLE_TRAITS.iter().copied().find_map(|trait_path| {
@@ -42,35 +39,31 @@ impl FunctionExt for Function {
 
     fn input_is_trait_bound(&self, i: usize, trait_path: &str) -> bool {
         let input_type = &self.sig.inputs[i].1;
-        if_chain! {
-            if let Type::ImplTrait(bounds) = input_type;
-            if bounds.has_trait_bound_with_path(trait_path);
-            then {
-                return true;
-            }
+        if let Type::ImplTrait(bounds) = input_type
+            && bounds.has_trait_bound_with_path(trait_path)
+        {
+            return true;
         }
-        if_chain! {
-            if let Type::Generic(name) = input_type;
-            if let Some(generic_param_def) = self
+        if let Type::Generic(name) = input_type
+            && let Some(generic_param_def) = self
                 .generics
                 .params
                 .iter()
-                .find(|generic_param_def| *name == generic_param_def.name);
-            if let GenericParamDefKind::Type { bounds, .. } = &generic_param_def.kind;
-            if bounds.has_trait_bound_with_path(trait_path);
-            then {
-                return true;
-            }
+                .find(|generic_param_def| *name == generic_param_def.name)
+            && let GenericParamDefKind::Type { bounds, .. } = &generic_param_def.kind
+            && bounds.has_trait_bound_with_path(trait_path)
+        {
+            return true;
         }
-        if_chain! {
-            if let Type::Generic(_) = input_type;
-            if let Some(bounds) =
-                self
-                    .generics
+        if let Type::Generic(_) = input_type
+            && let Some(bounds) =
+                self.generics
                     .where_predicates
                     .iter()
                     .find_map(|where_predicate| {
-                        if let WherePredicate::BoundPredicate { type_, bounds, .. } = where_predicate {
+                        if let WherePredicate::BoundPredicate { type_, bounds, .. } =
+                            where_predicate
+                        {
                             if input_type == type_ {
                                 Some(bounds)
                             } else {
@@ -79,25 +72,22 @@ impl FunctionExt for Function {
                         } else {
                             None
                         }
-                    });
-            if bounds.has_trait_bound_with_path(trait_path);
-            then {
-                return true;
-            }
+                    })
+            && bounds.has_trait_bound_with_path(trait_path)
+        {
+            return true;
         }
         false
     }
 
     fn input_requires_clone(&self, i: usize) -> bool {
         let input_type = &self.sig.inputs[i].1;
-        if_chain! {
-            if let Type::ResolvedPath(path) = input_type;
-            if path.path.split("::").last() == Some("Permissions");
-            then {
-                true
-            } else {
-                false
-            }
+        if let Type::ResolvedPath(path) = input_type
+            && path.path.split("::").last() == Some("Permissions")
+        {
+            true
+        } else {
+            false
         }
     }
 }
