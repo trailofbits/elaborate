@@ -1,7 +1,12 @@
 [package]
 name = "elaborate"
 version = "0.1.0"
+authors = ["Samuel Moelius <sam@moeli.us>"]
+description = "Wrappers for standard library functions and types to produce more elaborate error messages"
 edition = "2024"
+license = "MIT OR Apache-2.0"
+readme = "../README.md"
+repository = "https://github.com/trailofbits/elaborate"
 
 [dependencies]
 anyhow = "1.0"
