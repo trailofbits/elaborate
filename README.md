@@ -91,13 +91,13 @@ Caused by:
 
 ## Clippy
 
-This repository provides a [Clippy configuration] (`Clippy.toml`) file to identify functions that could be replaced with wrapped ones. To use the file, clone this repository and run Clippy with the following command:
+This repository provides a [Clippy configuration] (`clippy.toml`) file to identify functions that could be replaced with wrapped ones. To use the file, clone this repository and run Clippy with the following command:
 
 ```sh
 CLIPPY_CONF_DIR=path-to-elaborate-repo/clippy_conf cargo clippy
 ```
 
-Note that `CLIPPY_CONF_DIR` names the directory containing the `Clippy.toml` file, not the `Clippy.toml` file itself.
+Note that `CLIPPY_CONF_DIR` names the directory containing the `clippy.toml` file, not the `clippy.toml` file itself.
 
 When running the above command, you should see warnings like the following:
 
