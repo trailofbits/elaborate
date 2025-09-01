@@ -91,13 +91,15 @@ Caused by:
 
 ## Clippy
 
-This repository provides a [Clippy configuration file] to identify functions that could be replaced with wrapped ones. To use the file, clone this repository and run Clippy with the following command:
+This repository provides a [Clippy configuration] (`Clippy.toml`) file to identify functions that could be replaced with wrapped ones. To use the file, clone this repository and run Clippy with the following command:
 
 ```sh
 CLIPPY_CONF_DIR=path-to-elaborate-repo/clippy_conf cargo clippy
 ```
 
-You should see warnings similar to the following:
+Note that `CLIPPY_CONF_DIR` names the directory containing the `Clippy.toml` file, not the `Clippy.toml` file itself.
+
+When running the above command, you should see warnings like the following:
 
 ```
 warning: use of a disallowed method `std::fs::create_dir`
@@ -134,7 +136,7 @@ elaborate = "~1.0"
 
 Elaborate uses [`public-api`] and [`rustdoc-types`] to generate wrappers, and [`anyhow`] to generate error messages.
 
-[Clippy configuration file]: https://doc.rust-lang.org/clippy/configuration.html
+[Clippy configuration]: https://doc.rust-lang.org/clippy/configuration.html
 [`anyhow::Context::with_context`]: https://docs.rs/anyhow/latest/anyhow/trait.Context.html#tymethod.with_context
 [`anyhow`]: https://github.com/dtolnay/anyhow
 [`public-api`]: https://github.com/cargo-public-api/cargo-public-api/tree/main/public-api
