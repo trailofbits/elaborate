@@ -173,7 +173,7 @@ dependencies = [
  "itertools",
  "public-api",
  "regex",
- "rustdoc-types",
+ "rustdoc-types 0.56.0",
  "serde_json",
  "similar-asserts",
 ]
@@ -294,7 +294,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "71e06a5f94ef145c376ea7ff714ae53f1ad27924a461f35373a7a17075316f54"
 dependencies = [
  "hashbag",
- "rustdoc-types",
+ "rustdoc-types 0.55.0",
  "serde",
  "serde_json",
  "snapshot-testing",
@@ -344,6 +344,16 @@ name = "rustdoc-types"
 version = "0.55.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61f25a84ea78419de928cd82c3b2f76709a696a64a880486c567b4c4da8f2dda"
+dependencies = [
+ "serde",
+ "serde_derive",
+]
+
+[[package]]
+name = "rustdoc-types"
+version = "0.56.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "27bf787c529efe523ed9eb6dcdbaa5954d34329f08d5c243fce928441826ca90"
 dependencies = [
  "serde",
  "serde_derive",
