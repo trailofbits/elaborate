@@ -142,6 +142,14 @@ fn markdown_link_check() {
 }
 
 #[test]
+fn msrv() {
+    Command::new("cargo")
+        .args(["msrv", "verify", "--manifest-path=elaborate/Cargo.toml"])
+        .assert()
+        .success();
+}
+
+#[test]
 fn readme_reference_links_are_sorted() {
     let re = Regex::new(r"^\[[^\]]*\]:").unwrap();
     let readme = read_to_string("README.md").unwrap();
