@@ -7,6 +7,7 @@ edition = "2024"
 license = "MIT OR Apache-2.0"
 readme = "../README.md"
 repository = "https://github.com/trailofbits/elaborate"
+rust-version = "1.89"
 
 [dependencies]
 anyhow = "1.0"
