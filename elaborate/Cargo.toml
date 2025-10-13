@@ -16,7 +16,7 @@ anyhow = "1.0"
 assert_cmd = "2.0"
 ctor = "0.5"
 walkdir = "2.5"
-regex = "1.11"
+regex = "1.12"
 tempfile = "3.23"
 toml = "0.9"
 
