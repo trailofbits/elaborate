@@ -883,8 +883,8 @@ mod test {
             .unwrap();
             return;
         }
-        assert_cmd::Command::cargo_bin("generate")
-            .unwrap()
+        assert_cmd::Command::new("cargo")
+            .args(["run", "--bin=generate"])
             .assert()
             .success();
         assert!(!repo_is_dirty());
