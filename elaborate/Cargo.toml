@@ -13,7 +13,7 @@ rust-version = "1.89"
 anyhow = "1.0"
 
 [dev-dependencies]
-assert_cmd = "2.0"
+assert_cmd = "2.1"
 ctor = "0.6"
 walkdir = "2.5"
 regex = "1.12"
