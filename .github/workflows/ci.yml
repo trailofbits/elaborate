@@ -49,7 +49,7 @@ jobs:
       GROUP_RUNNER: target.'cfg(all())'.runner = 'group-runner'
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       # smoelius: The `~/.cargo/` entries are from:
       # https://github.com/actions/cache/blob/main/examples.md#rust---cargo
