@@ -71,7 +71,7 @@
 // WASI-specific unstable features
 #![cfg_attr(all(target_os = "wasi", feature = "wasi_ext"), feature(wasi_ext))]
 
-use ::std::{any::type_name, fmt::Debug};
+use ::std::{any::type_name, fmt::Debug, path::Path, process::Command};
 
 #[allow(unused_parens)]
 #[expect(
@@ -83,6 +83,37 @@ use ::std::{any::type_name, fmt::Debug};
 #[cfg_attr(dylint_lib = "supplementary", expect(escaping_doc_link))]
 mod generated;
 pub use generated::std;
+
+/// Creates a Cargo command to identify functions that could be replaced with wrapped ones.
+///
+/// The function returns a [`Command`] configured to run Clippy's [`disallowed_methods` lint] with a
+/// [Clippy configuration] (`clippy.toml`) from this repository.
+///
+/// # Example
+///
+/// ```no_run
+/// # use elaborate::std::process::CommandContext;
+/// let status = elaborate::disallowed_methods()
+///     .current_dir("/path/to/project")
+///     .arg("--all-targets")
+///     .status_wc()
+///     .expect("failed to run clippy");
+/// assert!(status.success());
+/// ```
+///
+/// [Clippy configuration]: https://doc.rust-lang.org/clippy/configuration.html
+/// [`disallowed_methods` lint](https://rust-lang.github.io/rust-clippy/master/index.html#disallowed_methods)
+#[cfg_attr(dylint_lib = "supplementary", allow(abs_home_path))]
+#[must_use]
+pub fn disallowed_methods() -> Command {
+    let mut command = Command::new("cargo");
+    command.args(["clippy", "--quiet"]);
+    command.env(
+        "CLIPPY_CONF_DIR",
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("clippy_conf"),
+    );
+    command
+}
 
 #[macro_export]
 macro_rules! rewrite_output_type {

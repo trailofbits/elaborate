@@ -36,16 +36,20 @@ fn clippy() {
 
 #[cfg(unix)]
 #[test]
-fn clippy_toml() {
-    let output = Command::new("cargo")
-        .args(["clippy", "--quiet"])
-        .env("CLIPPY_CONF_DIR", "../../clippy_conf")
-        .current_dir("fixtures/create_dir")
-        .output()
-        .unwrap();
-    assert!(output.status.success(), "Command failed: {output:?}");
-    let stderr = String::from_utf8(output.stderr).unwrap();
-    assert_eq!("\
+fn disallowed_methods() {
+    for use_disallowed_methods_function in [false, true] {
+        let mut command = if use_disallowed_methods_function {
+            elaborate::disallowed_methods()
+        } else {
+            let mut command = std::process::Command::new("cargo");
+            command.args(["clippy", "--quiet"]);
+            command.env("CLIPPY_CONF_DIR", "../../elaborate/clippy_conf");
+            command
+        };
+        let output = command.current_dir("fixtures/create_dir").output().unwrap();
+        assert!(output.status.success(), "Command failed: {output:?}");
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        assert_eq!("\
 warning: use of a disallowed method `std::fs::create_dir`
  --> src/main.rs:4:5
   |
@@ -56,6 +60,7 @@ warning: use of a disallowed method `std::fs::create_dir`
   = note: `#[warn(clippy::disallowed_methods)]` on by default
 
 ", stderr);
+    }
 }
 
 #[test]

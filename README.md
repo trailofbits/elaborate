@@ -91,7 +91,9 @@ Caused by:
 
 ## Clippy
 
-This repository provides a [Clippy configuration] (`clippy.toml`) file to identify functions that could be replaced with wrapped ones. To use the file, clone this repository and run Clippy with the following command:
+This repository provides a `disallowed_methods` function to identify functions that could be replaced with wrapped ones. The function returns a `Command` configured to run Clippy's [`disallowed_methods`] lint with a [Clippy configuration] (`clippy.toml`) from this repository.
+
+If you would prefer to do this manually, you can run Clippy with the following command:
 
 ```sh
 CLIPPY_CONF_DIR=path-to-elaborate-repo/clippy_conf cargo clippy
@@ -99,7 +101,7 @@ CLIPPY_CONF_DIR=path-to-elaborate-repo/clippy_conf cargo clippy
 
 Note that `CLIPPY_CONF_DIR` names the directory containing the `clippy.toml` file, not the `clippy.toml` file itself.
 
-When running the above command, you should see warnings like the following:
+Using either of the above two methods, you should see warnings like the following:
 
 ```
 warning: use of a disallowed method `std::fs::create_dir`
@@ -139,6 +141,7 @@ Elaborate uses [`public-api`] and [`rustdoc-types`] to generate wrappers, and [`
 [Clippy configuration]: https://doc.rust-lang.org/clippy/configuration.html
 [`anyhow::Context::with_context`]: https://docs.rs/anyhow/latest/anyhow/trait.Context.html#tymethod.with_context
 [`anyhow`]: https://github.com/dtolnay/anyhow
+[`disallowed_methods`]: https://rust-lang.github.io/rust-clippy/master/index.html#disallowed_methods
 [`public-api`]: https://github.com/cargo-public-api/cargo-public-api/tree/main/public-api
 [`rustdoc-types`]: https://github.com/aDotInTheVoid/rustdoc-types
 [`std::fs::File`]: https://doc.rust-lang.org/std/fs/struct.File.html
