@@ -91,7 +91,7 @@ Caused by:
 
 ## Clippy
 
-This repository provides a `disallowed_methods` function to identify functions that could be replaced with wrapped ones. The function returns a `Command` configured to run Clippy's [`disallowed_methods`] lint with a [Clippy configuration] (`clippy.toml`) from this repository.
+This repository provides a [`disallowed_methods` function] to identify functions that could be replaced with wrapped ones. The function returns a `Command` configured to run Clippy's [`disallowed_methods` lint] with a [Clippy configuration] (`clippy.toml`) from this repository.
 
 If you would prefer to do this manually, you can run Clippy with the following command:
 
@@ -141,7 +141,8 @@ Elaborate uses [`public-api`] and [`rustdoc-types`] to generate wrappers, and [`
 [Clippy configuration]: https://doc.rust-lang.org/clippy/configuration.html
 [`anyhow::Context::with_context`]: https://docs.rs/anyhow/latest/anyhow/trait.Context.html#tymethod.with_context
 [`anyhow`]: https://github.com/dtolnay/anyhow
-[`disallowed_methods`]: https://rust-lang.github.io/rust-clippy/master/index.html#disallowed_methods
+[`disallowed_methods` function]: https://docs.rs/elaborate/latest/elaborate/fn.disallowed_methods.html
+[`disallowed_methods` lint]: https://rust-lang.github.io/rust-clippy/master/index.html#disallowed_methods
 [`public-api`]: https://github.com/cargo-public-api/cargo-public-api/tree/main/public-api
 [`rustdoc-types`]: https://github.com/aDotInTheVoid/rustdoc-types
 [`std::fs::File`]: https://doc.rust-lang.org/std/fs/struct.File.html
