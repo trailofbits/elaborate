@@ -9,7 +9,7 @@ anyhow = "1.0"
 itertools = "0.14"
 public-api = "0.50"
 regex = "1.12"
-rustdoc-types = "0.56"
+rustdoc-types = "0.57"
 serde_json = "1.0"
 
 [dev-dependencies]
