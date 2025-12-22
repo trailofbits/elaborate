@@ -97,12 +97,12 @@ pub use generated::std;
 ///     .current_dir("/path/to/project")
 ///     .arg("--all-targets")
 ///     .status_wc()
-///     .expect("failed to run clippy");
+///     .unwrap();
 /// assert!(status.success());
 /// ```
 ///
 /// [Clippy configuration]: https://doc.rust-lang.org/clippy/configuration.html
-/// [`disallowed_methods` lint](https://rust-lang.github.io/rust-clippy/master/index.html#disallowed_methods)
+/// [`disallowed_methods` lint]: (https://rust-lang.github.io/rust-clippy/master/index.html#disallowed_methods)
 #[cfg_attr(dylint_lib = "supplementary", allow(abs_home_path))]
 #[must_use]
 pub fn disallowed_methods() -> Command {
