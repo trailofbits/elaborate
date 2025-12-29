@@ -6,22 +6,13 @@ updates:
       interval: weekly
 
   - package-ecosystem: cargo
-    directory: /elaborate
+    directory: /
     groups:
       rust:
         patterns:
           - "*"
-    schedule:
-      interval: weekly
-    allow:
-      - dependency-type: direct
-
-  - package-ecosystem: cargo
-    directory: /generate
-    groups:
-      rust:
-        patterns:
-          - "*"
+    ignore:
+      - dependency-name: "rustdoc-types"
     schedule:
       interval: weekly
     allow:
