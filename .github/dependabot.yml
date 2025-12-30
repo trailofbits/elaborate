@@ -15,5 +15,3 @@ updates:
       - dependency-name: "rustdoc-types"
     schedule:
       interval: weekly
-    allow:
-      - dependency-type: direct
