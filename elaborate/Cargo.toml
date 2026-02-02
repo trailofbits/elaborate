@@ -1,6 +1,6 @@
 [package]
 name = "elaborate"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Samuel Moelius <sam@moeli.us>"]
 description = "Wrappers for standard library functions and types to produce more elaborate error messages"
 edition = "2024"
