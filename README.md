@@ -93,27 +93,27 @@ Caused by:
 
 This repository provides a [`disallowed_methods` function] to identify functions that could be replaced with wrapped ones. The function returns a `Command` configured to run Clippy's [`disallowed_methods` lint] with a [Clippy configuration] (`clippy.toml`) from this repository.
 
-If you would prefer to do this manually, you can run Clippy with the following command:
+When running the above function, you should see errors like the following:
+
+```
+error: use of a disallowed method `std::fs::create_dir`
+ --> src/main.rs:4:5
+  |
+4 |     create_dir(\"/dir\")?;
+  |     ^^^^^^^^^^ help: use: `elaborate::std::fs::create_dir_wc`
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#disallowed_methods
+  = note: `-D clippy::disallowed-methods` implied by `-D warnings`
+  = help: to override `-D warnings` add `#[allow(clippy::disallowed_methods)]`
+```
+
+If you would prefer to run Clippy manually, you can do so with the following command:
 
 ```sh
 CLIPPY_CONF_DIR=path-to-elaborate-repo/clippy_conf cargo clippy
 ```
 
 Note that `CLIPPY_CONF_DIR` names the directory containing the `clippy.toml` file, not the `clippy.toml` file itself.
-
-Using either of the above two methods, you should see warnings like the following:
-
-```
-warning: use of a disallowed method `std::fs::create_dir`
- --> src/main.rs:4:5
-  |
-4 |     create_dir(\"/dir\")?;
-  |     ^^^^^^^^^^
-  |
-  = note: use `elaborate::std::fs::create_dir_wc`
-  = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#disallowed_methods
-  = note: `#[warn(clippy::disallowed_methods)]` on by default
-```
 
 ## Alternative approaches considered
 
