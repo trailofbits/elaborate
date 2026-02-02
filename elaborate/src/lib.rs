@@ -86,8 +86,10 @@ pub use generated::std;
 
 /// Creates a Cargo command to identify functions that could be replaced with wrapped ones.
 ///
-/// The function returns a [`Command`] configured to run Clippy's [`disallowed_methods` lint] with a
-/// [Clippy configuration] (`clippy.toml`) from this repository.
+/// The function returns a [`Command`] configured as follows:
+/// - It runs Clippy's [`disallowed_methods` lint] with a [Clippy configuration] (`clippy.toml`)
+///   from this repository.
+/// - `RUSTFLAGS` is set to `--deny=warnings`.
 ///
 /// # Example
 ///
@@ -112,6 +114,7 @@ pub fn disallowed_methods() -> Command {
         "CLIPPY_CONF_DIR",
         Path::new(env!("CARGO_MANIFEST_DIR")).join("clippy_conf"),
     );
+    command.env("RUSTFLAGS", "--deny=warnings");
     command
 }
 
