@@ -18,7 +18,7 @@ ctor = "0.6"
 walkdir = "2.5"
 regex = "1.12"
 tempfile = "3.25"
-toml = "0.9"
+toml = "1.0"
 
 # smoelius: If you add features below, please also add them near the top of src/lib.rs.
 [features]
