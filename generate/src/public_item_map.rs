@@ -25,7 +25,7 @@ use public_api::PublicItem;
 
 use crate::util::{PublicItemExt, TokensExt};
 use public_api::{PublicApi, tokens::Token};
-use rustdoc_types::Id;
+use rustdoc_types::{Crate, Id, ItemEnum};
 use std::collections::{HashMap, HashSet};
 
 type Inner = HashMap<Id, HashSet<(Option<Id>, Vec<Token>)>>;
@@ -44,7 +44,14 @@ impl PublicItemMap {
     pub fn parent_id(&self, id: Id) -> Option<Id> {
         let mut iter = self.parent_ids(id);
         let parent_id = iter.next();
-        assert!(iter.next().is_none());
+        if iter.next().is_some() {
+            let public_items = self.inner.get(&id).unwrap();
+            let tokens = public_items
+                .iter()
+                .map(|(_, tokens)| tokens.to_string())
+                .collect::<Vec<_>>();
+            panic!("{id:?} ({tokens:?}) has multiple parents");
+        }
         parent_id
     }
 
@@ -70,6 +77,7 @@ impl PublicItemMap {
 
     pub fn populate_from_public_api(
         &mut self,
+        krate: &Crate,
         public_api: PublicApi,
         mut discard: impl FnMut(&[Token]) -> bool,
     ) {
@@ -77,6 +85,16 @@ impl PublicItemMap {
             let id = public_item.id();
             let tokens = public_item.printable_tokens();
             if discard(&tokens) {
+                continue;
+            }
+            // Skip items whose parent is a trait impl. These are
+            // default trait methods that already appear under the
+            // trait definition itself.
+            if let Some(parent_id) = public_item.parent_id()
+                && let Some(parent_item) = krate.index.get(&parent_id)
+                && let ItemEnum::Impl(impl_) = &parent_item.inner
+                && impl_.trait_.is_some()
+            {
                 continue;
             }
             self.inner
