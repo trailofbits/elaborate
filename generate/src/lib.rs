@@ -174,7 +174,7 @@ impl Generator {
     fn import(&mut self, krate: &Crate, public_api: public_api::PublicApi) {
         let mut public_item_map = PublicItemMap::default();
 
-        public_item_map.populate_from_public_api(public_api, |tokens| {
+        public_item_map.populate_from_public_api(krate, public_api, |tokens| {
             if IGNORED_PATHS
                 .iter()
                 .any(|path| tokens.position(path).is_some())
