@@ -14,7 +14,7 @@ serde_json = "1.0"
 
 [dev-dependencies]
 assert_cmd = "2.2"
-similar-asserts = "1.7"
+similar-asserts = "2.0"
 
 [lints]
 workspace = true
