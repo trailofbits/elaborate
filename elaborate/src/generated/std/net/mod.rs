@@ -1500,3 +1500,25 @@ fn set_write_timeout_wc ( & self , dur : core :: option :: Option < core :: time
 }
 }
 
+
+/// Returns the system hostname.
+/// 
+/// This can error out in platform-specific error cases;
+/// for example, uefi and wasm, where hostnames aren't
+/// supported.
+/// 
+/// # Underlying system calls
+/// 
+/// | Platform | System call                                                                                             |
+/// |----------|---------------------------------------------------------------------------------------------------------|
+/// | UNIX     | [`gethostname`](https://www.man7.org/linux/man-pages/man2/gethostname.2.html)                           |
+/// | Windows  | [`GetHostNameW`](https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-gethostnamew) |
+/// 
+/// Note that platform-specific behavior [may change in the future][changes].
+/// 
+/// [changes]: crate::io#platform-specific-behavior
+#[cfg(feature = "gethostname")]
+pub fn hostname_wc ( ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: ffi :: OsString > ) {
+    std :: net :: hostname()
+        .with_context(|| crate::call_failed!(None::<()>, "std::net::hostname"))
+}

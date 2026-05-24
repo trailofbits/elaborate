@@ -8,11 +8,14 @@
 #![cfg_attr(feature = "core_io_borrowed_buf", feature(core_io_borrowed_buf))]
 #![cfg_attr(feature = "exit_status_error", feature(exit_status_error))]
 #![cfg_attr(feature = "file_buffered", feature(file_buffered))]
+#![cfg_attr(feature = "fs_set_times", feature(fs_set_times))]
+#![cfg_attr(feature = "gethostname", feature(gethostname))]
 #![cfg_attr(feature = "normalize_lexically", feature(normalize_lexically))]
 #![cfg_attr(feature = "panic_backtrace_config", feature(panic_backtrace_config))]
 #![cfg_attr(feature = "path_file_prefix", feature(path_file_prefix))]
 #![cfg_attr(feature = "raw_os_error_ty", feature(raw_os_error_ty))]
 #![cfg_attr(feature = "read_buf", feature(read_buf))]
+#![cfg_attr(feature = "read_buf_at", feature(read_buf_at))]
 #![cfg_attr(feature = "seek_stream_len", feature(seek_stream_len))]
 #![cfg_attr(
     feature = "set_permissions_nofollow",

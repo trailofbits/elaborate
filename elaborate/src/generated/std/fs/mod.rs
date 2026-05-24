@@ -939,7 +939,8 @@ pub trait OpenOptionsContext {
 /// * [`AlreadyExists`]: `create_new` was specified and the file already
 ///   exists.
 /// * [`InvalidInput`]: Invalid combinations of open options (truncate
-///   without write access, no access mode set, etc.).
+///   without write access, create without write or append access,
+///   no access mode set, etc.).
 /// 
 /// The following errors don't match any existing [`io::ErrorKind`] at the moment:
 /// * One of the directory components of the specified file path
@@ -1021,6 +1022,83 @@ pub fn set_permissions_wc < P : core :: convert :: AsRef < std :: path :: Path >
     let path = path.as_ref();
     std :: fs :: set_permissions(path, perm.clone())
         .with_context(|| crate::call_failed!(None::<()>, "std::fs::set_permissions", path, perm))
+}
+/// Changes the timestamps of the file or directory at the specified path.
+/// 
+/// This function will attempt to set the access and modification times
+/// to the times specified. If the path refers to a symbolic link, this function
+/// will follow the link and change the timestamps of the target file.
+/// 
+/// # Platform-specific behavior
+/// 
+/// This function currently corresponds to the `utimensat` function on Unix platforms, the
+/// `setattrlist` function on Apple platforms, and the `SetFileTime` function on Windows.
+/// 
+/// # Errors
+/// 
+/// This function will return an error if the user lacks permission to change timestamps on the
+/// target file or symlink. It may also return an error if the OS does not support it.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(fs_set_times)]
+/// use std::fs::{self, FileTimes};
+/// use std::time::SystemTime;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let now = SystemTime::now();
+///     let times = FileTimes::new()
+///         .set_accessed(now)
+///         .set_modified(now);
+///     fs::set_times("foo.txt", times)?;
+///     Ok(())
+/// }
+/// ```
+#[cfg(feature = "fs_set_times")]
+pub fn set_times_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P , times : std :: fs :: FileTimes ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    let path = path.as_ref();
+    std :: fs :: set_times(path, times)
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::set_times", path, times))
+}
+/// Changes the timestamps of the file or symlink at the specified path.
+/// 
+/// This function will attempt to set the access and modification times
+/// to the times specified. Differ from `set_times`, if the path refers to a symbolic link,
+/// this function will change the timestamps of the symlink itself, not the target file.
+/// 
+/// # Platform-specific behavior
+/// 
+/// This function currently corresponds to the `utimensat` function with `AT_SYMLINK_NOFOLLOW` on
+/// Unix platforms, the `setattrlist` function with `FSOPT_NOFOLLOW` on Apple platforms, and the
+/// `SetFileTime` function on Windows.
+/// 
+/// # Errors
+/// 
+/// This function will return an error if the user lacks permission to change timestamps on the
+/// target file or symlink. It may also return an error if the OS does not support it.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(fs_set_times)]
+/// use std::fs::{self, FileTimes};
+/// use std::time::SystemTime;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let now = SystemTime::now();
+///     let times = FileTimes::new()
+///         .set_accessed(now)
+///         .set_modified(now);
+///     fs::set_times_nofollow("symlink.txt", times)?;
+///     Ok(())
+/// }
+/// ```
+#[cfg(feature = "fs_set_times")]
+pub fn set_times_nofollow_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P , times : std :: fs :: FileTimes ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    let path = path.as_ref();
+    std :: fs :: set_times_nofollow(path, times)
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::set_times_nofollow", path, times))
 }
 /// Copies the contents of one file to another. This function will also
 /// copy the permission bits of the original file to the destination file.
@@ -1647,6 +1725,9 @@ pub fn exists_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path
 /// New errors may be encountered after an iterator is initially constructed.
 /// Entries for the current and parent directories (typically `.` and `..`) are
 /// skipped.
+/// 
+/// The order in which `read_dir` returns entries can change between calls. If reproducible
+/// ordering is required, the entries should be explicitly sorted.
 /// 
 /// # Platform-specific behavior
 /// 
