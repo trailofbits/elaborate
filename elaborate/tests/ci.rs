@@ -9,7 +9,7 @@ use std::{
 };
 use walkdir::WalkDir;
 
-#[ctor::ctor]
+#[ctor::ctor(unsafe)]
 fn initialize() {
     unsafe {
         remove_var("CARGO_TERM_COLOR");

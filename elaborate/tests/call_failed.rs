@@ -4,7 +4,7 @@
     allow(crate_wide_allow, non_thread_safe_call_in_test)
 )]
 
-#[ctor::ctor]
+#[ctor::ctor(unsafe)]
 fn initialize() {
     unsafe {
         // smoelius: `RUST_BACKTRACE` adds to the error messages and interferes with the tests.
