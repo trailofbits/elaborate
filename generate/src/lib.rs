@@ -25,7 +25,7 @@ use util::{
 // smoelius: `COMMIT` should be the commit returned by `rustc --version` with the toolchain in
 // rust-toolchain. That commit should be after when the currently used version of `rustdoc-types`
 // was merged into the `rust` repository.
-pub const COMMIT: &str = "040a98af70f0a7da03f3d5356531b28a2a7a77e4";
+pub const COMMIT: &str = "34f954f9b7cbdb5e9b408bac1c4ff1e88b5f2719";
 
 #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
 static STD_JSON: LazyLock<PathBuf> =
