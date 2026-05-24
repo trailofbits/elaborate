@@ -267,7 +267,7 @@ fn code_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Opti
 /// 
 /// ```
 /// #![feature(exit_status_error)]
-/// # if cfg!(unix) {
+/// # if cfg!(all(unix, not(all(target_vendor = "apple", not(target_os = "macos"))))) {
 /// use std::process::Command;
 /// 
 /// let status = Command::new("ls")
@@ -308,7 +308,7 @@ pub trait ExitStatusErrorContext {
 /// ```
 /// #![feature(exit_status_error)]
 /// 
-/// # if cfg!(all(unix, not(target_os = "android"))) {
+/// # if cfg!(all(unix, not(target_os = "android"), not(all(target_vendor = "apple", not(target_os = "macos"))))) {
 /// use std::num::NonZero;
 /// use std::process::Command;
 /// 
@@ -340,7 +340,7 @@ fn code_nonzero_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option
 /// 
 /// ```
 /// #![feature(exit_status_error)]
-/// # #[cfg(all(unix, not(target_os = "android")))] {
+/// # #[cfg(all(unix, not(target_os = "android"), not(all(target_vendor = "apple", not(target_os = "macos")))))] {
 /// use std::process::Command;
 /// 
 /// let bad = Command::new("false").status().unwrap().exit_ok().unwrap_err();
@@ -383,7 +383,7 @@ pub trait OutputContext: Sized {
 /// 
 /// ```
 /// #![feature(exit_status_error)]
-/// # #[cfg(all(unix, not(target_os = "android")))] {
+/// # #[cfg(all(unix, not(target_os = "android"), not(all(target_vendor = "apple", not(target_os = "macos")))))] {
 /// use std::process::Command;
 /// assert!(Command::new("false").output().unwrap().exit_ok().is_err());
 /// # }

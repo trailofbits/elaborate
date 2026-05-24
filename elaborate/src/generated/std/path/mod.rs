@@ -275,6 +275,14 @@ fn parent_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Op
 /// 
 /// This is an alias to [`fs::canonicalize`].
 /// 
+/// # Errors
+/// 
+/// This method will return an error in the following situations, but is not
+/// limited to just these cases:
+/// 
+/// * `path` does not exist.
+/// * A non-final component in path is not a directory.
+/// 
 /// # Examples
 /// 
 /// ```no_run
@@ -401,7 +409,7 @@ fn to_str_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Op
 /// 
 /// On POSIX platforms, the path is resolved using [POSIX semantics][posix-semantics],
 /// except that it stops short of resolving symlinks. This means it will keep `..`
-/// components and trailing slashes.
+/// components and trailing separators.
 /// 
 /// On Windows, for verbatim paths, this will simply return the path as given. For other
 /// paths, this is currently equivalent to calling

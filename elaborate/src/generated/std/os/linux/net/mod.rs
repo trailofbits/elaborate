@@ -79,11 +79,13 @@ impl<T> SocketAddrExtContext for T where T: std :: os :: linux :: net :: SocketA
 pub trait TcpStreamExtContext: std :: os :: linux :: net :: TcpStreamExt {
 /// A socket listener will be awakened solely when data arrives.
 /// 
-/// The `accept` argument set the delay in seconds until the
+/// The `accept` argument set the maximum delay until the
 /// data is available to read, reducing the number of short lived
 /// connections without data to process.
 /// Contrary to other platforms `SO_ACCEPTFILTER` feature equivalent, there is
 /// no necessity to set it after the `listen` call.
+/// Note that the delay is expressed as Duration from user's perspective
+/// the call rounds it down to the nearest second expressible as a `c_int`.
 /// 
 /// See [`man 7 tcp`](https://man7.org/linux/man-pages/man7/tcp.7.html)
 /// 
@@ -93,13 +95,14 @@ pub trait TcpStreamExtContext: std :: os :: linux :: net :: TcpStreamExt {
 /// #![feature(tcp_deferaccept)]
 /// use std::net::TcpStream;
 /// use std::os::linux::net::TcpStreamExt;
+/// use std::time::Duration;
 /// 
 /// let stream = TcpStream::connect("127.0.0.1:8080")
 ///         .expect("Couldn't connect to the server...");
-/// stream.set_deferaccept(1).expect("set_deferaccept call failed");
+/// stream.set_deferaccept(Duration::from_secs(1u64)).expect("set_deferaccept call failed");
 /// ```
 #[cfg(feature = "tcp_deferaccept")]
-fn set_deferaccept_wc ( & self , accept : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+fn set_deferaccept_wc ( & self , accept : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: os :: linux :: net :: TcpStreamExt > :: set_deferaccept(self, accept)
         .with_context(|| crate::call_failed!(Some(self), "set_deferaccept", accept))
 }
@@ -129,7 +132,7 @@ fn set_quickack_wc ( & self , quickack : bool ) -> crate :: rewrite_output_type 
     < Self as :: std :: os :: linux :: net :: TcpStreamExt > :: set_quickack(self, quickack)
         .with_context(|| crate::call_failed!(Some(self), "set_quickack", quickack))
 }
-/// Gets the accept delay value (in seconds) of the `TCP_DEFER_ACCEPT` option.
+/// Gets the accept delay value of the `TCP_DEFER_ACCEPT` option.
 /// 
 /// For more information about this option, see [`TcpStreamExt::set_deferaccept`].
 /// 
@@ -139,14 +142,15 @@ fn set_quickack_wc ( & self , quickack : bool ) -> crate :: rewrite_output_type 
 /// #![feature(tcp_deferaccept)]
 /// use std::net::TcpStream;
 /// use std::os::linux::net::TcpStreamExt;
+/// use std::time::Duration;
 /// 
 /// let stream = TcpStream::connect("127.0.0.1:8080")
 ///         .expect("Couldn't connect to the server...");
-/// stream.set_deferaccept(1).expect("set_deferaccept call failed");
-/// assert_eq!(stream.deferaccept().unwrap_or(0), 1);
+/// stream.set_deferaccept(Duration::from_secs(1u64)).expect("set_deferaccept call failed");
+/// assert_eq!(stream.deferaccept().unwrap(), Duration::from_secs(1u64));
 /// ```
 #[cfg(feature = "tcp_deferaccept")]
-fn deferaccept_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u32 > ) {
+fn deferaccept_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: time :: Duration > ) {
     < Self as :: std :: os :: linux :: net :: TcpStreamExt > :: deferaccept(self)
         .with_context(|| crate::call_failed!(Some(self), "deferaccept"))
 }

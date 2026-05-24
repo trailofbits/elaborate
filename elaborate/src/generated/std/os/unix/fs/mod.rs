@@ -102,6 +102,42 @@ fn read_at_wc ( & self , buf : & mut [ u8 ] , offset : u64 ) -> crate :: rewrite
     < Self as :: std :: os :: unix :: fs :: FileExt > :: read_at(self, buf, offset)
         .with_context(|| crate::call_failed!(Some(self), "read_at", buf, offset))
 }
+/// Reads some bytes starting from a given offset into the buffer.
+/// 
+/// This equivalent to the [`read_at`](FileExt::read_at) method, except that it is passed a
+/// [`BorrowedCursor`] rather than `&mut [u8]` to allow use with uninitialized buffers. The new
+/// data will be appended to any existing contents of `buf`.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(core_io_borrowed_buf)]
+/// #![feature(read_buf_at)]
+/// 
+/// use std::io;
+/// use std::io::BorrowedBuf;
+/// use std::fs::File;
+/// use std::mem::MaybeUninit;
+/// use std::os::unix::prelude::*;
+/// 
+/// fn main() -> io::Result<()> {
+///     let mut file = File::open("pi.txt")?;
+/// 
+///     // Read some bytes starting from offset 2
+///     let mut buf: [MaybeUninit<u8>; 10] = [MaybeUninit::uninit(); 10];
+///     let mut buf = BorrowedBuf::from(buf.as_mut_slice());
+///     file.read_buf_at(buf.unfilled(), 2)?;
+/// 
+///     assert!(buf.filled().starts_with(b"1"));
+/// 
+///     Ok(())
+/// }
+/// ```
+#[cfg(feature = "read_buf_at")]
+fn read_buf_at_wc ( & self , buf : core :: io :: BorrowedCursor < '_ > , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    < Self as :: std :: os :: unix :: fs :: FileExt > :: read_buf_at(self, buf, offset)
+        .with_context(|| crate::call_failed!(Some(self), "read_buf_at", crate::CustomDebugMessage("value of type BorrowedCursor"), offset))
+}
 /// Reads the exact number of bytes required to fill `buf` from the given offset.
 /// 
 /// The offset is relative to the start of the file and thus independent
@@ -150,6 +186,42 @@ fn read_at_wc ( & self , buf : & mut [ u8 ] , offset : u64 ) -> crate :: rewrite
 fn read_exact_at_wc ( & self , buf : & mut [ u8 ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: os :: unix :: fs :: FileExt > :: read_exact_at(self, buf, offset)
         .with_context(|| crate::call_failed!(Some(self), "read_exact_at", buf, offset))
+}
+/// Reads the exact number of bytes required to fill the buffer from a given offset.
+/// 
+/// This is equivalent to the [`read_exact_at`](FileExt::read_exact_at) method, except that it
+/// is passed a [`BorrowedCursor`] rather than `&mut [u8]` to allow use with uninitialized
+/// buffers. The new data will be appended to any existing contents of `buf`.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(core_io_borrowed_buf)]
+/// #![feature(read_buf_at)]
+/// 
+/// use std::io;
+/// use std::io::BorrowedBuf;
+/// use std::fs::File;
+/// use std::mem::MaybeUninit;
+/// use std::os::unix::prelude::*;
+/// 
+/// fn main() -> io::Result<()> {
+///     let mut file = File::open("pi.txt")?;
+/// 
+///     // Read exactly 10 bytes starting from offset 2
+///     let mut buf: [MaybeUninit<u8>; 10] = [MaybeUninit::uninit(); 10];
+///     let mut buf = BorrowedBuf::from(buf.as_mut_slice());
+///     file.read_buf_exact_at(buf.unfilled(), 2)?;
+/// 
+///     assert_eq!(buf.filled(), b"1415926535");
+/// 
+///     Ok(())
+/// }
+/// ```
+#[cfg(feature = "read_buf_at")]
+fn read_buf_exact_at_wc ( & self , buf : core :: io :: BorrowedCursor < '_ > , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    < Self as :: std :: os :: unix :: fs :: FileExt > :: read_buf_exact_at(self, buf, offset)
+        .with_context(|| crate::call_failed!(Some(self), "read_buf_exact_at", crate::CustomDebugMessage("value of type BorrowedCursor"), offset))
 }
 /// Writes a number of bytes starting from a given offset.
 /// 

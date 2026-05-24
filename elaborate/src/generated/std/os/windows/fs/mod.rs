@@ -43,6 +43,44 @@ fn seek_read_wc ( & self , buf : & mut [ u8 ] , offset : u64 ) -> crate :: rewri
     < Self as :: std :: os :: windows :: fs :: FileExt > :: seek_read(self, buf, offset)
         .with_context(|| crate::call_failed!(Some(self), "seek_read", buf, offset))
 }
+/// Seeks to a given position and reads some bytes into the buffer.
+/// 
+/// This is equivalent to the [`seek_read`](FileExt::seek_read) method, except that it is passed
+/// a [`BorrowedCursor`] rather than `&mut [u8]` to allow use with uninitialized buffers. The
+/// new data will be appended to any existing contents of `buf`.
+/// 
+/// Reading beyond the end of the file will always succeed without reading any bytes.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(core_io_borrowed_buf)]
+/// #![feature(read_buf_at)]
+/// 
+/// use std::io;
+/// use std::io::BorrowedBuf;
+/// use std::fs::File;
+/// use std::mem::MaybeUninit;
+/// use std::os::windows::prelude::*;
+/// 
+/// fn main() -> io::Result<()> {
+///     let mut file = File::open("pi.txt")?;
+/// 
+///     // Read some bytes starting from offset 2
+///     let mut buf: [MaybeUninit<u8>; 10] = [MaybeUninit::uninit(); 10];
+///     let mut buf = BorrowedBuf::from(buf.as_mut_slice());
+///     file.seek_read_buf(buf.unfilled(), 2)?;
+/// 
+///     assert!(buf.filled().starts_with(b"1"));
+/// 
+///     Ok(())
+/// }
+/// ```
+#[cfg(feature = "read_buf_at")]
+fn seek_read_buf_wc ( & self , buf : core :: io :: BorrowedCursor < '_ > , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    < Self as :: std :: os :: windows :: fs :: FileExt > :: seek_read_buf(self, buf, offset)
+        .with_context(|| crate::call_failed!(Some(self), "seek_read_buf", crate::CustomDebugMessage("value of type BorrowedCursor"), offset))
+}
 /// Seeks to a given position and writes a number of bytes.
 /// 
 /// Returns the number of bytes written.
