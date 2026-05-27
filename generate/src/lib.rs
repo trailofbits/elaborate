@@ -382,15 +382,12 @@ impl Generator {
     fn is_function(krate: &Crate, id: Id) -> Option<(&Function, bool, bool)> {
         let function = Self::is_function_inner(krate, id)?;
 
+        // smoelius: Check that the last component of `summary.path` is `Result`. This matches all
+        // `core::result::Result` type aliases (e.g., `core::fmt::Result`, `std::io::Result`) while
+        // naturally excluding unrelated types that happen to contain `Result`.
         let has_result_output = if let Some(Type::ResolvedPath(path)) = &function.sig.output
-            && path.path.ends_with("Result")
-            // smoelius: `std::sync::BarrierWaitResult` is not a `std::result::Result`.
-            && path.path != "BarrierWaitResult"
-            // smoelius: The problem is not `std::sync::LockResult` itself, but how it is used. In
-            // many cases, it is instantiated with a type that is not `Send`, which
-            // `anyhow::Result` requires. `std::sync::Mutex::lock` provides an example:
-            // https://doc.rust-lang.org/beta/std/sync/struct.Mutex.html#method.lock
-            && path.path != "LockResult"
+            && let Some(summary) = krate.paths.get(&path.id)
+            && summary.path.last().is_some_and(|s| s == "Result")
         {
             true
         } else {
