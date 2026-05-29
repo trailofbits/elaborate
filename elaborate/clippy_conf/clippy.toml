@@ -71,6 +71,7 @@ disallowed-methods = [
     { path = "std::io::PipeReader::try_clone", replacement = "elaborate::std::io::PipeReaderContext::try_clone_wc", allow-invalid = true },
     { path = "std::io::PipeWriter::try_clone", replacement = "elaborate::std::io::PipeWriterContext::try_clone_wc", allow-invalid = true },
     { path = "std::io::Read::read", replacement = "elaborate::std::io::ReadContext::read_wc", allow-invalid = true },
+    { path = "std::io::Read::read_array", replacement = "elaborate::std::io::ReadContext::read_array_wc", allow-invalid = true },
     { path = "std::io::Read::read_buf", replacement = "elaborate::std::io::ReadContext::read_buf_wc", allow-invalid = true },
     { path = "std::io::Read::read_buf_exact", replacement = "elaborate::std::io::ReadContext::read_buf_exact_wc", allow-invalid = true },
     { path = "std::io::Read::read_exact", replacement = "elaborate::std::io::ReadContext::read_exact_wc", allow-invalid = true },

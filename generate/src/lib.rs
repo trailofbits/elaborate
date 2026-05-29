@@ -169,7 +169,9 @@ impl Generator {
         let file = File::open(path)?;
         let krate = serde_json::from_reader::<_, Crate>(file)?;
 
-        let public_api = public_api::Builder::from_rustdoc_json(path).build()?;
+        let public_api = public_api::Builder::from_rustdoc_json(path)
+            .include_function_parameter_names(true)
+            .build()?;
 
         self.import(&krate, public_api);
 
