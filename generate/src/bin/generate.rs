@@ -8,7 +8,7 @@
 
 use anyhow::Result;
 use std::{
-    fs::remove_dir_all,
+    fs::{copy, create_dir_all, read_dir, remove_dir_all},
     path::{Path, PathBuf},
     sync::LazyLock,
 };
@@ -17,10 +17,41 @@ use std::{
 static ROOT: LazyLock<PathBuf> =
     LazyLock::new(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../elaborate/src/generated"));
 
+#[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
+static CLIPPY_TOML: LazyLock<PathBuf> = LazyLock::new(|| {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../elaborate/clippy_conf/clippy.toml")
+});
+
+#[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
+static DEBUG_OUTPUT: LazyLock<PathBuf> =
+    LazyLock::new(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("debug_output"));
+
 fn main() -> Result<()> {
+    let output = generate::generate()?;
+
     remove_dir_all(&*ROOT).unwrap_or_default();
+    copy_dir_all(&output.generated_root, &ROOT)?;
 
-    generate::generate(&*ROOT)?;
+    copy(&output.clippy_toml, &*CLIPPY_TOML)?;
 
+    remove_dir_all(&*DEBUG_OUTPUT).unwrap_or_default();
+    copy_dir_all(&output.debug_output, &DEBUG_OUTPUT)?;
+
+    Ok(())
+}
+
+fn copy_dir_all(from: &Path, to: &Path) -> Result<()> {
+    create_dir_all(to)?;
+    for entry in read_dir(from)? {
+        let entry = entry?;
+        let from = entry.path();
+        let to = to.join(entry.file_name());
+        let file_type = entry.file_type()?;
+        if file_type.is_dir() {
+            copy_dir_all(&from, &to)?;
+        } else {
+            copy(from, to)?;
+        }
+    }
     Ok(())
 }

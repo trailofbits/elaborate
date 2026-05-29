@@ -145,18 +145,34 @@ static REWRITABLE_PATHS: LazyLock<Vec<(Vec<Token>, Vec<Token>)>> = LazyLock::new
         .collect()
 });
 
-pub fn generate(root: impl AsRef<Path>) -> Result<()> {
+pub struct GeneratedOutput {
+    pub generated_root: PathBuf,
+    pub clippy_toml: PathBuf,
+    pub debug_output: PathBuf,
+    _tempdir: tempfile::TempDir,
+}
+
+pub fn generate() -> Result<GeneratedOutput> {
+    let tempdir = tempfile::tempdir()?;
+
+    let output = GeneratedOutput {
+        generated_root: tempdir.path().join("generated"),
+        clippy_toml: tempdir.path().join("clippy.toml"),
+        debug_output: tempdir.path().join("debug_output"),
+        _tempdir: tempdir,
+    };
+
     let mut generator = Generator::default();
 
     generator.import_path(&STD_JSON)?;
 
-    generator.write_clippy_toml()?;
+    generator.write_clippy_toml(&output.clippy_toml)?;
 
-    generator.write_discarded()?;
+    generator.write_discarded(&output.debug_output)?;
 
-    generator.generate(root)?;
+    generator.generate(&output.generated_root)?;
 
-    Ok(())
+    Ok(output)
 }
 
 #[derive(Default)]
@@ -470,11 +486,7 @@ impl Generator {
             .insert(disallowable_qualified_fn, disallowable_qualified_fn_wrapper);
     }
 
-    fn write_clippy_toml(&self) -> Result<()> {
-        #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
-        let path = Path::new::<str>(env!("CARGO_MANIFEST_DIR"))
-            .join("../elaborate/clippy_conf/clippy.toml");
-
+    fn write_clippy_toml(&self, path: &Path) -> Result<()> {
         let mut file = OpenOptions::new()
             .create(true)
             .truncate(true)
@@ -497,11 +509,8 @@ impl Generator {
         Ok(())
     }
 
-    fn write_discarded(&self) -> Result<()> {
-        #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
-        let debug_output = Path::new(env!("CARGO_MANIFEST_DIR")).join("debug_output");
-
-        create_dir_all(&debug_output).unwrap_or_default();
+    fn write_discarded(&self, debug_output: &Path) -> Result<()> {
+        create_dir_all(debug_output)?;
 
         for (reason, tokens) in &self.discarded {
             let mut open_options = OpenOptions::new();
@@ -870,7 +879,6 @@ mod test {
     use std::{
         env::var,
         fs::{exists, read_to_string, write},
-        io::Write,
         path::Path,
         process::Command,
         str::FromStr,
@@ -881,20 +889,21 @@ mod test {
 
     #[test]
     fn generated_is_current() {
-        if repo_is_dirty() {
-            #[allow(clippy::explicit_write)]
-            writeln!(
-                std::io::stderr(),
-                "Skipping `generated_is_current` test as repository is dirty",
-            )
-            .unwrap();
-            return;
-        }
-        assert_cmd::Command::new("cargo")
-            .args(["run", "--bin=generate"])
-            .assert()
-            .success();
-        assert!(!repo_is_dirty());
+        let output = super::generate().unwrap();
+
+        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let generated_root = manifest_dir.join("../elaborate/src/generated");
+        assert!(
+            !dir_diff::is_different(&generated_root, &output.generated_root).unwrap(),
+            "{} and {} differ",
+            generated_root.display(),
+            output.generated_root.display(),
+        );
+
+        assert_files_equal(
+            &manifest_dir.join("../elaborate/clippy_conf/clippy.toml"),
+            &output.clippy_toml,
+        );
     }
 
     #[test]
@@ -1084,12 +1093,20 @@ mod test {
         }
     }
 
-    fn repo_is_dirty() -> bool {
-        let status = Command::new("git")
-            .args(["diff", "--quiet"])
-            .status()
-            .unwrap();
-        !status.success()
+    fn assert_files_equal(expected: &Path, actual: &Path) {
+        let expected_contents = read_to_string(expected).unwrap();
+        let actual_contents = read_to_string(actual).unwrap();
+        assert_eq!(
+            expected_contents,
+            actual_contents,
+            "{}",
+            SimpleDiff::from_str(
+                &expected_contents,
+                &actual_contents,
+                &expected.display().to_string(),
+                &actual.display().to_string(),
+            )
+        );
     }
 
     pub fn enabled(key: &str) -> bool {
