@@ -1,4 +1,6 @@
-use rustdoc_types::{Function, GenericBound, GenericParamDefKind, Type, WherePredicate};
+use public_api::rustdoc_types::{
+    Function, GenericBound, GenericParamDefKind, Type, WherePredicate,
+};
 
 pub trait FunctionExt {
     fn input_is_redeclarable(&self, i: usize) -> Option<&str>;

@@ -162,7 +162,6 @@ dependencies = [
  "itertools",
  "public-api",
  "regex",
- "rustdoc-types",
  "serde_json",
  "similar-asserts 2.0.0",
 ]
@@ -336,9 +335,9 @@ dependencies = [
 
 [[package]]
 name = "public-api"
-version = "0.52.0"
+version = "0.52.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02f66902549074a24229cb6d3e5b69f823fa620ec527b6a10708c1798d31e273"
+checksum = "d410e0b50432be9a8708e0bab4f5e0ddfde07236cc7f9481476aa9c5ef60ece3"
 dependencies = [
  "hashbag",
  "rustdoc-types",

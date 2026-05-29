@@ -1,5 +1,4 @@
-use public_api::tokens::Token;
-use rustdoc_types::Type;
+use public_api::{rustdoc_types::Type, tokens::Token};
 
 #[allow(dead_code)]
 pub trait TokenExt {
