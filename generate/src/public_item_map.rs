@@ -24,8 +24,11 @@
 use public_api::PublicItem;
 
 use crate::util::{PublicItemExt, TokensExt};
-use public_api::{PublicApi, tokens::Token};
-use rustdoc_types::{Crate, Id, ItemEnum};
+use public_api::{
+    PublicApi,
+    rustdoc_types::{Crate, Id, ItemEnum},
+    tokens::Token,
+};
 use std::collections::{HashMap, HashSet};
 
 type Inner = HashMap<Id, HashSet<(Option<Id>, Vec<Token>)>>;

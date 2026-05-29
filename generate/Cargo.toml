@@ -7,9 +7,10 @@ publish = false
 [dependencies]
 anyhow = "1.0"
 itertools = "0.14"
-public-api = "0.52"
+public-api = { version = "=0.52.1", features = [
+    "experimental-feature-that-can-be-removed-in-a-patch-release_re-export-rustdoc-types",
+] }
 regex = "1.12"
-rustdoc-types = "0.57"
 serde_json = "1.0"
 
 [dev-dependencies]

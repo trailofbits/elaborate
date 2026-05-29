@@ -1,7 +1,9 @@
 use anyhow::Result;
-use public_api::tokens::Token;
+use public_api::{
+    rustdoc_types::{Attribute, Crate, Function, Id, ItemEnum, Type},
+    tokens::Token,
+};
 use regex::Regex;
-use rustdoc_types::{Attribute, Crate, Function, Id, ItemEnum, Type};
 use std::{
     collections::{BTreeMap, HashSet},
     fs::{File, OpenOptions, create_dir_all},
