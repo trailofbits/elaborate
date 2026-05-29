@@ -952,25 +952,44 @@ mod test {
             .join(TARGET)
             .join("doc/std.json");
 
-        let json_generated = read_to_string(&path).unwrap();
+        let json_normalized = {
+            let json = read_to_string(&path).unwrap();
+            let mut value = serde_json::Value::from_str(&json).unwrap();
+            normalize_filenames(&mut value);
+            if !cfg!(target_os = "linux") {
+                remove_paths(&mut value);
+            }
+            serde_json::to_string_pretty(&value).unwrap()
+        };
 
-        let mut value = serde_json::Value::from_str(&json_generated).unwrap();
-
-        normalize_filenames(&mut value);
-
-        let json_normalized = serde_json::to_string_pretty(&value).unwrap();
-
+        #[allow(clippy::assertions_on_constants)]
         if enabled("BLESS") {
-            write(&*super::STD_JSON, json_normalized).unwrap();
-        } else {
-            let json_assets = read_to_string(&*super::STD_JSON).unwrap();
-
             assert!(
-                json_assets == json_normalized,
-                "{}",
-                SimpleDiff::from_str(&json_assets, &json_normalized, "left", "right")
+                cfg!(target_os = "linux"),
+                "`BLESS` can be used on Linux targets only"
             );
+            write(&*super::STD_JSON, json_normalized).unwrap();
+            return;
         }
+
+        // smoelius: If the target OS is Linux, then compare the std.json file and the normalized
+        // one outright. If the target OS is not Linux, then remove the rlib paths before comparing.
+        // The following PR introduced the paths and provides some explanation for why they cause
+        // problems: https://github.com/rust-lang/rust/pull/149043
+        let json_assets = if cfg!(target_os = "linux") {
+            read_to_string(&*super::STD_JSON).unwrap()
+        } else {
+            let json = read_to_string(&*super::STD_JSON).unwrap();
+            let mut value = serde_json::Value::from_str(&json).unwrap();
+            remove_paths(&mut value);
+            serde_json::to_string_pretty(&value).unwrap()
+        };
+
+        assert!(
+            json_assets == json_normalized,
+            "{}",
+            SimpleDiff::from_str(&json_assets, &json_normalized, "left", "right")
+        );
     }
 
     fn checkout_rust() {
@@ -1023,7 +1042,7 @@ mod test {
             serde_json::Value::Object(object) => {
                 object.retain(|key, value| {
                     #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
-                    if key == "filename" {
+                    if key == "filename" || (key == "path" && value.is_string()) {
                         let s = value.as_str().unwrap();
                         let path = Path::new(s);
                         *value = serde_json::Value::from(
@@ -1034,6 +1053,29 @@ mod test {
                         );
                     }
                     normalize_filenames(value);
+                    true
+                });
+            }
+        }
+    }
+
+    fn remove_paths(value: &mut serde_json::Value) {
+        match value {
+            serde_json::Value::Null
+            | serde_json::Value::Bool(_)
+            | serde_json::Value::Number(_)
+            | serde_json::Value::String(_) => {}
+            serde_json::Value::Array(array) => {
+                for value in array {
+                    remove_paths(value);
+                }
+            }
+            serde_json::Value::Object(object) => {
+                object.retain(|key, value| {
+                    if key == "path" && value.is_string() {
+                        return false;
+                    }
+                    remove_paths(value);
                     true
                 });
             }
