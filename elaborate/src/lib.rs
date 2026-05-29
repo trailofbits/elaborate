@@ -14,6 +14,7 @@
 #![cfg_attr(feature = "panic_backtrace_config", feature(panic_backtrace_config))]
 #![cfg_attr(feature = "path_file_prefix", feature(path_file_prefix))]
 #![cfg_attr(feature = "raw_os_error_ty", feature(raw_os_error_ty))]
+#![cfg_attr(feature = "read_array", feature(read_array))]
 #![cfg_attr(feature = "read_buf", feature(read_buf))]
 #![cfg_attr(feature = "read_buf_at", feature(read_buf_at))]
 #![cfg_attr(feature = "seek_stream_len", feature(seek_stream_len))]

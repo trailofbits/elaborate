@@ -534,6 +534,38 @@ fn read_buf_wc ( & mut self , buf : core :: io :: BorrowedCursor < '_ > ) -> cra
     < Self as :: std :: io :: Read > :: read_buf(self, buf)
         .with_context(|| crate::call_failed!(Some(self), "read_buf", crate::CustomDebugMessage("value of type BorrowedCursor")))
 }
+/// Read and return a fixed array of bytes from this source.
+/// 
+/// This function uses an array sized based on a const generic size known at compile time. You
+/// can specify the size with turbofish (`reader.read_array::<8>()`), or let type inference
+/// determine the number of bytes needed based on how the return value gets used. For instance,
+/// this function works well with functions like [`u64::from_le_bytes`] to turn an array of
+/// bytes into an integer of the same size.
+/// 
+/// Like `read_exact`, if this function encounters an "end of file" before reading the desired
+/// number of bytes, it returns an error of the kind [`ErrorKind::UnexpectedEof`].
+/// 
+/// ```
+/// #![feature(read_array)]
+/// use std::io::Cursor;
+/// use std::io::prelude::*;
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let mut buf = Cursor::new([1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2]);
+///     let x = u64::from_le_bytes(buf.read_array()?);
+///     let y = u32::from_be_bytes(buf.read_array()?);
+///     let z = u16::from_be_bytes(buf.read_array()?);
+///     assert_eq!(x, 0x807060504030201);
+///     assert_eq!(y, 0x9080706);
+///     assert_eq!(z, 0x504);
+///     Ok(())
+/// }
+/// ```
+#[cfg(feature = "read_array")]
+fn read_array_wc < const N : usize > ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < [ u8 ; N ] > ) where Self : core :: marker :: Sized {
+    < Self as :: std :: io :: Read > :: read_array(self)
+        .with_context(|| crate::call_failed!(Some(self), "read_array"))
+}
 /// Reads the exact number of bytes required to fill `buf`.
 /// 
 /// This function reads as many bytes as necessary to completely fill the

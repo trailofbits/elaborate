@@ -1234,7 +1234,7 @@ pub fn soft_link_wc < P : core :: convert :: AsRef < std :: path :: Path > , Q :
     std :: fs :: soft_link(original, link)
         .with_context(|| crate::call_failed!(None::<()>, "std::fs::soft_link", original, link))
 }
-/// Creates a new, empty directory at the provided path
+/// Creates a new, empty directory at the provided path.
 /// 
 /// # Platform-specific behavior
 /// 
