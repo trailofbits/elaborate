@@ -877,9 +877,10 @@ fn disallowable_qualified_fn(
 mod test {
     use similar_asserts::SimpleDiff;
     use std::{
+        collections::BTreeSet,
         env::var,
-        fs::{exists, read_to_string, write},
-        path::Path,
+        fs::{exists, read_dir, read_to_string, write},
+        path::{Path, PathBuf},
         process::Command,
         str::FromStr,
     };
@@ -892,12 +893,9 @@ mod test {
         let output = super::generate().unwrap();
 
         let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-        let generated_root = manifest_dir.join("../elaborate/src/generated");
-        assert!(
-            !dir_diff::is_different(&generated_root, &output.generated_root).unwrap(),
-            "{} and {} differ",
-            generated_root.display(),
-            output.generated_root.display(),
+        assert_dirs_equal(
+            &manifest_dir.join("../elaborate/src/generated"),
+            &output.generated_root,
         );
 
         assert_files_equal(
@@ -1093,6 +1091,26 @@ mod test {
         }
     }
 
+    fn assert_dirs_equal(expected: &Path, actual: &Path) {
+        let expected_files = relative_files(expected);
+        let actual_files = relative_files(actual);
+        assert_eq!(
+            expected_files,
+            actual_files,
+            "{}",
+            SimpleDiff::from_str(
+                &format!("{expected_files:#?}"),
+                &format!("{actual_files:#?}"),
+                "expected",
+                "actual",
+            )
+        );
+
+        for relative_path in expected_files {
+            assert_files_equal(&expected.join(&relative_path), &actual.join(relative_path));
+        }
+    }
+
     fn assert_files_equal(expected: &Path, actual: &Path) {
         let expected_contents = read_to_string(expected).unwrap();
         let actual_contents = read_to_string(actual).unwrap();
@@ -1107,6 +1125,30 @@ mod test {
                 &actual.display().to_string(),
             )
         );
+    }
+
+    fn relative_files(root: &Path) -> BTreeSet<PathBuf> {
+        let mut files = BTreeSet::new();
+        collect_relative_files(root, root, &mut files);
+        files
+    }
+
+    fn collect_relative_files(root: &Path, dir: &Path, files: &mut BTreeSet<PathBuf>) {
+        for entry in read_dir(dir).unwrap() {
+            let entry = entry.unwrap();
+            let path = entry.path();
+            let file_type = entry.file_type().unwrap();
+            if file_type.is_dir() {
+                collect_relative_files(root, &path, files);
+            } else if file_type.is_file() {
+                files.insert(path.strip_prefix(root).unwrap().to_owned());
+            } else {
+                panic!(
+                    "unexpected file of type {file_type:?} at: {}",
+                    path.display()
+                );
+            }
+        }
     }
 
     pub fn enabled(key: &str) -> bool {

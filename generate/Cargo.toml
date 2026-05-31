@@ -16,7 +16,6 @@ tempfile = "3.27"
 
 [dev-dependencies]
 assert_cmd = "2.2"
-dir-diff = "0.3"
 similar-asserts = "2.0"
 
 [lints]
