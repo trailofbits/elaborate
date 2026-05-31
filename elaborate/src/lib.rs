@@ -93,7 +93,7 @@ pub use generated::std;
 /// The function returns a [`Command`] configured as follows:
 /// - It runs Clippy's [`disallowed_methods` lint] with a [Clippy configuration] (`clippy.toml`)
 ///   from this repository.
-/// - `RUSTFLAGS` is set to `--deny=warnings`.
+/// - `RUSTFLAGS` is set to `--deny=clippy::disallowed-methods`.
 ///
 /// # Example
 ///
@@ -118,7 +118,7 @@ pub fn disallowed_methods() -> Command {
         "CLIPPY_CONF_DIR",
         Path::new(env!("CARGO_MANIFEST_DIR")).join("clippy_conf"),
     );
-    command.env("RUSTFLAGS", "--deny=warnings");
+    command.env("RUSTFLAGS", "--deny=clippy::disallowed-methods");
     command
 }
 

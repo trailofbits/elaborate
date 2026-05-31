@@ -44,7 +44,7 @@ fn disallowed_methods() {
             let mut command = std::process::Command::new("cargo");
             command.args(["clippy", "--quiet"]);
             command.env("CLIPPY_CONF_DIR", "../../elaborate/clippy_conf");
-            command.env("RUSTFLAGS", "--deny=warnings");
+            command.env("RUSTFLAGS", "--deny=clippy::disallowed-methods");
             command
         };
         let output = command.current_dir("fixtures/create_dir").output().unwrap();
@@ -59,8 +59,7 @@ error: use of a disallowed method `std::fs::create_dir`
   |     ^^^^^^^^^^ help: use: `elaborate::std::fs::create_dir_wc`
   |
   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#disallowed_methods
-  = note: `-D clippy::disallowed-methods` implied by `-D warnings`
-  = help: to override `-D warnings` add `#[allow(clippy::disallowed_methods)]`
+  = note: requested on the command line with `-D clippy::disallowed-methods`
 
 error: could not compile `create_dir` (bin \"create_dir\") due to 1 previous error
 ", stderr);
