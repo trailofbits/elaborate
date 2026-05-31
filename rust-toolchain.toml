@@ -1,0 +1,9 @@
+# smoelius: Suppose a failed tool installation requires the channel date to be updated. To determine
+# the new channel date, run a command like the following:
+#
+#     cargo bisect-rustc --regress success --start CURRENT_CHANNEL_DATE -- install TOOL
+#
+# Note that `cargo` should not appear after the `--`.
+[toolchain]
+channel = "nightly-2025-12-06"
+components = ["clippy"]
