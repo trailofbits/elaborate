@@ -62,7 +62,7 @@ fn spawn_scoped_wc < 'scope , 'env , F , T > ( self , scope : & 'scope std :: th
 /// thread finishes). The join handle can be used to block on
 /// termination of the spawned thread, including recovering its panics.
 /// 
-/// For a more complete documentation see [`thread::spawn`][`spawn`].
+/// For a more complete documentation see [`thread::spawn`].
 /// 
 /// # Errors
 /// 
@@ -89,6 +89,9 @@ fn spawn_scoped_wc < 'scope , 'env , F , T > ( self , scope : & 'scope std :: th
 /// 
 /// handler.join().unwrap();
 /// ```
+/// 
+/// [`thread::spawn`]: super::spawn
+/// [`spawn`]: super::spawn
 fn spawn_wc < F , T > ( self , f : F ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: thread :: JoinHandle < T > > ) where F : core :: ops :: FnOnce ( ) -> T + core :: marker :: Send + 'static , T : core :: marker :: Send + 'static;
 /// Spawns a new thread without any lifetime restrictions by taking ownership
 /// of the `Builder`, and returns an [`io::Result`] to its [`JoinHandle`].
@@ -100,7 +103,7 @@ fn spawn_wc < F , T > ( self , f : F ) -> crate :: rewrite_output_type ! ( std :
 /// 
 /// This method is identical to [`thread::Builder::spawn`][`Builder::spawn`],
 /// except for the relaxed lifetime bounds, which render it unsafe.
-/// For a more complete documentation see [`thread::spawn`][`spawn`].
+/// For a more complete documentation see [`thread::spawn`].
 /// 
 /// # Errors
 /// 
@@ -122,7 +125,7 @@ fn spawn_wc < F , T > ( self , f : F ) -> crate :: rewrite_output_type ! ( std :
 /// data is dropped
 /// - use only types with `'static` lifetime bounds, i.e., those with no or only
 /// `'static` references (both [`thread::Builder::spawn`][`Builder::spawn`]
-/// and [`thread::spawn`][`spawn`] enforce this property statically)
+/// and [`thread::spawn`] enforce this property statically)
 /// 
 /// # Examples
 /// 
@@ -147,6 +150,8 @@ fn spawn_wc < F , T > ( self , f : F ) -> crate :: rewrite_output_type ! ( std :
 /// ```
 /// 
 /// [`io::Result`]: crate::io::Result
+/// [`thread::spawn`]: super::spawn
+/// [`spawn`]: super::spawn
 #[cfg(feature = "thread_spawn_unchecked")]
 unsafe fn spawn_unchecked_wc < F , T > ( self , f : F ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: thread :: JoinHandle < T > > ) where F : core :: ops :: FnOnce ( ) -> T + core :: marker :: Send , T : core :: marker :: Send;
 }
