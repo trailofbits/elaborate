@@ -1,3 +1,0 @@
-[toolchain]
-channel = "nightly-2025-11-22"
-components = ["clippy"]
