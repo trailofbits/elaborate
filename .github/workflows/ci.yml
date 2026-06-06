@@ -45,7 +45,6 @@ jobs:
         shell: bash
 
     env:
-      RUST_BACKTRACE: 1
       GROUP_RUNNER: target.'cfg(all())'.runner = 'group-runner'
 
     steps:
