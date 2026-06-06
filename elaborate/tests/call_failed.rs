@@ -4,14 +4,6 @@
     allow(crate_wide_allow, non_thread_safe_call_in_test)
 )]
 
-#[ctor::ctor(unsafe)]
-fn initialize() {
-    unsafe {
-        // smoelius: `RUST_BACKTRACE` adds to the error messages and interferes with the tests.
-        std::env::remove_var("RUST_BACKTRACE");
-    }
-}
-
 #[test]
 fn struct_call_failed_without_elaborate() {
     const MSG: &str = if cfg!(target_os = "windows") {
