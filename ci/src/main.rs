@@ -1,57 +1,114 @@
-use assert_cmd::Command;
-use regex::Regex;
-use std::{
-    collections::BTreeSet,
-    env::{remove_var, set_current_dir},
-    fs::read_to_string,
-    path::Path,
-    sync::LazyLock,
-};
-use walkdir::WalkDir;
+use anyhow::{Result, anyhow, bail};
+use cargo_metadata::{Message, camino::Utf8PathBuf};
+use std::{path::Path, process::Command};
 
-#[ctor::ctor(unsafe)]
-fn initialize() {
-    unsafe {
-        remove_var("CARGO_TERM_COLOR");
-        set_current_dir("..").unwrap();
+fn main() {
+    let executable = test_executable().unwrap();
+    let status = Command::new(executable)
+        .current_dir(workspace_root())
+        .status()
+        .unwrap();
+    assert!(status.success());
+}
+
+fn test_executable() -> Result<Utf8PathBuf> {
+    let mut command = Command::new("cargo");
+    let output = command
+        .args([
+            "build",
+            "--manifest-path",
+            "ci/Cargo.toml",
+            "--tests",
+            "--message-format=json",
+        ])
+        .current_dir(workspace_root())
+        .output()?;
+    if !output.status.success() {
+        bail!("command failed: {command:?}");
     }
+    let messages =
+        Message::parse_stream(output.stdout.as_slice()).collect::<Result<Vec<_>, _>>()?;
+    let executables = messages
+        .into_iter()
+        .filter_map(|message| {
+            if let Message::CompilerArtifact(artifact) = message
+                && artifact.target.name == "ci"
+                && artifact.target.is_bin()
+                && artifact.profile.test
+                && let Some(executable) = artifact.executable
+            {
+                Some(executable)
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+    if executables.len() >= 2 {
+        bail!("found multiple test executables: {executables:?}");
+    }
+    executables
+        .into_iter()
+        .next()
+        .ok_or_else(|| anyhow!("found no test executables"))
 }
 
-#[test]
-fn check_all_features() {
-    Command::new("cargo")
-        .args(["check", "--all-features"])
-        .env("RUSTFLAGS", "--deny=warnings")
-        .assert()
-        .success();
+fn workspace_root() -> &'static Path {
+    #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("ci crate should be under workspace root")
 }
 
-#[test]
-fn clippy() {
-    Command::new("cargo")
-        .args(["clippy", "--all-targets", "--", "--deny=warnings"])
-        .assert()
-        .success();
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use assert_cmd::assert::OutputAssertExt;
+    use regex::Regex;
+    use std::{collections::BTreeSet, fs::read_to_string, path::Path, sync::LazyLock};
+    use walkdir::WalkDir;
 
-#[cfg(unix)]
-#[test]
-fn disallowed_methods() {
-    for use_disallowed_methods_function in [false, true] {
-        let mut command = if use_disallowed_methods_function {
-            elaborate::disallowed_methods()
-        } else {
-            let mut command = std::process::Command::new("cargo");
-            command.args(["clippy", "--quiet"]);
-            command.env("CLIPPY_CONF_DIR", "../../elaborate/clippy_conf");
-            command.env("RUSTFLAGS", "--deny=clippy::disallowed-methods");
-            command
-        };
-        let output = command.current_dir("fixtures/create_dir").output().unwrap();
-        assert!(!output.status.success());
-        assert!(output.status.code().is_some());
-        let stderr = String::from_utf8(output.stderr).unwrap();
-        assert_eq!("\
+    #[test]
+    fn check_all_features() {
+        Command::new("cargo")
+            .args(["check", "--workspace", "--all-features"])
+            .env("RUSTFLAGS", "--deny=warnings")
+            .assert()
+            .success();
+    }
+
+    #[test]
+    fn clippy() {
+        Command::new("cargo")
+            .args([
+                "clippy",
+                "--workspace",
+                "--all-targets",
+                "--",
+                "--deny=warnings",
+            ])
+            .assert()
+            .success();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn disallowed_methods() {
+        for use_disallowed_methods_function in [false, true] {
+            let mut command = if use_disallowed_methods_function {
+                elaborate::disallowed_methods()
+            } else {
+                let mut command = std::process::Command::new("cargo");
+                command.args(["clippy", "--quiet"]);
+                command.env("CLIPPY_CONF_DIR", "../../elaborate/clippy_conf");
+                command.env("RUSTFLAGS", "--deny=clippy::disallowed-methods");
+                command
+            };
+            command.env_remove("CARGO_TERM_COLOR");
+            let output = command.current_dir("fixtures/create_dir").output().unwrap();
+            assert!(!output.status.success());
+            assert!(output.status.code().is_some());
+            let stderr = String::from_utf8(output.stderr).unwrap();
+            assert_eq!("\
 error: use of a disallowed method `std::fs::create_dir`
  --> src/main.rs:4:5
   |
@@ -63,124 +120,128 @@ error: use of a disallowed method `std::fs::create_dir`
 
 error: could not compile `create_dir` (bin \"create_dir\") due to 1 previous error
 ", stderr);
-    }
-}
-
-#[test]
-fn dylint() {
-    Command::new("cargo")
-        .args(["dylint", "--all", "--", "--all-targets"])
-        .env("DYLINT_RUSTFLAGS", "--deny warnings")
-        .assert()
-        .success();
-}
-
-#[test]
-fn features_are_used() {
-    let contents =
-        read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml")).unwrap();
-    let table = contents.parse::<toml::Table>().unwrap();
-    let features_table = table
-        .get("features")
-        .and_then(toml::Value::as_table)
-        .unwrap();
-
-    let features_used = collect_features_used();
-
-    // smoelius: Rustc already checks that all used features are known, and warns otherwise. So we
-    // just need to check that all known features are used. The `default` feature and features
-    // beginning with `__` are excluded from this check.
-    for feature in features_table.keys() {
-        if feature == "default" || feature.starts_with("__") {
-            continue;
         }
-        assert!(features_used.contains(feature), "`{feature}` is unused");
     }
-}
 
-static FEATURE_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#"#\[cfg\(feature = "([^"]*)"\)\]"#).unwrap());
+    #[test]
+    fn dylint() {
+        Command::new("cargo")
+            .args(["dylint", "--workspace", "--all", "--", "--all-targets"])
+            .env("DYLINT_RUSTFLAGS", "--deny warnings")
+            .assert()
+            .success();
+    }
 
-fn collect_features_used() -> BTreeSet<String> {
-    let mut features = BTreeSet::new();
-    #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
-    for result in WalkDir::new(Path::new(env!("CARGO_MANIFEST_DIR")).join("src/generated")) {
-        let entry = result.unwrap();
-        let path = entry.path();
-        if !path.is_file() {
-            continue;
+    #[test]
+    fn features_are_used() {
+        let contents =
+            read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../elaborate/Cargo.toml"))
+                .unwrap();
+        let table = contents.parse::<toml::Table>().unwrap();
+        let features_table = table
+            .get("features")
+            .and_then(toml::Value::as_table)
+            .unwrap();
+
+        let features_used = collect_features_used();
+
+        // smoelius: Rustc already checks that all used features are known, and warns otherwise. So
+        // we just need to check that all known features are used. The `default` feature and
+        // features beginning with `__` are excluded from this check.
+        for feature in features_table.keys() {
+            if feature == "default" || feature.starts_with("__") {
+                continue;
+            }
+            assert!(features_used.contains(feature), "`{feature}` is unused");
         }
-        let contents = read_to_string(path).unwrap();
-        for captures in FEATURE_RE.captures_iter(&contents) {
+    }
+
+    static FEATURE_RE: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r#"#\[cfg\(feature = "([^"]*)"\)\]"#).unwrap());
+
+    fn collect_features_used() -> BTreeSet<String> {
+        let mut features = BTreeSet::new();
+        #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
+        for result in
+            WalkDir::new(Path::new(env!("CARGO_MANIFEST_DIR")).join("../elaborate/src/generated"))
+        {
+            let entry = result.unwrap();
+            let path = entry.path();
+            if !path.is_file() {
+                continue;
+            }
+            let contents = read_to_string(path).unwrap();
+            for captures in FEATURE_RE.captures_iter(&contents) {
+                assert_eq!(2, captures.len());
+                features.insert(captures.get(1).unwrap().as_str().to_owned());
+            }
+        }
+        features
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn markdown_link_check() {
+        let tempdir = tempfile::tempdir().unwrap();
+
+        // smoelius: Pin `markdown-link-check` to version 3.11 until the following issue is
+        // resolved: https://github.com/tcort/markdown-link-check/issues/304
+        Command::new("npm")
+            .args(["install", "markdown-link-check@3.11"])
+            .current_dir(&tempdir)
+            .assert()
+            .success();
+
+        // smoelius: https://github.com/rust-lang/crates.io/issues/788
+        let config = Path::new(env!("CARGO_MANIFEST_DIR")).join("markdown_link_check.json");
+
+        let readme_md = Path::new(env!("CARGO_MANIFEST_DIR")).join("../README.md");
+
+        Command::new("npx")
+            .args([
+                "markdown-link-check",
+                "--config",
+                &config.to_string_lossy(),
+                &readme_md.to_string_lossy(),
+            ])
+            .current_dir(&tempdir)
+            .assert()
+            .success();
+    }
+
+    #[test]
+    fn msrv() {
+        Command::new("cargo")
+            .args(["msrv", "verify", "--manifest-path=elaborate/Cargo.toml"])
+            .assert()
+            .success();
+    }
+
+    #[test]
+    fn readme_reference_links_are_sorted() {
+        let re = Regex::new(r"^\[[^\]]*\]:").unwrap();
+        let readme = read_to_string("README.md").unwrap();
+        let links = readme
+            .lines()
+            .filter(|line| re.is_match(line))
+            .collect::<Vec<_>>();
+        let mut links_sorted = links.clone();
+        links_sorted.sort_unstable();
+        assert_eq!(links_sorted, links);
+    }
+
+    #[test]
+    fn readme_reference_links_are_used() {
+        let re = Regex::new(r"(?m)^(\[[^\]]*\]):").unwrap();
+        let readme = read_to_string("README.md").unwrap();
+        for captures in re.captures_iter(&readme) {
             assert_eq!(2, captures.len());
-            features.insert(captures.get(1).unwrap().as_str().to_owned());
+            let m = captures.get(1).unwrap();
+            assert!(
+                readme[..m.start()].contains(m.as_str()),
+                "{} is unused",
+                m.as_str()
+            );
         }
-    }
-    features
-}
-
-#[cfg(unix)]
-#[test]
-fn markdown_link_check() {
-    let tempdir = tempfile::tempdir().unwrap();
-
-    // smoelius: Pin `markdown-link-check` to version 3.11 until the following issue is resolved:
-    // https://github.com/tcort/markdown-link-check/issues/304
-    Command::new("npm")
-        .args(["install", "markdown-link-check@3.11"])
-        .current_dir(&tempdir)
-        .assert()
-        .success();
-
-    // smoelius: https://github.com/rust-lang/crates.io/issues/788
-    let config = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/markdown_link_check.json");
-
-    let readme_md = Path::new(env!("CARGO_MANIFEST_DIR")).join("../README.md");
-
-    Command::new("npx")
-        .args([
-            "markdown-link-check",
-            "--config",
-            &config.to_string_lossy(),
-            &readme_md.to_string_lossy(),
-        ])
-        .current_dir(&tempdir)
-        .assert()
-        .success();
-}
-
-#[test]
-fn msrv() {
-    Command::new("cargo")
-        .args(["msrv", "verify", "--manifest-path=elaborate/Cargo.toml"])
-        .assert()
-        .success();
-}
-
-#[test]
-fn readme_reference_links_are_sorted() {
-    let re = Regex::new(r"^\[[^\]]*\]:").unwrap();
-    let readme = read_to_string("README.md").unwrap();
-    let links = readme
-        .lines()
-        .filter(|line| re.is_match(line))
-        .collect::<Vec<_>>();
-    let mut links_sorted = links.clone();
-    links_sorted.sort_unstable();
-    assert_eq!(links_sorted, links);
-}
-
-#[test]
-fn readme_reference_links_are_used() {
-    let re = Regex::new(r"(?m)^(\[[^\]]*\]):").unwrap();
-    let readme = read_to_string("README.md").unwrap();
-    for captures in re.captures_iter(&readme) {
-        assert_eq!(2, captures.len());
-        let m = captures.get(1).unwrap();
-        assert!(
-            readme[..m.start()].contains(m.as_str()),
-            "{} is unused",
-            m.as_str()
-        );
     }
 }

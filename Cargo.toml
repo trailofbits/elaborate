@@ -1,6 +1,7 @@
 [workspace]
 exclude = ["fixtures"]
-members = ["ci","elaborate", "generate"]
+members = ["ci", "elaborate", "generate"]
+default-members = ["elaborate", "generate"]
 resolver = "2"
 
 [workspace.lints.rust.unexpected_cfgs]
