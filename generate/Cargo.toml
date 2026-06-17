@@ -6,7 +6,7 @@ publish = false
 
 [dependencies]
 anyhow = "1.0"
-itertools = "0.14"
+itertools = "0.15"
 public-api = { version = "=0.52.1", features = [
     "experimental-feature-that-can-be-removed-in-a-patch-release_re-export-rustdoc-types",
 ] }
