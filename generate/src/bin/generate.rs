@@ -1,5 +1,4 @@
-//! To update the source code in elaborate/src/generated, run `cargo run` in this
-//! directory.
+//! To update the source code in elaborate/src/std, run `cargo run` in this directory.
 //!
 //! Note that the update will be performed using assets/std.json, not a checkout of the Rust
 //! repository.
@@ -14,8 +13,8 @@ use std::{
 };
 
 #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
-static ROOT: LazyLock<PathBuf> =
-    LazyLock::new(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../elaborate/src/generated"));
+static ROOT_STD: LazyLock<PathBuf> =
+    LazyLock::new(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../elaborate/src/std"));
 
 #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
 static CLIPPY_TOML: LazyLock<PathBuf> = LazyLock::new(|| {
@@ -29,8 +28,8 @@ static DEBUG_OUTPUT: LazyLock<PathBuf> =
 fn main() -> Result<()> {
     let output = generate::generate()?;
 
-    remove_dir_all(&*ROOT).unwrap_or_default();
-    copy_dir_all(&output.generated_root, &ROOT)?;
+    remove_dir_all(&*ROOT_STD).unwrap_or_default();
+    copy_dir_all(&output.root.join("std"), &ROOT_STD)?;
 
     copy(&output.clippy_toml, &*CLIPPY_TOML)?;
 

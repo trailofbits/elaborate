@@ -191,7 +191,7 @@ error: could not compile `create_dir` (bin \"create_dir\") due to 1 previous err
         let mut features = BTreeSet::new();
         #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
         for result in
-            WalkDir::new(Path::new(env!("CARGO_MANIFEST_DIR")).join("../elaborate/src/generated"))
+            WalkDir::new(Path::new(env!("CARGO_MANIFEST_DIR")).join("../elaborate/src/std"))
         {
             let entry = result.unwrap();
             let path = entry.path();

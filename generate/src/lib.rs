@@ -146,7 +146,8 @@ static REWRITABLE_PATHS: LazyLock<Vec<(Vec<Token>, Vec<Token>)>> = LazyLock::new
 });
 
 pub struct GeneratedOutput {
-    pub generated_root: PathBuf,
+    pub root: PathBuf,
+    pub submodule_names: Vec<String>,
     pub clippy_toml: PathBuf,
     pub debug_output: PathBuf,
     _tempdir: tempfile::TempDir,
@@ -155,24 +156,27 @@ pub struct GeneratedOutput {
 pub fn generate() -> Result<GeneratedOutput> {
     let tempdir = tempfile::tempdir()?;
 
-    let output = GeneratedOutput {
-        generated_root: tempdir.path().join("generated"),
-        clippy_toml: tempdir.path().join("clippy.toml"),
-        debug_output: tempdir.path().join("debug_output"),
-        _tempdir: tempdir,
-    };
+    let root = tempdir.path().to_path_buf();
+    let clippy_toml = tempdir.path().join("clippy.toml");
+    let debug_output = tempdir.path().join("debug_output");
 
     let mut generator = Generator::default();
 
     generator.import_path(&STD_JSON)?;
 
-    generator.write_clippy_toml(&output.clippy_toml)?;
+    generator.write_clippy_toml(&clippy_toml)?;
 
-    generator.write_discarded(&output.debug_output)?;
+    generator.write_discarded(&debug_output)?;
 
-    generator.generate(&output.generated_root)?;
+    let submodule_names = generator.generate(&root)?;
 
-    Ok(output)
+    Ok(GeneratedOutput {
+        root,
+        submodule_names,
+        clippy_toml,
+        debug_output,
+        _tempdir: tempdir,
+    })
 }
 
 #[derive(Default)]
@@ -377,7 +381,7 @@ impl Generator {
         self.disallow(&qualified_type, &fn_path, fn_tokens);
     }
 
-    pub fn generate(self, root: impl AsRef<Path>) -> Result<()> {
+    pub fn generate(self, root: impl AsRef<Path>) -> Result<Vec<String>> {
         self.module.write(root)
     }
 
@@ -892,10 +896,16 @@ mod test {
     fn generated_is_current() {
         let output = super::generate().unwrap();
 
+        // smoelius: Assert that `generate` created exactly one module, and its name is `std`.
+        //
+        // Technically, `generate` writes an unnecessary mod.rs file to `output.root` as well. The
+        // function could likely be modified to avoid that. But, for now, we just ignore the file.
+        assert_eq!(vec![String::from("std")], output.submodule_names);
+
         let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
         assert_dirs_equal(
-            &manifest_dir.join("../elaborate/src/generated"),
-            &output.generated_root,
+            &manifest_dir.join("../elaborate/src/std"),
+            &output.root.join("std"),
         );
 
         assert_files_equal(

@@ -85,8 +85,7 @@ use ::std::{any::type_name, fmt::Debug, path::Path, process::Command};
     clippy::module_name_repetitions
 )]
 #[cfg_attr(dylint_lib = "supplementary", expect(escaping_doc_link))]
-mod generated;
-pub use generated::std;
+pub mod std;
 
 /// Creates a Cargo command to identify functions that could be replaced with wrapped ones.
 ///
