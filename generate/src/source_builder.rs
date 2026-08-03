@@ -116,7 +116,7 @@ impl Module {
         module
     }
 
-    pub fn write(mut self, dir: impl AsRef<std::path::Path>) -> Result<()> {
+    pub fn write(mut self, dir: impl AsRef<std::path::Path>) -> Result<Vec<String>> {
         let dir = dir.as_ref();
         create_dir_all(dir)?;
         let mut file = OpenOptions::new()
@@ -136,11 +136,13 @@ impl Module {
         writeln!(file)?;
         self.write_fns(&mut file)?;
 
+        let submodule_names = self.submodules.keys().cloned().collect();
+
         for (name, submodule) in self.submodules {
             submodule.write(dir.join(name))?;
         }
 
-        Ok(())
+        Ok(submodule_names)
     }
 
     fn write_trait_wrappers(&mut self, file: &mut File) -> Result<()> {
