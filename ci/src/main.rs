@@ -105,7 +105,7 @@ mod tests {
         assert!(output.status.code().is_some());
         let stderr = String::from_utf8(output.stderr).unwrap();
         assert_eq!("\
-error: use of a disallowed method `elaborate::generated::std::path::PathContext::parent_wc`
+error: use of a disallowed method `elaborate::std::path::PathContext::parent_wc`
  --> src/main.rs:5:57
   |
 5 |     let _parent = Path::new(env!(\"CARGO_MANIFEST_DIR\")).parent_wc().unwrap();
