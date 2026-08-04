@@ -92,6 +92,34 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
+    fn disallowed_elaborate_method() {
+        let mut command = std::process::Command::new("cargo");
+        command.args(["clippy", "--quiet"]);
+        command.env("RUSTFLAGS", "--deny=clippy::disallowed-methods");
+        command.env_remove("CARGO_TERM_COLOR");
+        let output = command
+            .current_dir("fixtures/disallowed_elaborate_method")
+            .output()
+            .unwrap();
+        assert!(!output.status.success());
+        assert!(output.status.code().is_some());
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        assert_eq!("\
+error: use of a disallowed method `elaborate::generated::std::path::PathContext::parent_wc`
+ --> src/main.rs:5:57
+  |
+5 |     let _parent = Path::new(env!(\"CARGO_MANIFEST_DIR\")).parent_wc().unwrap();
+  |                                                         ^^^^^^^^^
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#disallowed_methods
+  = note: requested on the command line with `-D clippy::disallowed-methods`
+
+error: could not compile `disallowed_elaborate_method` (bin \"disallowed_elaborate_method\") due to 1 previous error
+", stderr);
+    }
+
+    #[cfg(unix)]
+    #[test]
     fn disallowed_methods() {
         for use_disallowed_methods_function in [false, true] {
             let mut command = if use_disallowed_methods_function {

@@ -1,0 +1,1 @@
+disallowed-methods = ["elaborate::generated::std::path::PathContext::parent_wc"]
