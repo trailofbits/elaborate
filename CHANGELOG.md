@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.0
+
+- BREAKING: Eliminate use of private `generated` module so that `elaborate` symbol paths begin with `elaborate::std`. This is a breaking change for anyone using `clippy::disallowed_methods` to prevent use of an `elaborate` method. ([9cb8c05](https://github.com/trailofbits/elaborate/commit/9cb8c0573796fa6921b0921c22a57f067355f1b6))
+
 ## 1.2.0
 
 - Update Rust toolchain to `nightly-2025-12-06`. ([237c478](https://github.com/trailofbits/elaborate/commit/237c478d0b9de125a45e3c6001b9c2a0aaec9e7a))
