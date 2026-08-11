@@ -71,7 +71,7 @@ jobs:
         with:
           tool: cargo-audit, cargo-hack, cargo-sort, cargo-udeps
 
-      - name: Install Rust toolchain from `rust-toolchain` file
+      - name: Install Rust toolchain from `rust-toolchain.toml` file
         run: rustup install
 
       - name: Install tools
