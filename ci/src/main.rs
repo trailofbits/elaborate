@@ -140,6 +140,39 @@ error: could not compile `create_dir` (bin \"create_dir\") due to 1 previous err
     }
 
     #[test]
+    fn dependent_with_disallowed_method() {
+        let mut command = std::process::Command::new("cargo");
+        command.arg("test");
+        command.current_dir("fixtures/dependency_with_disallowed_method");
+        let output = command.output().unwrap();
+        assert!(!output.status.success());
+        assert!(output.status.code().is_some());
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        let actual = snapbox::IntoData::into_data(stderr);
+        #[rustfmt::skip]
+        let expected = snapbox::IntoData::into_data("\
+...
+     Running unittests src/lib.rs (target/debug/deps/dependency-[..])
+     Running unittests src/lib.rs (target/debug/deps/package-[..])
+error: use of a disallowed method `std::env::current_dir`
+ --> package/src/lib.rs:4:13
+  |
+4 |     let _ = std::env::current_dir().unwrap();
+  |             ^^^^^^^^^^^^^^^^^^^^^ help: use: `elaborate::std::env::current_dir_wc`
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#disallowed_methods
+  = note: requested on the command line with `-D clippy::disallowed-methods`
+
+error: could not compile `package` (lib) due to 1 previous error
+error: test failed, to rerun pass `-p package --lib`
+");
+        snapbox::Assert::new()
+            .action_env(snapbox::assert::DEFAULT_ACTION_ENV)
+            .palette(snapbox::report::Palette::plain())
+            .eq(actual, expected);
+    }
+
+    #[test]
     fn dylint() {
         Command::new("cargo")
             .args(["dylint", "--workspace", "--all", "--", "--all-targets"])
