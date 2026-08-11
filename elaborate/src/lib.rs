@@ -114,7 +114,7 @@ pub mod std;
 #[must_use]
 pub fn disallowed_methods() -> Command {
     let mut command = Command::new("cargo");
-    command.args(["clippy", "--quiet"]);
+    command.args(["clippy", "--no-deps", "--quiet"]);
     command.env(
         "CLIPPY_CONF_DIR",
         Path::new(env!("CARGO_MANIFEST_DIR")).join("clippy_conf"),

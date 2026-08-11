@@ -11,6 +11,7 @@ cargo_metadata = "0.23"
 [dev-dependencies]
 assert_cmd = "2.2"
 regex = "1.12"
+snapbox = "1.2"
 tempfile = "3.27"
 toml = "1.1"
 walkdir = "2.5"
