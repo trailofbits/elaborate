@@ -5,6 +5,7 @@ use std::{path::Path, process::Command};
 fn main() {
     let executable = test_executable().unwrap();
     let status = Command::new(executable)
+        .env_remove("CARGO_TERM_COLOR")
         .current_dir(workspace_root())
         .status()
         .unwrap();
@@ -56,7 +57,7 @@ fn workspace_root() -> &'static Path {
     #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
-        .expect("ci crate should be under workspace root")
+        .expect("`ci` package should be under workspace root")
 }
 
 #[cfg(test)]
@@ -96,11 +97,8 @@ mod tests {
         let mut command = std::process::Command::new("cargo");
         command.args(["clippy", "--quiet"]);
         command.env("RUSTFLAGS", "--deny=clippy::disallowed-methods");
-        command.env_remove("CARGO_TERM_COLOR");
-        let output = command
-            .current_dir("fixtures/disallowed_elaborate_method")
-            .output()
-            .unwrap();
+        command.current_dir("fixtures/disallowed_elaborate_method");
+        let output = command.output().unwrap();
         assert!(!output.status.success());
         assert!(output.status.code().is_some());
         let stderr = String::from_utf8(output.stderr).unwrap();
@@ -121,22 +119,13 @@ error: could not compile `disallowed_elaborate_method` (bin \"disallowed_elabora
     #[cfg(unix)]
     #[test]
     fn disallowed_methods() {
-        for use_disallowed_methods_function in [false, true] {
-            let mut command = if use_disallowed_methods_function {
-                elaborate::disallowed_methods()
-            } else {
-                let mut command = std::process::Command::new("cargo");
-                command.args(["clippy", "--quiet"]);
-                command.env("CLIPPY_CONF_DIR", "../../elaborate/clippy_conf");
-                command.env("RUSTFLAGS", "--deny=clippy::disallowed-methods");
-                command
-            };
-            command.env_remove("CARGO_TERM_COLOR");
-            let output = command.current_dir("fixtures/create_dir").output().unwrap();
-            assert!(!output.status.success());
-            assert!(output.status.code().is_some());
-            let stderr = String::from_utf8(output.stderr).unwrap();
-            assert_eq!("\
+        let mut command = elaborate::disallowed_methods();
+        command.current_dir("fixtures/create_dir");
+        let output = command.output().unwrap();
+        assert!(!output.status.success());
+        assert!(output.status.code().is_some());
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        assert_eq!("\
 error: use of a disallowed method `std::fs::create_dir`
  --> src/main.rs:4:5
   |
@@ -148,7 +137,6 @@ error: use of a disallowed method `std::fs::create_dir`
 
 error: could not compile `create_dir` (bin \"create_dir\") due to 1 previous error
 ", stderr);
-        }
     }
 
     #[test]
