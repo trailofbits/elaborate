@@ -8,20 +8,6 @@ use anyhow::Context;
 #[cfg(feature = "wasi_ext")]
 #[cfg(target_os = "wasi")]
 pub trait FileExtContext: std :: os :: wasi :: fs :: FileExt {
-/// Adjusts the flags associated with this file.
-/// 
-/// This corresponds to the `fd_fdstat_set_flags` syscall.
-fn fdstat_set_flags_wc ( & self , flags : u16 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    < Self as :: std :: os :: wasi :: fs :: FileExt > :: fdstat_set_flags(self, flags)
-        .with_context(|| crate::call_failed!(Some(self), "fdstat_set_flags", flags))
-}
-/// Adjusts the rights associated with this file.
-/// 
-/// This corresponds to the `fd_fdstat_set_rights` syscall.
-fn fdstat_set_rights_wc ( & self , rights : u64 , inheriting : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    < Self as :: std :: os :: wasi :: fs :: FileExt > :: fdstat_set_rights(self, rights, inheriting)
-        .with_context(|| crate::call_failed!(Some(self), "fdstat_set_rights", rights, inheriting))
-}
 /// Attempts to write an entire buffer starting from a given offset.
 /// 
 /// The offset is relative to the start of the file and thus independent
@@ -45,28 +31,6 @@ fn fdstat_set_rights_wc ( & self , rights : u64 , inheriting : u64 ) -> crate ::
 fn write_all_at_wc ( & self , buf : & [ u8 ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: os :: wasi :: fs :: FileExt > :: write_all_at(self, buf, offset)
         .with_context(|| crate::call_failed!(Some(self), "write_all_at", buf, offset))
-}
-/// Creates a directory.
-/// 
-/// This corresponds to the `path_create_directory` syscall.
-fn create_directory_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , dir : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let dir = dir.as_ref();
-    < Self as :: std :: os :: wasi :: fs :: FileExt > :: create_directory(self, dir)
-        .with_context(|| crate::call_failed!(Some(self), "create_directory", dir))
-}
-/// Forces the allocation of space in a file.
-/// 
-/// This corresponds to the `fd_allocate` syscall.
-fn allocate_wc ( & self , offset : u64 , len : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    < Self as :: std :: os :: wasi :: fs :: FileExt > :: allocate(self, offset, len)
-        .with_context(|| crate::call_failed!(Some(self), "allocate", offset, len))
-}
-/// Provides file advisory information on a file descriptor.
-/// 
-/// This corresponds to the `fd_advise` syscall.
-fn advise_wc ( & self , offset : u64 , len : u64 , advice : u8 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    < Self as :: std :: os :: wasi :: fs :: FileExt > :: advise(self, offset, len, advice)
-        .with_context(|| crate::call_failed!(Some(self), "advise", offset, len, advice))
 }
 /// Reads a number of bytes starting from a given offset.
 /// 
@@ -98,13 +62,14 @@ fn read_at_wc ( & self , buf : & mut [ u8 ] , offset : u64 ) -> crate :: rewrite
     < Self as :: std :: os :: wasi :: fs :: FileExt > :: read_at(self, buf, offset)
         .with_context(|| crate::call_failed!(Some(self), "read_at", buf, offset))
 }
-/// Reads the contents of a symbolic link.
+/// Reads some bytes starting from a given offset into the buffer.
 /// 
-/// This corresponds to the `path_readlink` syscall.
-fn read_link_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
-    let path = path.as_ref();
-    < Self as :: std :: os :: wasi :: fs :: FileExt > :: read_link(self, path)
-        .with_context(|| crate::call_failed!(Some(self), "read_link", path))
+/// This equivalent to the [`read_at`](FileExt::read_at) method, except that it is passed a
+/// [`BorrowedCursor`] rather than `&mut [u8]` to allow use with uninitialized buffers. The new
+/// data will be appended to any existing contents of `buf`.
+fn read_buf_at_wc ( & self , buf : core :: io :: BorrowedCursor < '_ > , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    < Self as :: std :: os :: wasi :: fs :: FileExt > :: read_buf_at(self, buf, offset)
+        .with_context(|| crate::call_failed!(Some(self), "read_buf_at", crate::CustomDebugMessage("value of type BorrowedCursor"), offset))
 }
 /// Reads the exact number of byte required to fill `buf` from the given offset.
 /// 
@@ -136,30 +101,6 @@ fn read_link_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & sel
 fn read_exact_at_wc ( & self , buf : & mut [ u8 ] , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: os :: wasi :: fs :: FileExt > :: read_exact_at(self, buf, offset)
         .with_context(|| crate::call_failed!(Some(self), "read_exact_at", buf, offset))
-}
-/// Removes a directory.
-/// 
-/// This corresponds to the `path_remove_directory` syscall.
-fn remove_directory_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let path = path.as_ref();
-    < Self as :: std :: os :: wasi :: fs :: FileExt > :: remove_directory(self, path)
-        .with_context(|| crate::call_failed!(Some(self), "remove_directory", path))
-}
-/// Returns the attributes of a file or directory.
-/// 
-/// This corresponds to the `path_filestat_get` syscall.
-fn metadata_at_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , lookup_flags : u32 , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: Metadata > ) {
-    let path = path.as_ref();
-    < Self as :: std :: os :: wasi :: fs :: FileExt > :: metadata_at(self, lookup_flags, path)
-        .with_context(|| crate::call_failed!(Some(self), "metadata_at", lookup_flags, path))
-}
-/// Unlinks a file.
-/// 
-/// This corresponds to the `path_unlink_file` syscall.
-fn remove_file_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let path = path.as_ref();
-    < Self as :: std :: os :: wasi :: fs :: FileExt > :: remove_file(self, path)
-        .with_context(|| crate::call_failed!(Some(self), "remove_file", path))
 }
 /// Writes a number of bytes starting from a given offset.
 /// 
@@ -202,47 +143,9 @@ fn write_at_wc ( & self , buf : & [ u8 ] , offset : u64 ) -> crate :: rewrite_ou
 #[cfg(feature = "wasi_ext")]
 #[cfg(target_os = "wasi")]
 impl<T> FileExtContext for T where T: std :: os :: wasi :: fs :: FileExt {}
-#[cfg(feature = "wasi_ext")]
-#[cfg(target_os = "wasi")]
-pub trait OpenOptionsExtContext: std :: os :: wasi :: fs :: OpenOptionsExt {
-/// Open a file or directory.
-/// 
-/// This corresponds to the `path_open` syscall.
-fn open_at_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , file : & std :: fs :: File , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: File > ) {
-    let path = path.as_ref();
-    < Self as :: std :: os :: wasi :: fs :: OpenOptionsExt > :: open_at(self, file, path)
-        .with_context(|| crate::call_failed!(Some(self), "open_at", file, path))
-}
-}
-
-#[cfg(feature = "wasi_ext")]
-#[cfg(target_os = "wasi")]
-impl<T> OpenOptionsExtContext for T where T: std :: os :: wasi :: fs :: OpenOptionsExt {}
 
 
 
-/// Creates a hard link.
-/// 
-/// This corresponds to the `path_link` syscall.
-#[cfg(feature = "wasi_ext")]
-#[cfg(target_os = "wasi")]
-pub fn link_wc < P : core :: convert :: AsRef < std :: path :: Path > , U : core :: convert :: AsRef < std :: path :: Path > > ( old_fd : & std :: fs :: File , old_flags : u32 , old_path : P , new_fd : & std :: fs :: File , new_path : U ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let old_path = old_path.as_ref();
-    let new_path = new_path.as_ref();
-    std :: os :: wasi :: fs :: link(old_fd, old_flags, old_path, new_fd, new_path)
-        .with_context(|| crate::call_failed!(None::<()>, "std::os::wasi::fs::link", old_fd, old_flags, old_path, new_fd, new_path))
-}
-/// Creates a symbolic link.
-/// 
-/// This corresponds to the `path_symlink` syscall.
-#[cfg(feature = "wasi_ext")]
-#[cfg(target_os = "wasi")]
-pub fn symlink_wc < P : core :: convert :: AsRef < std :: path :: Path > , U : core :: convert :: AsRef < std :: path :: Path > > ( old_path : P , fd : & std :: fs :: File , new_path : U ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let old_path = old_path.as_ref();
-    let new_path = new_path.as_ref();
-    std :: os :: wasi :: fs :: symlink(old_path, fd, new_path)
-        .with_context(|| crate::call_failed!(None::<()>, "std::os::wasi::fs::symlink", old_path, fd, new_path))
-}
 /// Creates a symbolic link.
 /// 
 /// This is a convenience API similar to `std::os::unix::fs::symlink` and
@@ -254,15 +157,4 @@ pub fn symlink_path_wc < P : core :: convert :: AsRef < std :: path :: Path > , 
     let new_path = new_path.as_ref();
     std :: os :: wasi :: fs :: symlink_path(old_path, new_path)
         .with_context(|| crate::call_failed!(None::<()>, "std::os::wasi::fs::symlink_path", old_path, new_path))
-}
-/// Renames a file or directory.
-/// 
-/// This corresponds to the `path_rename` syscall.
-#[cfg(feature = "wasi_ext")]
-#[cfg(target_os = "wasi")]
-pub fn rename_wc < P : core :: convert :: AsRef < std :: path :: Path > , U : core :: convert :: AsRef < std :: path :: Path > > ( old_fd : & std :: fs :: File , old_path : P , new_fd : & std :: fs :: File , new_path : U ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
-    let old_path = old_path.as_ref();
-    let new_path = new_path.as_ref();
-    std :: os :: wasi :: fs :: rename(old_fd, old_path, new_fd, new_path)
-        .with_context(|| crate::call_failed!(None::<()>, "std::os::wasi::fs::rename", old_fd, old_path, new_fd, new_path))
 }

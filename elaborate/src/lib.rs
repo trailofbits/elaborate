@@ -6,6 +6,7 @@
 #![cfg_attr(feature = "buf_read_has_data_left", feature(buf_read_has_data_left))]
 #![cfg_attr(feature = "bufread_skip_until", feature(bufread_skip_until))]
 #![cfg_attr(feature = "core_io_borrowed_buf", feature(core_io_borrowed_buf))]
+#![cfg_attr(feature = "dirfd", feature(dirfd))]
 #![cfg_attr(feature = "exit_status_error", feature(exit_status_error))]
 #![cfg_attr(feature = "file_buffered", feature(file_buffered))]
 #![cfg_attr(feature = "fs_set_times", feature(fs_set_times))]
@@ -49,6 +50,7 @@
     all(unix, feature = "peer_credentials_unix_socket"),
     feature(peer_credentials_unix_socket)
 )]
+#![cfg_attr(all(unix, feature = "stdio_swap"), feature(stdio_swap))]
 #![cfg_attr(
     all(unix, feature = "unix_file_vectored_at"),
     feature(unix_file_vectored_at)
