@@ -34,8 +34,8 @@ impl<T> ChildExtContext for T where T: std :: os :: linux :: process :: ChildExt
 pub trait PidFdContext {
 /// Attempts to collect the exit status of the child if it has already exited.
 /// 
-/// Unlike [`Child::try_wait`] this method will return an Error
-/// if the child has already been reaped.
+/// On kernels prior to 6.15, and unlike [`Child::try_wait`], only the first attempt
+/// to reap a child will return an ExitStatus, further attempts will return an Error.
 /// 
 /// [`Child::try_wait`]: process::Child::try_wait
 fn try_wait_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: process :: ExitStatus > > );
@@ -50,8 +50,10 @@ fn kill_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < 
 /// Waits for the child to exit completely, returning the status that it exited with.
 /// 
 /// Unlike [`Child::wait`] it does not ensure that the stdin handle is closed.
-/// Additionally it will not return an `ExitStatus` if the child
-/// has already been reaped. Instead an error will be returned.
+/// 
+/// Additionally on kernels prior to 6.15 only the first attempt to
+/// reap a child will return an ExitStatus, further attempts
+/// will return an Error.
 /// 
 /// [`Child::wait`]: process::Child::wait
 fn wait_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: process :: ExitStatus > );

@@ -55,10 +55,16 @@ pub trait SystemTimeContext: Sized {
 /// Returns `Some(t)` where `t` is the time `self + duration` if `t` can be represented as
 /// `SystemTime` (which means it's inside the bounds of the underlying data structure), `None`
 /// otherwise.
+/// 
+/// In the case that the `duration` is smaller than the time precision of the operating
+/// system, `Some(self)` will be returned.
 fn checked_add_wc ( & self , duration : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( core :: option :: Option < Self > );
 /// Returns `Some(t)` where `t` is the time `self - duration` if `t` can be represented as
 /// `SystemTime` (which means it's inside the bounds of the underlying data structure), `None`
 /// otherwise.
+/// 
+/// In the case that the `duration` is smaller than the time precision of the operating
+/// system, `Some(self)` will be returned.
 fn checked_sub_wc ( & self , duration : core :: time :: Duration ) -> crate :: rewrite_output_type ! ( core :: option :: Option < Self > );
 /// Returns the amount of time elapsed from an earlier point in time.
 /// 

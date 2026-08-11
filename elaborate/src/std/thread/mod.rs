@@ -12,8 +12,6 @@ pub trait BuilderContext {
 /// Unlike [`Scope::spawn`], this method yields an [`io::Result`] to
 /// capture any failure to create the thread at the OS level.
 /// 
-/// [`io::Result`]: crate::io::Result
-/// 
 /// # Panics
 /// 
 /// Panics if a thread name was set and it contained null bytes.
@@ -69,8 +67,6 @@ fn spawn_scoped_wc < 'scope , 'env , F , T > ( self , scope : & 'scope std :: th
 /// Unlike the [`spawn`] free function, this method yields an
 /// [`io::Result`] to capture any failure to create the thread at
 /// the OS level.
-/// 
-/// [`io::Result`]: crate::io::Result
 /// 
 /// # Panics
 /// 
@@ -149,7 +145,6 @@ fn spawn_wc < F , T > ( self , f : F ) -> crate :: rewrite_output_type ! ( std :
 /// handler.join().unwrap();
 /// ```
 /// 
-/// [`io::Result`]: crate::io::Result
 /// [`thread::spawn`]: super::spawn
 /// [`spawn`]: super::spawn
 #[cfg(feature = "thread_spawn_unchecked")]

@@ -34,6 +34,66 @@ fn create_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self ,
         .with_context(|| crate::call_failed!(Some(self), "create", path))
 }
 }
+#[cfg(feature = "dirfd")]
+pub trait DirContext: Sized {
+/// Attempts to open a directory at `path` in read-only mode.
+/// 
+/// # Errors
+/// 
+/// This function will return an error if `path` does not point to an existing directory.
+/// Other errors may also be returned according to [`OpenOptions::open`].
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(dirfd)]
+/// use std::{fs::Dir, io};
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let dir = Dir::open("foo")?;
+///     let mut f = dir.open_file("bar.txt")?;
+///     let contents = io::read_to_string(f)?;
+///     assert_eq!(contents, "Hello, world!");
+///     Ok(())
+/// }
+/// ```
+fn open_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > );
+/// Attempts to open a file in read-only mode relative to this directory.
+/// 
+/// # Errors
+/// 
+/// This function will return an error if `path` does not point to an existing file.
+/// Other errors may also be returned according to [`OpenOptions::open`].
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(dirfd)]
+/// use std::{fs::Dir, io};
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let dir = Dir::open("foo")?;
+///     let mut f = dir.open_file("bar.txt")?;
+///     let contents = io::read_to_string(f)?;
+///     assert_eq!(contents, "Hello, world!");
+///     Ok(())
+/// }
+/// ```
+fn open_file_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: File > );
+}
+#[cfg(feature = "dirfd")]
+impl DirContext for std :: fs :: Dir {
+fn open_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < Self > ) {
+    let path = path.as_ref();
+    std :: fs :: Dir :: open(path)
+        .with_context(|| crate::call_failed!(None::<()>, "std::fs::Dir::open", path))
+}
+fn open_file_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( & self , path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: fs :: File > ) {
+    let path = path.as_ref();
+    std :: fs :: Dir :: open_file(self, path)
+        .with_context(|| crate::call_failed!(Some(self), "open_file", path))
+}
+}
 pub trait DirEntryContext {
 /// Returns the file type for the file that this entry points at.
 /// 

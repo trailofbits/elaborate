@@ -11,7 +11,7 @@ pub trait FunctionExt {
 
 const REDECLARABLE_TRAITS: &[(&str, &str)] = &[("AsFd", "as_fd"), ("AsRef", "as_ref")];
 
-const UNCLONEABLE_TRAITS: &[&str] = &["FnOnce", "IntoIterator", "Read", "ToSocketAddrs"];
+const UNCLONEABLE_TRAITS: &[&str] = &["FnOnce", "Into", "IntoIterator", "Read", "ToSocketAddrs"];
 
 impl FunctionExt for Function {
     fn input_is_redeclarable(&self, i: usize) -> Option<&str> {
