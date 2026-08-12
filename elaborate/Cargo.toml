@@ -13,7 +13,6 @@ rust-version = "1.89"
 anyhow = "1.0"
 
 [dev-dependencies]
-assert_cmd = "2.2"
 tempfile = "3.27"
 
 # smoelius: If you add features below, please also add them near the top of src/lib.rs.
