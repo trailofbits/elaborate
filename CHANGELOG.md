@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.0
+
+- FEATURE: Upgrade to toolchain `nightly-2026-03-05` ([63eff51](https://github.com/trailofbits/elaborate/commit/63eff51546d668b5755e4c10db5d55f1b9dba4ce))
+
 ## 2.1.0
 
 - FEATURE: Upgrade toolchain to `nightly-2026-01-19` ([55a65d6](https://github.com/trailofbits/elaborate/commit/55a65d673964ca4f5e69ad5869f698c65bf5f690))
