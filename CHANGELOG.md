@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.0
+
+- FEATURE: Upgrade toolchain to `nightly-2026-01-19` ([55a65d6](https://github.com/trailofbits/elaborate/commit/55a65d673964ca4f5e69ad5869f698c65bf5f690))
+- Add `--no-deps` to `clippy` invocation in `disallowed_methods` ([6b5d34f](https://github.com/trailofbits/elaborate/commit/6b5d34f2920ba96bbe82fb0b2be7578816e91a07))
+
 ## 2.0.0
 
 - BREAKING: Eliminate use of private `generated` module so that `elaborate` symbol paths begin with `elaborate::std`. This is a breaking change for anyone using `clippy::disallowed_methods` to prevent use of an `elaborate` method. ([9cb8c05](https://github.com/trailofbits/elaborate/commit/9cb8c0573796fa6921b0921c22a57f067355f1b6))
