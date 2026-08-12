@@ -1,3 +1,6 @@
+#![cfg_attr(dylint_lib = "general", allow(crate_wide_allow))]
+#![cfg_attr(dylint_lib = "supplementary", allow(nonexistent_path_in_comment))]
+
 use anyhow::Result;
 use public_api::{
     rustdoc_types::{Attribute, Crate, Function, Id, ItemEnum, Type},
@@ -1062,6 +1065,31 @@ mod test {
             }
             serde_json::Value::Object(object) => {
                 object.retain(|key, value| {
+                    // smoelius: The next check's use of "other" is ugly. The following is an
+                    // example of how it can appear in a std.json file:
+                    // ```
+                    // "other": "#[attr = CfgTrace([Not(NameValue { name: \"no_global_oom_handling\", value: None, span: alloc/src/str.rs:262:15: 262:37 (#0) }, alloc/src/str.rs:262:14: 262:38 (#0))])]"
+                    // ```
+                    // Note the embedded `span` field and its associated path value. Those paths
+                    // display differently on Windows and Linux/macOS. To normalize the paths, one
+                    // must replace '\\' with '/'.
+                    //
+                    // Unlike the "filename" and "path" fields, the "other" field itself is not a
+                    // path. Still, the values seem to survive the `Path::new` call and it gets the
+                    // test to pass. So we are keeping this approach for now.
+                    //
+                    // `nightly-2026-01-08` is the earliest toolchain whose `rustdoc` JSON output
+                    // includes "other" fields with embedded `span` fields. The following is its
+                    // commit:
+                    // https://github.com/rust-lang/rust/commit/fecb335cbad3d84ef3da39191ba094e6c726a5b4
+                    //
+                    // Also, the following commits seem to have contributed to the
+                    // "other"-with-`span` behavior:
+                    //
+                    // - 03fb7eecedf — Create a `rustc_ast` representation for parsed attributes
+                    // - 5590fc034c2 — Make `cfg` and `cfg_attr` trace attributes into early parsed
+                    //   attributes
+                    // - 44298144129 — Convert librustdoc to use the new parsed representation
                     #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
                     if key == "filename" || (key == "path" && value.is_string()) || key == "other" {
                         let s = value.as_str().unwrap();
