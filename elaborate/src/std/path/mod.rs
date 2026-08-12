@@ -103,6 +103,30 @@ fn file_prefix_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option 
 /// 
 /// [`Path::file_prefix`]: Path::file_prefix
 fn file_stem_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > );
+/// Makes the path absolute without accessing the filesystem.
+/// 
+/// This is an alias to [`path::absolute`](absolute).
+/// 
+/// # Errors
+/// 
+/// This function may return an error in the following situations:
+/// 
+/// * If the path is syntactically invalid; in particular, if it is empty.
+/// * If getting the [current directory][crate::env::current_dir] fails.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(path_absolute_method)]
+/// use std::path::Path;
+/// 
+/// let path = Path::new("foo/./bar");
+/// let absolute = path.absolute()?;
+/// assert!(absolute.is_absolute());
+/// # Ok::<(), std::io::Error>(())
+/// ```
+#[cfg(feature = "path_absolute_method")]
+fn absolute_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > );
 /// Normalize a path, including `..` without traversing the filesystem.
 /// 
 /// Returns an error if normalization would leave leading `..` components.
@@ -344,6 +368,11 @@ fn file_prefix_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option 
 fn file_stem_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > ) {
     std :: path :: Path :: file_stem(self)
         .with_context(|| crate::call_failed!(Some(self), "file_stem"))
+}
+#[cfg(feature = "path_absolute_method")]
+fn absolute_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: path :: PathBuf > ) {
+    std :: path :: Path :: absolute(self)
+        .with_context(|| crate::call_failed!(Some(self), "absolute"))
 }
 #[cfg(feature = "normalize_lexically")]
 fn normalize_lexically_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: result :: Result < std :: path :: PathBuf , std :: path :: NormalizeError > ) {

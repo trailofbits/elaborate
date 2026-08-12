@@ -5,5 +5,5 @@
 #
 # Note that `cargo` should not appear after the `--`.
 [toolchain]
-channel = "nightly-2026-01-19"
+channel = "nightly-2026-03-05"
 components = ["clippy", "rust-analyzer"]

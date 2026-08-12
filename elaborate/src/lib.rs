@@ -14,6 +14,7 @@
 #![cfg_attr(feature = "normalize_lexically", feature(normalize_lexically))]
 #![cfg_attr(feature = "panic_backtrace_config", feature(panic_backtrace_config))]
 #![cfg_attr(feature = "path_file_prefix", feature(path_file_prefix))]
+#![cfg_attr(feature = "path_absolute_method", feature(path_absolute_method))]
 #![cfg_attr(feature = "raw_os_error_ty", feature(raw_os_error_ty))]
 #![cfg_attr(feature = "read_array", feature(read_array))]
 #![cfg_attr(feature = "read_buf", feature(read_buf))]
@@ -72,6 +73,10 @@
 #![cfg_attr(
     all(windows, feature = "windows_process_extensions_raw_attribute"),
     feature(windows_process_extensions_raw_attribute)
+)]
+#![cfg_attr(
+    all(windows, feature = "windows_unix_domain_sockets"),
+    feature(windows_unix_domain_sockets)
 )]
 //
 // WASI-specific unstable features

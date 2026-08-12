@@ -1641,7 +1641,7 @@ pub fn remove_dir_all_wc < P : core :: convert :: AsRef < std :: path :: Path > 
 /// 
 /// This function will only ever return an error of kind `NotFound` if the given
 /// path does not exist. Note that the inverse is not true,
-/// ie. if a path does not exist, its removal may fail for a number of reasons,
+/// i.e. if a path does not exist, its removal may fail for a number of reasons,
 /// such as insufficient permissions.
 /// 
 /// # Examples
@@ -1685,7 +1685,7 @@ pub fn remove_file_wc < P : core :: convert :: AsRef < std :: path :: Path > > (
 /// 
 /// This function will only ever return an error of kind `NotFound` if the given
 /// path does not exist. Note that the inverse is not true,
-/// ie. if a path does not exist, its removal may fail for a number of reasons,
+/// i.e. if a path does not exist, its removal may fail for a number of reasons,
 /// such as insufficient permissions.
 /// 
 /// # Examples
