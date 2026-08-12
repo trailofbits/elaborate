@@ -1063,7 +1063,7 @@ mod test {
             serde_json::Value::Object(object) => {
                 object.retain(|key, value| {
                     #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
-                    if key == "filename" || (key == "path" && value.is_string()) {
+                    if key == "filename" || (key == "path" && value.is_string()) || key == "other" {
                         let s = value.as_str().unwrap();
                         let path = Path::new(s);
                         *value = serde_json::Value::from(
