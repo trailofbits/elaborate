@@ -1,13 +1,13 @@
-use assert_cmd::Command;
-use std::path::Path;
+use std::{path::Path, process::Command};
 
 #[test]
 fn ci() {
     let workspace_root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
 
-    Command::new("cargo")
+    let status = Command::new("cargo")
         .current_dir(workspace_root)
         .args(["run", "--manifest-path", "ci/Cargo.toml"])
-        .assert()
-        .success();
+        .status()
+        .unwrap();
+    assert!(status.success());
 }

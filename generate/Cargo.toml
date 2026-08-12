@@ -15,7 +15,6 @@ serde_json = "1.0"
 tempfile = "3.27"
 
 [dev-dependencies]
-assert_cmd = "2.2"
 similar-asserts = "2.0"
 
 [lints]
