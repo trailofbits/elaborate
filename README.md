@@ -93,21 +93,35 @@ Caused by:
 
 This repository provides a [`disallowed_methods` function] to identify functions that could be replaced with wrapped ones. The function returns a `Command` configured to run Clippy's [`disallowed_methods` lint] with a [Clippy configuration] (`clippy.toml`) from this repository.
 
-When running the above function, you should see errors like the following:
+A test that uses that function might look like this:
+
+```rust
+#[test]
+fn elaborate_disallowed_methods() {
+    use elaborate::std::process::CommandContext;
+    let status = elaborate::disallowed_methods().status_wc().unwrap();
+    assert!(status.success());
+}
+```
+
+If the test were to fail, you would see errors like the following:
 
 ```
 error: use of a disallowed method `std::fs::create_dir`
  --> src/main.rs:4:5
   |
-4 |     create_dir(\"/dir\")?;
+4 |     create_dir("/dir")?;
   |     ^^^^^^^^^^ help: use: `elaborate::std::fs::create_dir_wc`
   |
   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#disallowed_methods
-  = note: `-D clippy::disallowed-methods` implied by `-D warnings`
-  = help: to override `-D warnings` add `#[allow(clippy::disallowed_methods)]`
+  = note: requested on the command line with `-D clippy::disallowed-methods`
+
+error: could not compile `create_dir` (bin "create_dir") due to 1 previous error
 ```
 
-If you would prefer to run Clippy manually, you can do so with the following command:
+As mentioned above, `disallowed_methods` returns a `Command`. So if, for example, you wanted to additionally check test code for opportunities to use `elaborate` wrappers, you could call the returned command with `.arg("--all-targets")`.
+
+If you would prefer to not use `disallowed_methods` and instead run Clippy manually, you can do so with the following command:
 
 ```sh
 CLIPPY_CONF_DIR=path-to-elaborate-repo/clippy_conf cargo clippy
