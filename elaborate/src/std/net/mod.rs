@@ -1509,10 +1509,10 @@ fn set_write_timeout_wc ( & self , dur : core :: option :: Option < core :: time
 /// 
 /// # Underlying system calls
 /// 
-/// | Platform | System call                                                                                             |
-/// |----------|---------------------------------------------------------------------------------------------------------|
-/// | UNIX     | [`gethostname`](https://www.man7.org/linux/man-pages/man2/gethostname.2.html)                           |
-/// | Windows  | [`GetHostNameW`](https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-gethostnamew) |
+/// | Platform     | System call                                                                                             |
+/// |--------------|---------------------------------------------------------------------------------------------------------|
+/// | UNIX         | [`gethostname`](https://www.man7.org/linux/man-pages/man2/gethostname.2.html)                           |
+/// | Windows (8+) | [`GetHostNameW`](https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-gethostnamew) |
 /// 
 /// Note that platform-specific behavior [may change in the future][changes].
 /// 
