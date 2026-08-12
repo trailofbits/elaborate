@@ -10,7 +10,7 @@ itertools = "0.15"
 public-api = { version = "=0.52.1", features = [
     "experimental-feature-that-can-be-removed-in-a-patch-release_re-export-rustdoc-types",
 ] }
-regex = "1.12"
+regex = "1.13"
 serde_json = "1.0"
 tempfile = "3.27"
 
