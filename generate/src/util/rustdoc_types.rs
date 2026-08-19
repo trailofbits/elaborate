@@ -11,6 +11,9 @@ pub trait FunctionExt {
 
 const REDECLARABLE_TRAITS: &[(&str, &str)] = &[("AsFd", "as_fd"), ("AsRef", "as_ref")];
 
+// smoelius: Putting `Trait` into `UNCLONEABLE_TRAITS` causes some function arguments to be printed
+// as `value of type impl Trait`. It otherwise has no effect on how the trait is used in the
+// generated code.
 const UNCLONEABLE_TRAITS: &[&str] = &["FnOnce", "Into", "IntoIterator", "Read", "ToSocketAddrs"];
 
 impl FunctionExt for Function {
