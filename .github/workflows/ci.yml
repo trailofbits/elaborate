@@ -65,7 +65,7 @@ jobs:
             ~/.rustup/toolchains/
             target/dylint/
             generate/checkouts
-          key: ${{ runner.os }}-cargo-${{ hashFiles('.github/workflows/ci.yml', '*/tests/ci.rs') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - uses: taiki-e/install-action@v2
         with:
