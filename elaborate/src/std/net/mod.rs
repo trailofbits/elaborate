@@ -1013,6 +1013,10 @@ fn set_nonblocking_wc ( & self , nonblocking : bool ) -> crate :: rewrite_output
 /// [`UdpSocket::connect`] will connect this socket to a remote address. This
 /// method will fail if the socket is not connected.
 /// 
+/// Refer to the platform-specific documentation on this function; it is considered
+/// correct for its behavior to differ from [`UdpSocket::recv_from`] if the underlying
+/// system call does so.
+/// 
 /// # Examples
 /// 
 /// ```no_run
@@ -1058,6 +1062,10 @@ fn peek_from_wc ( & self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type 
 /// The function must be called with valid byte array `buf` of sufficient size to
 /// hold the message bytes. If a message is too long to fit in the supplied buffer,
 /// excess bytes may be discarded.
+/// 
+/// Refer to the platform-specific documentation on this function; it is considered
+/// correct for its behavior to differ from [`UdpSocket::recv`] if the underlying system
+/// call does so.
 /// 
 /// # Examples
 /// 
