@@ -382,6 +382,7 @@ pub trait OutputContext: Sized {
 /// # Examples
 /// 
 /// ```
+/// # #![allow(unused_features)]
 /// #![feature(exit_status_error)]
 /// # #[cfg(all(unix, not(target_os = "android"), not(all(target_vendor = "apple", not(target_os = "macos")))))] {
 /// use std::process::Command;
