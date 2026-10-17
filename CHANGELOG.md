@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.3.0
+
+- FEATURE: Update Rust toolchain to `nightly-2026-04-12` ([06a0508](https://github.com/trailofbits/elaborate/commit/06a05088a5ed6a525a4cfcc15bd811cb23d2202e))
+
 ## 2.2.0
 
 - FEATURE: Upgrade to toolchain `nightly-2026-03-05` ([63eff51](https://github.com/trailofbits/elaborate/commit/63eff51546d668b5755e4c10db5d55f1b9dba4ce))
