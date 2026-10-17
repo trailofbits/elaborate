@@ -949,7 +949,17 @@ mod test {
     #[cfg_attr(dylint_lib = "general", allow(non_thread_safe_call_in_test))]
     #[test]
     fn std_json() {
-        checkout_rust();
+        // smoelius: If the Docker container is run by `std_json_bless_with_docker`, then calling
+        // `clone_or_update_rust_checkout` inside the container is redundant. But if the Docker
+        // container is run manually by the user, then the Rust checkout may need to be cloned or
+        // updated. On non-Linux hosts, this call must precede `std_json_bless_with_docker` so that
+        // `generate/checkouts` exists before it is bind-mounted.
+        clone_or_update_rust_checkout();
+
+        if enabled("BLESS") && !cfg!(target_os = "linux") {
+            std_json_bless_with_docker();
+            return;
+        }
 
         // smoelius:
         // https://github.com/cargo-public-api/cargo-public-api/blob/4b0482ef18ef564f088855320871fcedd159e384/public-api/src/lib.rs#L15-L17
@@ -986,12 +996,10 @@ mod test {
             serde_json::to_string_pretty(&value).unwrap()
         };
 
-        #[allow(clippy::assertions_on_constants)]
         if enabled("BLESS") {
-            assert!(
-                cfg!(target_os = "linux"),
-                "`BLESS` can be used on Linux targets only"
-            );
+            if !cfg!(target_os = "linux") {
+                unreachable!("non-Linux blessing is handled by Docker before generation");
+            }
             write(&*super::STD_JSON, json_normalized).unwrap();
             return;
         }
@@ -1016,7 +1024,49 @@ mod test {
         );
     }
 
-    fn checkout_rust() {
+    fn std_json_bless_with_docker() {
+        const IMAGE: &str = "elaborate-std-json";
+
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
+
+        // smoelius: Please keep the next two commands in sync with README.md.
+
+        let status = Command::new("docker")
+            .args(["build", "--platform", "linux/amd64", "-t", IMAGE, "."])
+            .current_dir(root)
+            .status()
+            .expect("BLESS on non-Linux hosts requires Docker installed and available on PATH");
+        assert!(
+            status.success(),
+            "Docker image build failed; ensure Docker is running with Linux containers enabled"
+        );
+
+        let assets_mount = format!(
+            "type=bind,source={},target=/elaborate/assets",
+            root.join("assets").display()
+        );
+        let checkouts_mount = format!(
+            "type=bind,source={},target=/elaborate/generate/checkouts",
+            root.join("generate/checkouts").display()
+        );
+        let status = Command::new("docker")
+            .args([
+                "run",
+                "--rm",
+                "--platform",
+                "linux/amd64",
+                "--mount",
+                &assets_mount,
+                "--mount",
+                &checkouts_mount,
+                IMAGE,
+            ])
+            .status()
+            .expect("could not run Docker to regenerate assets/std.json");
+        assert!(status.success(), "Docker std.json generation failed");
+    }
+
+    fn clone_or_update_rust_checkout() {
         const RUST_URL: &str = "https://github.com/rust-lang/rust";
         const SUBMODULES: &[&str] = &["library/backtrace", "library/stdarch"];
 

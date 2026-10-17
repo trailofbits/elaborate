@@ -129,6 +129,32 @@ CLIPPY_CONF_DIR=path-to-elaborate-repo/clippy_conf cargo clippy
 
 Note that `CLIPPY_CONF_DIR` names the directory containing the `clippy.toml` file, not the `clippy.toml` file itself.
 
+## Regenerating `assets/std.json`
+
+To update `assets/std.json`, run this command from the repository root in Bash:
+
+```sh
+BLESS=1 cargo test -p generate --lib std_json
+```
+
+On Linux, the test generates the file directly. On other operating systems, it prepares the Rust checkout on the host, then automatically builds and runs a Docker image to generate the JSON.
+
+You can build and run the image manually from the repository root in Bash:
+
+<!-- smoelius: Please keep the next two commands in sync with generate/src/lib.rs. -->
+
+```sh
+docker build --platform linux/amd64 -t elaborate-std-json .
+docker run --rm --platform linux/amd64 \
+  --mount "type=bind,source=${PWD}/assets,target=/elaborate/assets" \
+  --mount "type=bind,source=${PWD}/generate/checkouts,target=/elaborate/generate/checkouts" \
+  elaborate-std-json
+```
+
+Network access is required, and generation can take a while. Rebuild the image after changing the repository's source or toolchain (the automatic Docker workflow rebuilds it each time).
+
+The Rust checkout in `generate/checkouts` is shared with the container. Thus, host and container tests should not be run concurrently. Delete `generate/checkouts` to start fresh.
+
 ## Alternative approaches considered
 
 **Wrapper structs**, e.g., a struct `File` that wraps a [`std::fs::File`], so that calling a method on the wrapper struct calls the underlying method with [`anyhow::Context::with_context`]. This idea works to a degree but has several problems. Most significantly, the wrapper struct must implement every trait the wrapped struct does. There are many ways a wrapped struct could implement a trait. For example, if a trait provides a default implementation, the wrapped struct could use the default implementation or provide its own. Such facts complicate automatic code generation. Hence, this idea seems untenable.
