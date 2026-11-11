@@ -7,6 +7,20 @@ use anyhow::Context;
 
 
 pub trait OsStrContext {
+/// Divides one string slice into two at an index.
+/// 
+/// The two slices returned go from the start of the string slice to `mid`, and from `mid` to the end of the string slice.
+/// 
+/// The argument, `mid`, should be a valid byte offset from the start of the string.
+/// It must also be on a valid `OsStr` boundary.
+/// The method returns `None` if that’s not the case.
+/// A valid `OsStr` boundary is one of:
+/// - The start of the string
+/// - The end of the string
+/// - The start of a valid non-empty UTF-8 substring
+/// - Immediately follows a valid non-empty UTF-8 substring
+#[cfg(feature = "os_str_split_at")]
+fn split_at_checked_wc ( & self , mid : usize ) -> crate :: rewrite_output_type ! ( core :: option :: Option < ( & Self , & Self ) > );
 /// Yields a <code>&[str]</code> slice if the `OsStr` is valid Unicode.
 /// 
 /// This conversion may entail doing a check for UTF-8 validity.
@@ -22,6 +36,11 @@ pub trait OsStrContext {
 fn to_str_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & str > );
 }
 impl OsStrContext for std :: ffi :: OsStr {
+#[cfg(feature = "os_str_split_at")]
+fn split_at_checked_wc ( & self , mid : usize ) -> crate :: rewrite_output_type ! ( core :: option :: Option < ( & Self , & Self ) > ) {
+    std :: ffi :: OsStr :: split_at_checked(self, mid)
+        .with_context(|| crate::call_failed!(Some(self), "split_at_checked", mid))
+}
 fn to_str_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & str > ) {
     std :: ffi :: OsStr :: to_str(self)
         .with_context(|| crate::call_failed!(Some(self), "to_str"))

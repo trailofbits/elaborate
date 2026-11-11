@@ -76,6 +76,7 @@ fn seek_read_wc ( & self , buf : & mut [ u8 ] , offset : u64 ) -> crate :: rewri
 ///     Ok(())
 /// }
 /// ```
+#[cfg(feature = "core_io")]
 #[cfg(feature = "read_buf_at")]
 fn seek_read_buf_wc ( & self , buf : core :: io :: BorrowedCursor < '_ > , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: os :: windows :: fs :: FileExt > :: seek_read_buf(self, buf, offset)

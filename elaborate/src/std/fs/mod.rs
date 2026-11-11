@@ -1182,8 +1182,9 @@ pub fn set_times_nofollow_wc < P : core :: convert :: AsRef < std :: path :: Pat
 /// with `O_RDONLY` for `from` and `O_WRONLY`, `O_CREAT`, and `O_TRUNC` for `to`.
 /// `O_CLOEXEC` is set for returned file descriptors.
 /// 
-/// On Linux (including Android), this function attempts to use `copy_file_range(2)`,
-/// and falls back to reading and writing if that is not possible.
+/// On Linux (including Android), this function uses copy_file_range(2),
+/// sendfile(2), or splice(2) syscalls to move data directly between files
+/// if possible.
 /// 
 /// On Windows, this function currently corresponds to `CopyFileEx`. Alternate
 /// NTFS streams are copied but only the size of the main stream is returned by
@@ -1235,7 +1236,7 @@ pub fn copy_wc < P : core :: convert :: AsRef < std :: path :: Path > , Q : core
 /// 
 /// # Platform-specific behavior
 /// 
-/// This function currently corresponds the `CreateHardLink` function on Windows.
+/// This function currently corresponds to the `CreateHardLink` function on Windows.
 /// On most Unix systems, it corresponds to the `linkat` function with no flags.
 /// On Android, VxWorks, and Redox, it instead corresponds to the `link` function.
 /// On MacOS, it uses the `linkat` function if it is available, but on very old
@@ -1578,8 +1579,8 @@ pub fn create_dir_all_wc < P : core :: convert :: AsRef < std :: path :: Path > 
 /// not be used in security-sensitive contexts:
 /// - **Miri**: Even when emulating targets where the underlying implementation will protect against
 ///   TOCTOU races, Miri will not do so.
-/// - **Redox OS**: This function does not protect against TOCTOU races, as Redox does not implement
-///   the required platform support to do so.
+/// - **QNX**, **Redox OS**, **VxWorks**: This function does not protect against TOCTOU races, as
+///   the underlying platform does not implement the required platform support to do so.
 /// 
 /// [TOCTOU]: self#time-of-check-to-time-of-use-toctou
 /// [changes]: io#platform-specific-behavior

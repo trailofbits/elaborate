@@ -30,7 +30,7 @@ use util::{
 // smoelius: `COMMIT` should be the commit returned by `rustc --version` with the toolchain in
 // rust-toolchain.toml. That commit should be after when the currently used version of
 // `rustdoc-types` was merged into the `rust` repository.
-pub const COMMIT: &str = "bf4fbfb7a18d74e7cd8eef93af7329c58fbb5344";
+pub const COMMIT: &str = "54333ff079780f803f65dcee30c544050b35f544";
 
 #[cfg_attr(dylint_lib = "general", allow(abs_home_path))]
 static STD_JSON: LazyLock<PathBuf> =
@@ -131,6 +131,7 @@ static REWRITABLE_PATHS: LazyLock<Vec<(Vec<Token>, Vec<Token>)>> = LazyLock::new
 
     const OTHER_REWRITABLE_PATHS: &[(&[&str], &[&str])] = &[
         (&["alloc"], &["std"]),
+        (&["core", "io", "error"], &["std", "io"]),
         (&["core", "iter", "traits", "collect"], &["core", "iter"]),
     ];
 

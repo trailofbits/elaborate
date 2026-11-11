@@ -8,6 +8,72 @@ use anyhow::Context;
 #[cfg(feature = "unix_send_signal")]
 #[cfg(unix)]
 pub trait ChildExtContext: std :: os :: unix :: process :: ChildExt {
+/// Forces the child process's process group to exit.
+/// 
+/// This is analogous to [`Child::kill`] but applies to every process in
+/// the child process's process group.
+/// 
+/// Use [`CommandExt::process_group`] to assign a child process to an
+/// existing process group, or to make it the leader of a new process group.
+/// By default spawned processes are in the parent's process group.
+/// 
+/// # Examples
+/// 
+/// ```rust
+/// #![feature(unix_kill_process_group)]
+/// 
+/// use std::{os::unix::process::{ChildExt, CommandExt}, process::{Command, Stdio}};
+/// 
+/// fn main() -> std::io::Result<()> {
+///     let mut child = Command::new("cat")
+///         .stdin(Stdio::piped())
+///         .process_group(0)
+///         .spawn()?;
+///     child.kill_process_group()?;
+///     Ok(())
+/// }
+/// ```
+/// 
+/// [`Child::kill`]: process::Child::kill
+#[cfg(feature = "unix_kill_process_group")]
+fn kill_process_group_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    < Self as :: std :: os :: unix :: process :: ChildExt > :: kill_process_group(self)
+        .with_context(|| crate::call_failed!(Some(self), "kill_process_group"))
+}
+/// Sends a signal to a child process's process group.
+/// 
+/// # Errors
+/// 
+/// This function will return an error if the signal is invalid or if the
+/// child process does not have a process group. The integer values
+/// associated with signals are implementation-specific, so it's encouraged
+/// to use a crate that provides posix bindings.
+/// 
+/// # Examples
+/// 
+/// ```rust
+/// #![feature(unix_send_signal)]
+/// 
+/// use std::{io, os::unix::process::{ChildExt, CommandExt}, process::{Command, Stdio}};
+/// 
+/// use libc::SIGTERM;
+/// 
+/// fn main() -> io::Result<()> {
+///     # if cfg!(not(all(target_vendor = "apple", not(target_os = "macos")))) {
+///     let child = Command::new("cat")
+///         .stdin(Stdio::piped())
+///         .process_group(0)
+///         .spawn()?;
+///     child.send_process_group_signal(SIGTERM)?;
+///     # }
+///     Ok(())
+/// }
+/// ```
+#[cfg(feature = "unix_send_signal")]
+fn send_process_group_signal_wc ( & self , signal : i32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    < Self as :: std :: os :: unix :: process :: ChildExt > :: send_process_group_signal(self, signal)
+        .with_context(|| crate::call_failed!(Some(self), "send_process_group_signal", signal))
+}
 /// Sends a signal to a child process.
 /// 
 /// # Errors

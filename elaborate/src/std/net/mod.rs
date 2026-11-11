@@ -143,8 +143,8 @@ fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Res
 /// IO operation could not be completed and needs to be retried, an error
 /// with kind [`io::ErrorKind::WouldBlock`] is returned.
 /// 
-/// On Unix platforms, calling this method corresponds to calling `fcntl`
-/// `FIONBIO`. On Windows calling this method corresponds to calling
+/// On most Unix platforms, calling this method corresponds to calling `ioctl`
+/// `FIONBIO`. On Windows, calling this method corresponds to calling
 /// `ioctlsocket` `FIONBIO`.
 /// 
 /// # Examples
@@ -296,6 +296,24 @@ fn ttl_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < u
 /// stream.take_error().expect("No error was expected...");
 /// ```
 fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < std :: io :: Error > > );
+/// Gets the value of the `SO_KEEPALIVE` option on this socket.
+/// 
+/// For more information about this option, see [`TcpStream::set_keepalive`].
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(tcp_keepalive)]
+/// 
+/// use std::net::TcpStream;
+/// 
+/// let stream = TcpStream::connect("127.0.0.1:8080")
+///                        .expect("Couldn't connect to the server...");
+/// stream.set_keepalive(true).expect("set_keepalive call failed");
+/// assert_eq!(stream.keepalive().unwrap_or(false), true);
+/// ```
+#[cfg(feature = "tcp_keepalive")]
+fn keepalive_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > );
 /// Gets the value of the `SO_LINGER` option on this socket.
 /// 
 /// For more information about this option, see [`TcpStream::set_linger`].
@@ -339,8 +357,8 @@ fn nodelay_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result
 /// to be retried, an error with kind [`io::ErrorKind::WouldBlock`] is
 /// returned.
 /// 
-/// On Unix platforms, calling this method corresponds to calling `fcntl`
-/// `FIONBIO`. On Windows calling this method corresponds to calling
+/// On most Unix platforms, calling this method corresponds to calling `ioctl`
+/// `FIONBIO`. On Windows, calling this method corresponds to calling
 /// `ioctlsocket` `FIONBIO`.
 /// 
 /// # Examples
@@ -566,6 +584,33 @@ fn set_read_timeout_wc ( & self , dur : core :: option :: Option < core :: time 
 /// stream.set_ttl(100).expect("set_ttl call failed");
 /// ```
 fn set_ttl_wc ( & self , ttl : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
+/// Sets the value of the `SO_KEEPALIVE` option on this socket.
+/// 
+/// If set to `true`, the operating system will periodically send keepalive
+/// probes on an idle connection to verify that the remote peer is still
+/// reachable. If the peer fails to respond after a system-determined number
+/// of probes, the connection is considered broken and subsequent I/O calls
+/// will return an error.
+/// 
+/// This is useful for detecting dead peers on long-lived connections where
+/// no application-level traffic is exchanged, such as database or SSH
+/// connections.
+/// 
+/// The timing and frequency of keepalive probes are controlled by
+/// system-level settings and are not configured by this method alone.
+/// 
+/// # Examples
+/// 
+/// ```no_run
+/// #![feature(tcp_keepalive)]
+/// 
+/// use std::net::TcpStream;
+/// 
+/// let stream = TcpStream::connect("127.0.0.1:8080")
+///                        .expect("Couldn't connect to the server...");
+/// stream.set_keepalive(true).expect("set_keepalive call failed");
+#[cfg(feature = "tcp_keepalive")]
+fn set_keepalive_wc ( & self , keepalive : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > );
 /// Sets the value of the `SO_LINGER` option on this socket.
 /// 
 /// This value controls how the socket is closed when data remains
@@ -683,6 +728,11 @@ fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Res
     std :: net :: TcpStream :: take_error(self)
         .with_context(|| crate::call_failed!(Some(self), "take_error"))
 }
+#[cfg(feature = "tcp_keepalive")]
+fn keepalive_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < bool > ) {
+    std :: net :: TcpStream :: keepalive(self)
+        .with_context(|| crate::call_failed!(Some(self), "keepalive"))
+}
 #[cfg(feature = "tcp_linger")]
 fn linger_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Result < core :: option :: Option < core :: time :: Duration > > ) {
     std :: net :: TcpStream :: linger(self)
@@ -731,6 +781,11 @@ fn set_read_timeout_wc ( & self , dur : core :: option :: Option < core :: time 
 fn set_ttl_wc ( & self , ttl : u32 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     std :: net :: TcpStream :: set_ttl(self, ttl)
         .with_context(|| crate::call_failed!(Some(self), "set_ttl", ttl))
+}
+#[cfg(feature = "tcp_keepalive")]
+fn set_keepalive_wc ( & self , keepalive : bool ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
+    std :: net :: TcpStream :: set_keepalive(self, keepalive)
+        .with_context(|| crate::call_failed!(Some(self), "set_keepalive", keepalive))
 }
 #[cfg(feature = "tcp_linger")]
 fn set_linger_wc ( & self , linger : core :: option :: Option < core :: time :: Duration > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
@@ -971,8 +1026,8 @@ fn take_error_wc ( & self ) -> crate :: rewrite_output_type ! ( std :: io :: Res
 /// and needs to be retried, an error with kind
 /// [`io::ErrorKind::WouldBlock`] is returned.
 /// 
-/// On Unix platforms, calling this method corresponds to calling `fcntl`
-/// `FIONBIO`. On Windows calling this method corresponds to calling
+/// On most Unix platforms, calling this method corresponds to calling `ioctl`
+/// `FIONBIO`. On Windows, calling this method corresponds to calling
 /// `ioctlsocket` `FIONBIO`.
 /// 
 /// # Examples
