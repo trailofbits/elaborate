@@ -25,6 +25,10 @@ static GATED_PATHS: LazyLock<Vec<(Vec<Token>, &str)>> = LazyLock::new(|| {
         r#"feature = "core_io""#,
     ))
     .chain(std::iter::once((
+        qualified_type(&["core", "io"], "BorrowedCursor"),
+        r#"feature = "core_io_borrowed_buf""#,
+    )))
+    .chain(std::iter::once((
         qualified_type_function(&["std", "io"], "BufRead", "skip_until"),
         r#"feature = "bufread_skip_until""#,
     )))
