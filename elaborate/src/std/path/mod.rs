@@ -75,7 +75,6 @@ fn extension_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option ::
 /// before the *last* `.`
 /// 
 /// [`Path::file_stem`]: Path::file_stem
-#[cfg(feature = "path_file_prefix")]
 fn file_prefix_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > );
 /// Extracts the stem (non-extension) portion of [`self.file_name`].
 /// 
@@ -360,7 +359,6 @@ fn extension_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option ::
     std :: path :: Path :: extension(self)
         .with_context(|| crate::call_failed!(Some(self), "extension"))
 }
-#[cfg(feature = "path_file_prefix")]
 fn file_prefix_wc ( & self ) -> crate :: rewrite_output_type ! ( core :: option :: Option < & std :: ffi :: OsStr > ) {
     std :: path :: Path :: file_prefix(self)
         .with_context(|| crate::call_failed!(Some(self), "file_prefix"))

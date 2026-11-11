@@ -29,24 +29,8 @@ static GATED_PATHS: LazyLock<Vec<(Vec<Token>, &str)>> = LazyLock::new(|| {
         r#"feature = "core_io_borrowed_buf""#,
     )))
     .chain(std::iter::once((
-        qualified_type_function(&["std", "io"], "BufRead", "skip_until"),
-        r#"feature = "bufread_skip_until""#,
-    )))
-    .chain(std::iter::once((
-        qualified_type(&["std", "io"], "BufWriter"),
-        r#"feature = "core_io_borrowed_buf""#,
-    )))
-    .chain(std::iter::once((
         qualified_type(&["std", "io"], "RawOsError"),
         r#"feature = "raw_os_error_ty""#,
-    )))
-    .chain(std::iter::once((
-        qualified_type_function(&["std", "path"], "Path", "file_prefix"),
-        r#"feature = "path_file_prefix""#,
-    )))
-    .chain(std::iter::once((
-        qualified_type_function(&["std", "thread"], "Builder", "spawn_unchecked"),
-        r#"feature = "thread_spawn_unchecked""#,
     )))
     .chain(
         GATED_OS_PATHS

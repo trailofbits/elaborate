@@ -538,7 +538,6 @@ fn create_new_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path
 ///     Ok(())
 /// }
 /// ```
-#[cfg(feature = "core_io_borrowed_buf")]
 #[cfg(feature = "file_buffered")]
 fn create_buffered_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: io :: BufWriter < Self > > );
 /// Opens a file in write-only mode.
@@ -841,7 +840,6 @@ fn create_new_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path
     std :: fs :: File :: create_new(path)
         .with_context(|| crate::call_failed!(None::<()>, "std::fs::File::create_new", path))
 }
-#[cfg(feature = "core_io_borrowed_buf")]
 #[cfg(feature = "file_buffered")]
 fn create_buffered_wc < P : core :: convert :: AsRef < std :: path :: Path > > ( path : P ) -> crate :: rewrite_output_type ! ( std :: io :: Result < std :: io :: BufWriter < Self > > ) {
     let path = path.as_ref();
