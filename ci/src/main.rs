@@ -69,6 +69,22 @@ mod tests {
     use walkdir::WalkDir;
 
     #[test]
+    fn check_every_one_or_two_features() {
+        Command::new("cargo")
+            .args([
+                "hack",
+                "--workspace",
+                "--feature-powerset",
+                "--depth=2",
+                "--exclude-all-features",
+                "check",
+            ])
+            .env("RUSTFLAGS", "--deny=warnings --allow=unused-features")
+            .assert()
+            .success();
+    }
+
+    #[test]
     fn check_all_features() {
         Command::new("cargo")
             .args(["check", "--workspace", "--all-features"])
