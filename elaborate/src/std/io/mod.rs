@@ -265,7 +265,6 @@ fn fill_buf_wc ( & mut self ) -> crate :: rewrite_output_type ! ( std :: io :: R
 ///     .expect("reading from cursor won't fail");
 /// assert_eq!(num_bytes, 1);
 /// ```
-#[cfg(feature = "bufread_skip_until")]
 fn skip_until_wc ( & mut self , byte : u8 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < usize > ) {
     < Self as :: std :: io :: BufRead > :: skip_until(self, byte)
         .with_context(|| crate::call_failed!(Some(self), "skip_until", byte))

@@ -72,7 +72,6 @@ static IGNORED_PATHS: LazyLock<Vec<Vec<Token>>> = LazyLock::new(|| {
 static GENERIC_STRUCTS: LazyLock<Vec<Vec<Token>>> = LazyLock::new(|| {
     const INNER: &[(&[&str], &str)] = &[
         (&["std", "collections", "hash_map"], "HashMap"),
-        (&["std", "collections", "hash_map"], "RawEntryBuilder"),
         (&["std", "collections", "hash_set"], "HashSet"),
         (&["std", "io"], "BufReader"),
         (&["std", "io"], "BufWriter"),

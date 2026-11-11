@@ -7,7 +7,7 @@ edition = "2024"
 license = "MIT OR Apache-2.0"
 readme = "../README.md"
 repository = "https://github.com/trailofbits/elaborate"
-rust-version = "1.89"
+rust-version = "1.91"
 
 [dependencies]
 anyhow = "1.0"
@@ -18,7 +18,6 @@ tempfile = "3.27"
 # smoelius: If you add features below, please also add them near the top of src/lib.rs.
 [features]
 buf_read_has_data_left = []
-bufread_skip_until = []
 core_io = []
 core_io_borrowed_buf = []
 dirfd = []
@@ -31,7 +30,6 @@ linux_pidfd = []
 normalize_lexically = []
 os_str_split_at = []
 panic_backtrace_config = []
-path_file_prefix = []
 path_absolute_method = []
 peer_credentials_unix_socket = []
 raw_os_error_ty = []
@@ -44,7 +42,6 @@ stdio_swap = []
 tcp_deferaccept = []
 tcp_keepalive = []
 tcp_linger = []
-thread_spawn_unchecked = []
 unix_file_vectored_at = []
 unix_kill_process_group = []
 unix_mkfifo = []
