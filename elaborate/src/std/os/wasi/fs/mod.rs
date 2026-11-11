@@ -68,6 +68,7 @@ fn read_at_wc ( & self , buf : & mut [ u8 ] , offset : u64 ) -> crate :: rewrite
 /// [`BorrowedCursor`] rather than `&mut [u8]` to allow use with uninitialized buffers. The new
 /// data will be appended to any existing contents of `buf`.
 #[cfg(feature = "core_io")]
+#[cfg(feature = "core_io_borrowed_buf")]
 fn read_buf_at_wc ( & self , buf : core :: io :: BorrowedCursor < '_ > , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: os :: wasi :: fs :: FileExt > :: read_buf_at(self, buf, offset)
         .with_context(|| crate::call_failed!(Some(self), "read_buf_at", crate::CustomDebugMessage("value of type BorrowedCursor"), offset))

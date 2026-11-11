@@ -530,6 +530,7 @@ fn read_wc ( & mut self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type !
 /// 
 /// This method makes it possible to return both data and an error but it is advised against.
 #[cfg(feature = "core_io")]
+#[cfg(feature = "core_io_borrowed_buf")]
 #[cfg(feature = "read_buf")]
 fn read_buf_wc ( & mut self , buf : core :: io :: BorrowedCursor < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: io :: Read > :: read_buf(self, buf)
@@ -638,6 +639,7 @@ fn read_exact_wc ( & mut self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_
 /// 
 /// If this function returns an error, all bytes read will be appended to `cursor`.
 #[cfg(feature = "core_io")]
+#[cfg(feature = "core_io_borrowed_buf")]
 #[cfg(feature = "read_buf")]
 fn read_buf_exact_wc ( & mut self , cursor : core :: io :: BorrowedCursor < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: io :: Read > :: read_buf_exact(self, cursor)
