@@ -529,6 +529,7 @@ fn read_wc ( & mut self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_type !
 /// The default implementation delegates to `read`.
 /// 
 /// This method makes it possible to return both data and an error but it is advised against.
+#[cfg(feature = "core_io")]
 #[cfg(feature = "read_buf")]
 fn read_buf_wc ( & mut self , buf : core :: io :: BorrowedCursor < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: io :: Read > :: read_buf(self, buf)
@@ -636,6 +637,7 @@ fn read_exact_wc ( & mut self , buf : & mut [ u8 ] ) -> crate :: rewrite_output_
 /// returns.
 /// 
 /// If this function returns an error, all bytes read will be appended to `cursor`.
+#[cfg(feature = "core_io")]
 #[cfg(feature = "read_buf")]
 fn read_buf_exact_wc ( & mut self , cursor : core :: io :: BorrowedCursor < '_ > ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: io :: Read > :: read_buf_exact(self, cursor)
@@ -1213,8 +1215,6 @@ pub trait PipeReaderContext: Sized {
 /// # Examples
 /// 
 /// ```no_run
-/// # #[cfg(miri)] fn main() {}
-/// # #[cfg(not(miri))]
 /// # fn main() -> std::io::Result<()> {
 /// use std::fs;
 /// use std::io::{pipe, Write};
@@ -1274,8 +1274,6 @@ pub trait PipeWriterContext: Sized {
 /// # Examples
 /// 
 /// ```no_run
-/// # #[cfg(miri)] fn main() {}
-/// # #[cfg(not(miri))]
 /// # fn main() -> std::io::Result<()> {
 /// use std::process::Command;
 /// use std::io::{pipe, Read};
@@ -1504,8 +1502,6 @@ pub fn copy_wc < R , W > ( reader : & mut R , writer : & mut W ) -> crate :: rew
 /// # Example
 /// 
 /// ```no_run
-/// # #[cfg(miri)] fn main() {}
-/// # #[cfg(not(miri))]
 /// # fn main() -> std::io::Result<()> {
 /// use std::io::{Read, Write, pipe};
 /// use std::process::Command;

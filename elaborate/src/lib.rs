@@ -5,13 +5,16 @@
 // Unstable features
 #![cfg_attr(feature = "buf_read_has_data_left", feature(buf_read_has_data_left))]
 #![cfg_attr(feature = "bufread_skip_until", feature(bufread_skip_until))]
+#![cfg_attr(feature = "core_io", feature(core_io))]
 #![cfg_attr(feature = "core_io_borrowed_buf", feature(core_io_borrowed_buf))]
 #![cfg_attr(feature = "dirfd", feature(dirfd))]
 #![cfg_attr(feature = "exit_status_error", feature(exit_status_error))]
 #![cfg_attr(feature = "file_buffered", feature(file_buffered))]
 #![cfg_attr(feature = "fs_set_times", feature(fs_set_times))]
 #![cfg_attr(feature = "gethostname", feature(gethostname))]
+#![cfg_attr(feature = "tcp_keepalive", feature(tcp_keepalive))]
 #![cfg_attr(feature = "normalize_lexically", feature(normalize_lexically))]
+#![cfg_attr(feature = "os_str_split_at", feature(os_str_split_at))]
 #![cfg_attr(feature = "panic_backtrace_config", feature(panic_backtrace_config))]
 #![cfg_attr(feature = "path_file_prefix", feature(path_file_prefix))]
 #![cfg_attr(feature = "path_absolute_method", feature(path_absolute_method))]
@@ -55,6 +58,10 @@
 #![cfg_attr(
     all(unix, feature = "unix_file_vectored_at"),
     feature(unix_file_vectored_at)
+)]
+#![cfg_attr(
+    all(unix, feature = "unix_kill_process_group"),
+    feature(unix_kill_process_group)
 )]
 #![cfg_attr(all(unix, feature = "unix_mkfifo"), feature(unix_mkfifo))]
 #![cfg_attr(all(unix, feature = "unix_send_signal"), feature(unix_send_signal))]

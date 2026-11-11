@@ -133,6 +133,7 @@ fn read_at_wc ( & self , buf : & mut [ u8 ] , offset : u64 ) -> crate :: rewrite
 ///     Ok(())
 /// }
 /// ```
+#[cfg(feature = "core_io")]
 #[cfg(feature = "read_buf_at")]
 fn read_buf_at_wc ( & self , buf : core :: io :: BorrowedCursor < '_ > , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: os :: unix :: fs :: FileExt > :: read_buf_at(self, buf, offset)
@@ -218,6 +219,7 @@ fn read_exact_at_wc ( & self , buf : & mut [ u8 ] , offset : u64 ) -> crate :: r
 ///     Ok(())
 /// }
 /// ```
+#[cfg(feature = "core_io")]
 #[cfg(feature = "read_buf_at")]
 fn read_buf_exact_at_wc ( & self , buf : core :: io :: BorrowedCursor < '_ > , offset : u64 ) -> crate :: rewrite_output_type ! ( std :: io :: Result < ( ) > ) {
     < Self as :: std :: os :: unix :: fs :: FileExt > :: read_buf_exact_at(self, buf, offset)
