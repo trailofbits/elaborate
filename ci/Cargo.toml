@@ -13,7 +13,7 @@ assert_cmd = "2.2"
 regex = "1.13"
 snapbox = "1.2"
 tempfile = "3.27"
-toml = "1.1"
+toml = "1.2"
 walkdir = "2.5"
 
 elaborate = { path = "../elaborate" }
