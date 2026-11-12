@@ -61,22 +61,22 @@ jobs:
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
+            ~/.cargo/git/checkouts/
             ~/.dylint_drivers/
             ~/.rustup/toolchains/
-            target/dylint/
+            target/dylint/libraries/
             generate/checkouts
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - uses: taiki-e/install-action@v2
         with:
-          tool: cargo-audit, cargo-hack, cargo-sort, cargo-udeps
+          tool: cargo-audit, cargo-dylint, dylint-link, cargo-hack, cargo-sort, cargo-udeps
 
       - name: Install Rust toolchain from `rust-toolchain.toml` file
         run: rustup install
 
       - name: Install tools
         run: |
-          cargo install cargo-dylint dylint-link || true
           cargo install cargo-license            || true
           cargo install cargo-msrv               || true
           cargo install group-runner             || true
