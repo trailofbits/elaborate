@@ -161,18 +161,20 @@ The Rust checkout in `generate/checkouts` is shared with the container. Thus, ho
 
 ## Semantic versioning policy
 
-We reserve the right to update the nightly toolchain with which `elaborate` is associated, and to release such changes with only a minor version bump.
+- We reserve the right to update the nightly toolchain with which `elaborate` is associated, and to release such changes with only a minor version bump.
 
-Such a policy should not affect users of stable Rust.
+  Such a policy should not affect users of stable Rust.
 
-However, if you are using nightly Rust and require a specific nightly toolchain, then we recommend using a [tilde requirement] to specify `elaborate` as a dependency.
+  However, if you are using nightly Rust and require a specific nightly toolchain, then we recommend using a [tilde requirement] to specify `elaborate` as a dependency.
 
-Example:
+  Example:
 
-```toml
-[dependencies]
-elaborate = "~1.0"
-```
+  ```toml
+  [dependencies]
+  elaborate = "~1.0"
+  ```
+
+- Cargo features corresponding to unstable Rust features are outside our compatibility guarantees. We may remove them in a patch release when the corresponding Rust features are stabilized or removed.
 
 ## Credits
 
