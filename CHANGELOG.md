@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.4.0
+
+- FEATURE: Update Rust toolchain to `nightly-2026-05-23` ([046ecc9](https://github.com/trailofbits/elaborate/commit/046ecc9f7a34c9f4457d6b1fe901cb0a23c6144e))
+- Remove Cargo features `bufread_skip_until`, `path_file_prefix`, and `thread_spawn_unchecked`, whose corresponding Rust features are now stable, and raise the minimum supported Rust version from 1.89 to 1.91 ([81a512d](https://github.com/trailofbits/elaborate/commit/81a512df5149de2c21d8b700a0592b6fd1847f25))
+
 ## 2.3.0
 
 - FEATURE: Update Rust toolchain to `nightly-2026-04-12` ([06a0508](https://github.com/trailofbits/elaborate/commit/06a05088a5ed6a525a4cfcc15bd811cb23d2202e))
